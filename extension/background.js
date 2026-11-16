@@ -190,7 +190,17 @@ async function siteOff(host, on) {
   await sweep('settings');
   return { ok: true, sitesOff: list };
 }
-const MESSAGES = { state, pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
+// ---- The report (1.23, report-view.js): this site's cookies as Chrome has them right now: the site itself and the
+// sites above and below it. What a cookie holds leaves here cut to its first CUT characters, for the screen only: it is
+// never written to storage, the history, the queue, the log or a report to 8088.
+const CUT = 24;
+const siteCookies = async (host) => (await allCookies()).filter((c) => under(host, bare(c.domain)) || under(bare(c.domain), host));
+async function cookiesOf(host) {
+  if (!isHost(host)) return { ok: false };
+  return { ok: true, cookies: (await siteCookies(host.toLowerCase())).map((c) => ({ domain: c.domain, name: c.name, value: c.value.slice(0, CUT), long: c.value.length > CUT,
+    session: c.session, expirationDate: c.expirationDate })) };
+}
+const MESSAGES = { state, cookies: (m) => cookiesOf(m.host), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),

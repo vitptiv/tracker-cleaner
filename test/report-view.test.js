@@ -91,3 +91,68 @@ test('rendered: a heading, then per row the title, the state word, the count and
   assert.ok(t.includes('Pause cleaning while you sign in' + 'on' + SAYS.signin));
   assert.doesNotMatch(html, /\bC\d\d\b/); assert.doesNotMatch(html, /<img|<script|<b>x/);
 });
+
+// ---- step 2: cookie rows
+const EXP = new Date(2027, 10, 20, 12).getTime() / 1000;   // 20 Nov 2027, midday local
+const ck = (name, domain, o = {}) => ({ name, domain, value: 'v-' + name, session: false, expirationDate: EXP, ...o });
+const what = (r, name) => r.cookies.rows.find((c) => c.name === name).what;
+test('a cookie row: site, name, the start of what it holds, how long it stays', () => {
+  const r = buildReport(state(), tab({ cookies: [ck('theme', '.example.com', { value: 'abcdefghijklmnopqrstuvwxyz0123456789' }), ck('lang', 'www.example.com', { value: 'en', session: true, expirationDate: undefined })] }));
+  assert.equal(r.cookies.n, 2);
+  assert.deepEqual(r.cookies.rows[0], { site: 'example.com', name: 'theme', value: 'abcdefghijklmnopqrstuvwx', long: true, expires: 'until 20 Nov 2027', what: 'on no tracker list, kept', signin: false });
+  assert.deepEqual([r.cookies.rows[1].value, r.cookies.rows[1].long, r.cookies.rows[1].expires], ['en', false, 'until you close Chrome']);
+  // the background script has cut it already and says so
+  assert.equal(buildReport(state(), tab({ cookies: [ck('a', 'example.com', { value: 'x'.repeat(24), long: true })] })).cookies.rows[0].long, true);
+});
+test('every kind of cookie says what it is and what happens to it', () => {
+  const cookies = [ck('SID', '.google.com'), ck('_ga', '.google.com'), ck('x', '.ads.doubleclick.net'), ck('NID', '.google.com'), ck('theme', '.google.com')];
+  const r = buildReport(state(), tab({ host: 'www.google.com', cookies }));
+  assert.equal(what(r, 'SID'), 'keeps you signed in, kept');
+  assert.equal(what(r, '_ga'), "has a tracker's name, deleted automatically");
+  assert.equal(what(r, 'x'), "comes from a tracker's site, deleted automatically");
+  assert.equal(what(r, 'NID'), 'Google uses it to recognise you, deleted only after you say so');
+  assert.equal(what(r, 'theme'), 'on no tracker list, kept');
+  assert.deepEqual(r.cookies.rows.map((c) => c.signin), [true, false, false, false, false]);
+});
+test('a cookie that keeps you signed in and sits on a tracker\'s site says kept, and why', () => {
+  const r = buildReport(state(), tab({ host: 'x.test', cookies: [ck('SID', '.doubleclick.net')] }));
+  assert.equal(what(r, 'SID'), "keeps you signed in, kept even though it comes from a tracker's site");
+});
+test('what happens follows the switches: asks first, off, paused, a sign-in going on', () => {
+  const c = [ck('_ga', '.example.com'), ck('NID', '.google.com')], w = (s) => what(buildReport(s, tab({ cookies: c })), '_ga');
+  assert.equal(w(state({}, { cookies: { mode: 'ask' } })), "has a tracker's name, deleted only after you say so");
+  assert.equal(w(state({}, { cookies: { mode: 'off' } })), "has a tracker's name, kept because this cleaning is switched off");
+  assert.equal(w(state({ master: false })), "has a tracker's name, kept because this cleaning is switched off");
+  assert.equal(w(state({ hold: { paused: true } })), "has a tracker's name, kept while cleaning is paused");
+  assert.equal(w(state({ hold: { guard: true } })), "has a tracker's name, kept while you sign in");
+  assert.equal(what(buildReport(state({}, { google: { mode: 'auto' } }), tab({ cookies: c })), 'NID'), 'Google uses it to recognise you, deleted automatically');
+});
+test('the user\'s own exceptions are said: Keep, a site not to clean, and being on the tracker\'s own site', () => {
+  const c = [ck('_ga', '.example.com'), ck('_gid', '.example.com')];
+  assert.equal(what(buildReport(state({ allow: [{ site: 'example.com', name: '_ga' }] }), tab({ cookies: c })), '_ga'), "has a tracker's name, kept because you chose Keep");
+  const off = buildReport(state({ sitesOff: ['example.com'] }), tab({ cookies: c }));
+  assert.equal(what(off, '_gid'), "has a tracker's name, kept because you told it not to clean this site");
+  // mixpanel.com is on the tracker list and is also a product people use: its cookies stay while a tab is on it
+  const own = buildReport(state(), tab({ host: 'app.mixpanel.com', cookies: [ck('session', '.mixpanel.com')] }));
+  assert.equal(what(own, 'session'), "comes from a tracker's site, kept while you are on that site");
+});
+test('rendered: the number first, the rows collapsed, where they are kept, the command to check; hostile names and values escaped', () => {
+  const bad = '<img src=x onerror=alert(1)>';
+  const html = renderReport(buildReport(state(), tab({ cookies: [ck('"><script>x</script>', '.example.com', { value: bad }), ck('SID', '.example.com', { value: 'abcdefghijklmnopqrstuvwxyz0123456789' })] })));
+  assert.match(html, /<h2>Small files this site has saved to recognise you \(cookies\)<\/h2>/);
+  assert.ok(text(html).includes("2 cookies on www.example.com, read from Chrome just now. They are in Chrome's own cookie file on this computer. Only the start of what each one holds is shown here, and none of it is saved anywhere."));
+  assert.match(html, /<details id="cookies"><summary>Show the 2 cookies<\/summary>/);
+  assert.doesNotMatch(html, /<img|<script/); assert.ok(html.includes('&lt;img src=x onerror=alert'));
+  assert.ok(html.includes('<code>abcdefghijklmnopqrstuvwx…</code>')); assert.equal(html.includes('yz0123456789'), false);
+  assert.ok(text(html).includes('keeps you signed in, kept')); assert.ok(html.includes('until 20 Nov 2027'));
+  assert.ok(html.includes('data-copy="node tools/inspect.js cookies --site www.example.com"'));
+});
+test('rendered: one cookie, none, Chrome did not say, and a tab that is not a web page', () => {
+  const p = (t) => text(renderReport(buildReport(state(), t)));
+  assert.ok(p(tab({ cookies: [ck('a', 'www.example.com', { value: '' })] })).includes('1 cookie on www.example.com, read from Chrome just now.'));
+  assert.ok(renderReport(buildReport(state(), tab({ cookies: [ck('a', 'www.example.com', { value: '' })] }))).includes('<span class="m">holds nothing</span>'));
+  assert.ok(p(tab({ cookies: [] })).includes('This site has saved no cookies.'));
+  assert.ok(p(tab()).includes('Chrome did not say which cookies this site has.'));
+  assert.ok(p(null).includes('This tab is not a web page, so there are no cookies to show.'));
+  assert.equal(buildReport(state(), null).cookies, null);
+});
