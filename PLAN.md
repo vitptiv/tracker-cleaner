@@ -605,3 +605,10 @@ both, with the exact sentences.
   and "This page: ... · Read at HH:MM:SS" with "Read again". `test/load-page.js` runs the page script against the real
   background and the fake. Decided: "Undo (N)" reads "Put back N deleted cookies"; the report is not redrawn when
   storage changes, only on a press, a tab change or "Read again". Not run in a real Chrome yet (step 8).
+- **Step 6, inspector parity** (11 tests, 365 in all). `tools/inspect.js cookies --site <site> [--values]` and
+  `storage --site <site>`: the rows are built by the report's own `buildReport`, so the words cannot drift. What
+  happens to a cookie is said for the switches of a new Tracker Cleaner with cleaning on, and a line says that the
+  user's own switches, Keep and Always delete are not seen from outside Chrome. `--values`: the locked (encrypted)
+  column is never read, the row says "not readable from the file"; a readable value is cut to 24 characters.
+  Storage: the files tell only whether the site is on Chrome's list and has a database folder; the other four kinds
+  say "cannot be counted from the files" instead of guessing. The fixture's Cookies file gained expiry columns.

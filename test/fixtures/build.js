@@ -4,7 +4,13 @@
 // touching the system. Every cookie value is MARK: no output may ever contain it.
 const fs = require('node:fs'), path = require('node:path'), { execFileSync } = require('node:child_process');
 const EXT = path.join(__dirname, '..', '..', 'extension'), MARK = 'SECRET-VALUE-MARKER';
-const COOKIES = [['example.com', '_ga'], ['.doubleclick.net', 'id'], ['.google.com', 'NID'], ['.google.com', 'SID'], ['example.com', 'session']];
+// [site, name, { plain: what the readable column holds (default MARK), locked: false = nothing in the locked column, expires: [y, m, d] or none = until Chrome closes }]
+// As Chrome on Linux keeps them, _ga has its content only in the locked (encrypted) column; "session" is an old-style one that can be read.
+const PLAIN = 'PLAIN-0123456789-abcdefghijklmnopqrstuvwxyz';
+const COOKIES = [['example.com', '_ga', { plain: '', expires: [2027, 11, 20] }], ['.doubleclick.net', 'id'], ['.google.com', 'NID', { expires: [2027, 5, 1] }], ['.google.com', 'SID', { plain: '', locked: false, expires: [2028, 1, 2] }],
+  ['example.com', 'session', { plain: PLAIN, locked: false }]];
+// Chrome counts time in millionths of a second since 1601
+const chromeTime = (ymd) => ymd ? (new Date(ymd[0], ymd[1] - 1, ymd[2], 12).getTime() / 1000 + 11644473600) * 1e6 : 0;
 const BUCKETS = ['https://app.example/', 'https://mixpanel.com/', 'https://hcaptcha.com/', 'https://news.example/^0https://app.example', 'chrome-extension://abcdefgh/'];
 const S = 1.8e9, DAY = 86400, U = (n) => `00000000-0000-4000-8000-00000000000${n}`;   // as test/wifi.test.js
 const NMCLI = [`Home:${U(1)}:802-11-wireless:${S - 60}:yes`, `Cafe:${U(2)}:802-11-wireless:${S - 31 * DAY}:no`, `Office:${U(3)}:802-11-wireless:${S - 29 * DAY}:no`,
@@ -14,8 +20,8 @@ import sqlite3, sys, json
 spec = json.loads(sys.argv[2])
 db = sqlite3.connect(sys.argv[1])
 if 'cookies' in spec:
-    db.execute('create table cookies(creation_utc integer not null, host_key text not null, top_frame_site_key text not null, name text not null, value text not null, encrypted_value blob not null, path text not null)')
-    db.executemany("insert into cookies values (0, ?, '', ?, ?, ?, '/')", [(h, n, spec['mark'], spec['mark'].encode()) for h, n in spec['cookies']])
+    db.execute('create table cookies(creation_utc integer not null, host_key text not null, top_frame_site_key text not null, name text not null, value text not null, encrypted_value blob not null, path text not null, expires_utc integer not null, has_expires integer not null)')
+    db.executemany("insert into cookies values (0, ?, '', ?, ?, ?, '/', ?, ?)", [(h, n, v, e.encode(), x, 1 if x else 0) for h, n, v, e, x in spec['cookies']])
 else:
     db.execute('create table buckets(id integer primary key autoincrement, storage_key text not null, host text not null, name text not null)')
     db.executemany("insert into buckets (storage_key, host, name) values (?, ?, '_default')", [(k, k.split('/')[2]) for k in spec['buckets']])
@@ -26,9 +32,9 @@ const file = (p, content, day) => { fs.mkdirSync(path.dirname(p), { recursive: t
 
 // One fixture per folder name: test files run side by side, and each builds its own.
 const make = (name) => { const DIR = path.join(__dirname, name), HOME = path.join(DIR, 'home'), CACHE = path.join(DIR, 'cache'), BIN = path.join(DIR, 'bin');
- return { DIR, HOME, CACHE, BIN, MARK, COOKIES, U, build() {
+ return { DIR, HOME, CACHE, BIN, MARK, PLAIN, COOKIES, U, build() {
   fs.rmSync(DIR, { recursive: true, force: true }); fs.mkdirSync(path.join(DIR, 'WebStorage'), { recursive: true });
-  sqlite(path.join(DIR, 'Cookies'), { cookies: COOKIES, mark: MARK });
+  sqlite(path.join(DIR, 'Cookies'), { cookies: COOKIES.map(([h, n, o = {}]) => [h, n, o.plain ?? MARK, o.locked === false ? '' : MARK, chromeTime(o.expires)]) });
   sqlite(path.join(DIR, 'WebStorage', 'QuotaManager'), { buckets: BUCKETS });
   for (const h of ['app.example', 'hcaptcha.com']) fs.mkdirSync(path.join(DIR, 'IndexedDB', `https_${h}_0.indexeddb.leveldb`), { recursive: true });
   const at = (h) => `https://${h}:443,*`;

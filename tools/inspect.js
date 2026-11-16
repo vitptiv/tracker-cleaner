@@ -2,6 +2,8 @@
 // The inspector: what Chrome has stored right now, read from Chrome's own files and sorted by the extension's own
 // lists (extension/lists.js, core.js). It runs without the extension and changes nothing.
 //   node tools/inspect.js cookies [--list] [--raw] [--json] [--profile <folder>] [--cache <folder>]
+//   node tools/inspect.js cookies --site www.example.com [--values]      one site, as the report beside the page shows it
+//   node tools/inspect.js storage --site www.example.com
 // Every block answers the same questions in the same words: what is there now, what is kept and why, what would
 // be removed and why, and what cleaning costs you. --raw prints the plain command underneath instead.
 // What it cannot see: your own exceptions and switches (they live inside Chrome), the open tabs, and what was
@@ -161,6 +163,46 @@ function wifi({ run, now }) {
     lists: [['Would be removed', rows(go, (c) => c.reason)], ['Kept', rows(kept, why)]], raw: `nmcli -t -f ${wifiHelper.FIELDS} connection show` };
 }
 
+// ---- One site (1.23): the same rows in the same words as the report beside the page. The words come from the
+// report's own code (extension/report-view.js), given the switches of a new Tracker Cleaner with cleaning turned on:
+// the user's own switches and exceptions live inside Chrome and cannot be read from here.
+const { buildReport } = require('../extension/report-view.js'), { GROUPS, cap } = require('../extension/registry.js');
+const NEW = { master: true, hold: {}, groups: GROUPS.filter((g) => g.caps.length).map((g) => ({ id: g.id, title: g.title, says: g.says, ask: g.caps.some((id) => cap(id).destructive), mode: cap(g.caps[0]).mode })) };
+const SITE = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/, CUT = 24;   // only such a name goes into a query; CUT as in the report
+const table = (rows) => rows.map((r) => '  ' + r.map((x, i) => i === r.length - 1 ? x : x.padEnd(Math.max(...rows.map((o) => o[i].length)))).join('  '));
+// The site itself, the sites above it and the sites below it, as the report takes them
+const ofSite = (site) => { const parts = site.split('.'), ups = parts.map((_, i) => parts.slice(i).join('.'));
+  return `host_key in (${ups.flatMap((h) => [`'${h}'`, `'.${h}'`]).join(', ')}) or host_key like '%.${site}'`; };
+// What a cookie holds is asked from the file only with --values, and then only its first characters. Chrome keeps it
+// locked (encrypted) in another column, which is never read: only whether there is something in it.
+function siteCookies({ profile, run, site, values }) {
+  const file = path.join(profile(), 'Cookies'), where = ` from cookies where ${ofSite(site)} order by 1, 2`;
+  const found = sql(run, file, 'cookie file', `select host_key, name, expires_utc, has_expires${values ? `, substr(value, 1, ${CUT + 1}), length(encrypted_value)` : ''}${where}`);
+  const rows = buildReport(NEW, { host: site, cookies: found.map(([domain, name, expires, has]) => ({ domain, name, value: '', session: !has, expirationDate: expires / 1e6 - 11644473600 })) }).cookies.rows
+    .map((r, i) => { const [, , , , plain, locked] = found[i];
+      return { site: r.site, name: r.name, expires: r.expires, what: r.what, ...(values ? { holds: plain ? plain.slice(0, CUT) + (plain.length > CUT ? '…' : '') : locked ? 'not readable from the file' : 'nothing' } : {}) }; });
+  const n = rows.length;
+  return { title: 'Small files this site has saved to recognise you (cookies)', site, rows, raw: rawSql(file, `select host_key, name${where}`),
+    lines: !n ? ['  This site has saved no cookies.']
+      : [`  ${count(n, 'cookie')} on ${site}, read from Chrome's own cookie file on this computer. Chrome writes that file a little late, so it can be half a minute behind.`,
+        ...table(rows.map((r) => [r.site, r.name, r.expires, r.what, ...(values ? [`holds: ${r.holds}`] : [])])),
+        '  What happens to each one is said for the switches as they are in a new Tracker Cleaner with cleaning turned on. Your own switches, Keep and Always delete live inside Chrome and are not seen from here.',
+        values ? '  Chrome keeps what a cookie holds locked on disk (encrypted), so it is not readable from the file. The report beside the page shows it.' : '  What each one holds is left out. Add --values to ask for it.'] };
+}
+// Of the five kinds the report counts inside the page, the files tell only whether the site has a database folder;
+// the rest is in packed files (LevelDB), so it is said that it cannot be counted, not guessed.
+function siteStorage({ profile, run, site }) {
+  const file = path.join(profile(), 'WebStorage', 'QuotaManager'), idb = path.join(profile(), 'IndexedDB'), query = "select distinct host from buckets where storage_key like 'http%' order by 1";
+  const listed = sql(run, file, 'list of site storage', query).some(([h]) => h === site), db = ['https', 'http'].some((p) => fs.existsSync(path.join(idb, `${p}_${site}_0.indexeddb.leveldb`)));
+  const kinds = buildReport(NEW, { host: site, stored: { ok: true, counts: {} } }).stored.kinds.map((k) => ({ id: k.id, title: k.title, what: k.what, where: k.where, found: k.id === 'databases' ? db : null,
+    told: k.id !== 'databases' ? 'cannot be counted from the files, which Chrome keeps packed. The report beside the page counts them.'
+      : db ? 'it has a database folder. How many databases are in it cannot be read from outside Chrome.' : 'no database folder.' }));
+  return { title: 'Other things this page has saved in your browser', site, listed, kinds, raw: `${rawSql(file, query)}; ls ${q(idb)}`,
+    lines: [`  ${site} is ${listed ? '' : 'not '}on Chrome's own list of sites that keep something in your browser.`,
+      ...kinds.flatMap((k) => [`  ${k.title}`, `    ${k.what}`, `    ${k.where}`, `    On this site: ${k.told}`])] };
+}
+const BY_SITE = { cookies: siteCookies, storage: siteStorage };
+
 const BLOCKS = {
   cookies: ['Small files sites leave to recognise you (cookies)', cookies],
   cache: ['Saved copies of pages (HTTP cache)', cache],
@@ -171,11 +213,13 @@ const BLOCKS = {
   tor: ['Hiding your address from websites (Tor)', tor],
   wifi: ['Remembered Wi-Fi networks', wifi],
 };
-const usage = () => ['Usage: node tools/inspect.js <what> [--list] [--raw] [--json] [--full] [--profile <folder>] [--cache <folder>]',
+const usage = () => ['Usage: node tools/inspect.js <what> [--list] [--raw] [--json] [--full] [--site <site>] [--values] [--profile <folder>] [--cache <folder>]',
   'Shows what Chrome has stored right now, read from its own files. Nothing is changed.', '',
   ...Object.entries(BLOCKS).map(([name, [title]]) => `  ${name.padEnd(13)}${title}`), '',
   '  --list       also name each one', '  --raw        print the plain command underneath, to run yourself', '  --json       the same answers as data',
   '  --full       show internet addresses whole (tor)',
+  '  --site <site> only this site, in the same words as the report beside the page (cookies, storage)',
+  '  --values     with --site: also what each cookie holds, where the file lets it be read',
   'Without --profile it looks at the Chrome profile that has Tracker Cleaner loaded.'].join('\n');
 
 // The profile that has this copy of the extension loaded: Chrome records the folder of an unpacked extension.
@@ -196,6 +240,12 @@ function main(argv, { run = system, now = Date.now(), print = console.log, home 
   const profile = () => found || (found = value('--profile') || findProfile(home));
   const cache = () => value('--cache') || path.join(home, '.cache', 'google-chrome', path.basename(profile()));
   let r;
+  if (flag('--site') && BY_SITE[argv[0]]) { const site = String(value('--site') ?? '').toLowerCase();
+    if (!SITE.test(site)) { print('Name the site by its address without "https://", for example: --site www.example.com'); return 1; }
+    try { r = BY_SITE[argv[0]]({ profile, run, site, values: flag('--values') }); } catch (e) { print(e.plain ? e.message : `That did not work: ${String(e.message).split('\n')[0]}`); return 1; }
+    const { lines, raw, ...data } = r;
+    print(flag('--raw') ? raw : flag('--json') ? JSON.stringify(data, null, 1) : [r.title, ...lines].join('\n'));
+    return 0; }
   try { r = { title: block[0], ...block[1]({ profile, cache, run, now, full: flag('--full') }) }; }
   catch (e) { print(e.plain ? e.message : `That did not work: ${String(e.message).split('\n')[0]}`); return 1; }
   if (flag('--raw')) { print(r.raw); return 0; }
