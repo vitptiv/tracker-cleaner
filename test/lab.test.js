@@ -261,3 +261,33 @@ test('lab step 18: the outside check reads a profile\'s own files', async () => 
       T18: `1 lab icons saved: http://gazette.localhost:${PORT}/favicon.ico`, T19: `2 lab addresses in History, first http://gazette.localhost:${PORT}/` });
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ---- completeness: no row may be without a technique and a place in the coded trip, unless it carries a mark and a reason
+const MARKS = ['designed, not built', 'not buildable here'];
+function gaps(traces, trip, expect, tripSource) {
+  const out = [], inTrip = new Set(trip.flatMap((s) => s.traces));
+  for (const t of traces) {
+    if (!t.technique) out.push(`${t.id} has no technique`);
+    if (t.status === 'built') { if (!inTrip.has(t.id)) out.push(`${t.id} is ticked by no step of the trip`); if (!(expect[t.id] instanceof RegExp)) out.push(`${t.id} has no value check`); }
+    else if (!MARKS.includes(t.status) || !t.reason) out.push(`${t.id} is neither built nor marked with a reason`);
+    else if (inTrip.has(t.id) || expect[t.id]) out.push(`${t.id} is marked "${t.status}" and still claimed by the trip`);
+  }
+  for (let n = 1; n <= 11; n++) if (!traces.some((t) => t.class === 'c' + n)) out.push(`class c${n} of the orthogonal set has no row`);
+  for (const need of ['for (const tr of TRACES)', 'EXPECT[tr.id].test(r.value)', `same(r.mark, 'tracked'`, 'the reconstructed history is the trip', 'is shown on the page'])
+    if (!tripSource.includes(need)) out.push(`the coded trip lost its check: ${need}`);
+  return out;
+}
+test('lab step 19: completeness, every row has a technique and its checks or a mark with a reason', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const traces = require('../lab/traces.json'), trip = require('../lab/trip.json'), expect = require('./lab/expect'), src = fs.readFileSync(path.join(__dirname, 'lab', 'trip.js'), 'utf8');
+  assert.deepEqual(gaps(traces, trip, expect, src), []);
+  assert.deepEqual(traces.map((t) => t.id), Array.from({ length: 36 }, (_, i) => 'T' + (i + 1)));
+  assert.deepEqual(traces.filter((t) => t.status !== 'built').map((t) => `${t.id} ${t.status}`), ['T20 not buildable here', 'T21 not buildable here', 'T34 designed, not built']);
+  // taking one thing away must be noticed
+  const without = (id) => Object.fromEntries(Object.entries(expect).filter(([k]) => k !== id));
+  assert.deepEqual(gaps(traces, trip, without('T16'), src), ['T16 has no value check']);
+  assert.deepEqual(gaps(traces, trip.map((s) => ({ ...s, traces: s.traces.filter((x) => x !== 'T33') })), expect, src), ['T33 is ticked by no step of the trip']);
+  assert.deepEqual(gaps(traces.map((t) => t.id === 'T34' ? { ...t, reason: '' } : t), trip, expect, src), ['T34 is neither built nor marked with a reason']);
+  assert.deepEqual(gaps(traces.map((t) => t.id === 'T35' ? { ...t, technique: '' } : t), trip, expect, src), ['T35 has no technique']);
+  assert.equal(gaps(traces, trip, expect, src.replace('EXPECT[tr.id].test(r.value)', 'true')).length, 1);
+});
