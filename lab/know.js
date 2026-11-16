@@ -13,7 +13,7 @@ function know(store, g) {
       mark: row.status !== 'built' ? row.status : captures.length ? 'tracked' : 'not yet seen',
       value: captures.length ? captures[0].value : '', sites: [...new Set(captures.map((x) => x.site).filter(Boolean))], captures }; });
   const history = recs.filter((r) => r.trace === 'visit').map((r) => ({ when: iso(r.t), site: r.site, url: r.value, from: r.extra.ref || '', via: r.via,
-    beforeSignIn: joined === undefined || r.t < joined }));
+    beforeSignIn: joined === undefined || r.n < joined }));
   return { who: account ? { name: account.name, email: account.email, sure: 'signed in from this browser' } : null,
     tracked: rows.filter((r) => r.mark === 'tracked').length, buildable: rows.filter((r) => r.status === 'built').length, of: rows.length,
     canary: store.canary, rows, history };

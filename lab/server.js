@@ -17,7 +17,7 @@ function start({ port = 8200, logFile } = {}) {
 header{background:${LOOK[site]};color:#fff;margin:0 -16px 16px;padding:10px 16px}header a{color:#fff;text-decoration:none;font-weight:bold}
 table{border-collapse:collapse;font-size:14px}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top;text-align:left}</style>
 <header><a href="/">${esc(SITES[site])}</a></header><h1>${esc(title)}</h1>${body}`;
-  const handlers = { friendface: require('./friendface'), ...require('./sites') };
+  const { KEY, ...sites } = require('./sites'), handlers = { friendface: require('./friendface'), ...sites };
   const server = http.createServer(async (q, r) => {
     const name = String(q.headers.host || '').split(':')[0].replace(/\.localhost$/, '');
     const c = { q, r, lab, store: lab.store, site: name, host: name + '.localhost', url: new URL(q.url, `http://${q.headers.host}`), out: {} };

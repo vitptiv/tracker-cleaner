@@ -63,3 +63,30 @@ test('lab: the canary says off when the link tag arrives and on when it was stri
   assert.equal((await knows({})).canary.blockedName.startsWith('skipped'), true);
   assert.match((await ask('friendface', '/lab/check/result')).text, /cleaner seems on/);
 });
+
+// what a browser does with an embedded piece: find its address in the page and ask for it with Friendface's cookies
+const embedded = (html, re) => { const m = html.match(re); assert.ok(m, String(re)); const u = new URL(m[1].replace(/&#38;/g, '&')); return [u.hostname.replace('.localhost', ''), u.pathname + u.search]; };
+const IMG = /<img[^>]+src="([^"]+\/tr\?[^"]+)"/;
+const view = async (site, path, jar, headers) => { const html = (await ask(site, path, { headers: { Referer: `http://${site}.localhost:${PORT}/` } })).text;
+  const [to, p] = embedded(html, IMG); await ask(to, p, { jar, headers }); return html; };
+
+test('lab step 7: one cookie ID on two sites, the pages, the request details and a second simulated address', async () => {
+  const jar = {};
+  await view('gazette', '/article/harbour-bridge', jar); assert.match(jar.ff_uid, /^u-\w+$/);
+  await view('loopreel', '/', jar); await view('gazette', '/', jar, { 'X-Forwarded-For': '203.0.113.7' });
+  const k = await knows(jar);
+  assert.equal(row(k, 'T1').value, 'ff_uid=' + jar.ff_uid); assert.deepEqual(row(k, 'T1').sites, ['loopreel.localhost', 'gazette.localhost']);
+  assert.deepEqual(k.history.map((h) => h.url), ['/article/harbour-bridge', '/', '/'].map((p, i) => `http://${i === 1 ? 'loopreel' : 'gazette'}.localhost:${PORT}${p}`));
+  assert.match(row(k, 'T23').value, /article\/harbour-bridge \(came from http:\/\/gazette/);
+  const addresses = row(k, 'T24').captures.map((x) => x.value.split(',')[0]);
+  assert.ok(addresses.includes('address 127.0.0.1') && addresses.includes('address 203.0.113.7 (forwarded; simulated)'), addresses.join());
+  assert.match(row(k, 'T24').value, /header pattern h-\w{6}$/);
+  assert.equal(k.who, null); assert.equal(row(k, 'T2').mark, 'not yet seen');
+});
+test('lab step 7: pages from before sign-in end up under the person', async () => {
+  const jar = {}; await view('gazette', '/article/harbour-bridge', jar); await join(MARA, jar); await view('loopreel', '/', jar);
+  const k = await knows(jar);
+  assert.equal(k.who.name, 'Mara Lindqvist'); assert.deepEqual(k.history.map((h) => h.beforeSignIn), [true, false]);
+  assert.equal(row(k, 'T2').value, `ff_session=${jar.ff_session} is Mara Lindqvist`); assert.deepEqual(row(k, 'T2').sites, ['loopreel.localhost']);
+  assert.equal((await knows(await join(JONAS))).history.length, 0);
+});
