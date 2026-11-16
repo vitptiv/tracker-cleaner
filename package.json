@@ -3,6 +3,8 @@
  "private": true,
  "scripts": {
   "test": "node --test \"test/*.test.js\"",
-  "test:browser": "node test/browser/run.js"
+  "test:browser": "node test/browser/run.js",
+  "lab": "node lab/server.js",
+  "test:lab": "node test/lab/trip.js"
  }
 }

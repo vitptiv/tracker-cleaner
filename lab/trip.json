@@ -1,0 +1,114 @@
+[
+ {
+  "n": 1,
+  "title": "Read the news, not signed in",
+  "hand": "Open http://gazette.localhost:8200/. Open the article \"Harbour bridge closes for repairs\". Scroll to the end.",
+  "traces": [
+   "T1",
+   "T3",
+   "T6",
+   "T9",
+   "T10",
+   "T11",
+   "T12",
+   "T14",
+   "T15",
+   "T16",
+   "T23",
+   "T24",
+   "T25",
+   "T28",
+   "T36"
+  ]
+ },
+ {
+  "n": 2,
+  "title": "Join Friendface",
+  "hand": "Open http://friendface.localhost:8200/. Create the account: name Mara Lindqvist, e-mail mara.lindqvist@example.test, password lab-only-1. Press \"Allow\" when Friendface asks to send notifications.",
+  "traces": [
+   "T13",
+   "T22"
+  ]
+ },
+ {
+  "n": 3,
+  "title": "Follow a link from the feed",
+  "hand": "In the feed, click the post \"Tidewater Notes: mending a kite\". It goes through Hop and arrives with ?ffclid= in the address.",
+  "traces": [
+   "T2",
+   "T4",
+   "T29",
+   "T30"
+  ]
+ },
+ {
+  "n": 4,
+  "title": "Like and comment on the blog",
+  "hand": "Press \"Like\". Press \"Sign in with Friendface\" and continue. Write the comment Nice post and send it.",
+  "traces": [
+   "T8",
+   "T31",
+   "T32"
+  ]
+ },
+ {
+  "n": 5,
+  "title": "Watch a video and leave",
+  "hand": "Open http://loopreel.localhost:8200/ in a new tab. Press play, wait a few seconds, close the tab. (The coded trip makes this tab come from a second, simulated address.)",
+  "traces": []
+ },
+ {
+  "n": 6,
+  "title": "Search, almost subscribe, share",
+  "hand": "On the Gazette search for kite repair. In the newsletter box type mara.lindqvist@example.test and do not press the button. Open the article again, press \"Share on Friendface\" and close the window that opens.",
+  "traces": [
+   "T26",
+   "T27",
+   "T35"
+  ]
+ },
+ {
+  "n": 7,
+  "title": "Buy a kite line",
+  "hand": "Back in the Friendface feed click \"Parcel & Pine: kite line, 25 m\". Add to basket, check out with mara.lindqvist@example.test, Mara Lindqvist, Nordhavn, 00100, and press Buy.",
+  "traces": [
+   "T5",
+   "T7",
+   "T33"
+  ]
+ },
+ {
+  "n": 8,
+  "title": "Close Chrome and start it again",
+  "hand": "Close the lab's Chrome completely. Run node lab/outside.js on its profile folder, then start it again on the same profile.",
+  "traces": [
+   "T17",
+   "T18",
+   "T19"
+  ]
+ },
+ {
+  "n": 9,
+  "title": "Read the news again",
+  "hand": "Open the Gazette article again. The cache tag and the saved file come back, the fingerprint is the same, the tab has a new number.",
+  "traces": []
+ },
+ {
+  "n": 10,
+  "title": "Delete the Gazette's ID cookie",
+  "hand": "Open http://gazette.localhost:8200/lab/delete-id, then the Gazette's front page. The cookie is back with the same ID.",
+  "traces": []
+ },
+ {
+  "n": 11,
+  "title": "The blog again",
+  "hand": "Open the Tidewater post again. The frame's storage ID and per-site cookie are the same as before the restart.",
+  "traces": []
+ },
+ {
+  "n": 12,
+  "title": "Delete every cookie",
+  "hand": "Delete all cookies in Chrome's settings. Open the Gazette, then http://friendface.localhost:8200/what-i-know: Friendface still knows who this is.",
+  "traces": []
+ }
+]
