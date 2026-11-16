@@ -99,7 +99,7 @@ const what = (r, name) => r.cookies.rows.find((c) => c.name === name).what;
 test('a cookie row: site, name, the start of what it holds, how long it stays', () => {
   const r = buildReport(state(), tab({ cookies: [ck('theme', '.example.com', { value: 'abcdefghijklmnopqrstuvwxyz0123456789' }), ck('lang', 'www.example.com', { value: 'en', session: true, expirationDate: undefined })] }));
   assert.equal(r.cookies.n, 2);
-  assert.deepEqual(r.cookies.rows[0], { site: 'example.com', name: 'theme', value: 'abcdefghijklmnopqrstuvwx', long: true, expires: 'until 20 Nov 2027', what: 'on no tracker list, kept', signin: false });
+  assert.deepEqual(r.cookies.rows[0], { site: 'example.com', name: 'theme', value: 'abcdefghijklmnopqrstuvwx', long: true, expires: 'until 20 Nov 2027', what: 'on no tracker list, kept', signin: false, tracker: false, mine: '' });
   assert.deepEqual([r.cookies.rows[1].value, r.cookies.rows[1].long, r.cookies.rows[1].expires], ['en', false, 'until you close Chrome']);
   // the background script has cut it already and says so
   assert.equal(buildReport(state(), tab({ cookies: [ck('a', 'example.com', { value: 'x'.repeat(24), long: true })] })).cookies.rows[0].long, true);
@@ -155,4 +155,66 @@ test('rendered: one cookie, none, Chrome did not say, and a tab that is not a we
   assert.ok(p(tab()).includes('Chrome did not say which cookies this site has.'));
   assert.ok(p(null).includes('This tab is not a web page, so there are no cookies to show.'));
   assert.equal(buildReport(state(), null).cookies, null);
+});
+
+// ---- step 3: cookie buttons
+const unesc = (x) => x.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const buttons = (html) => [...html.matchAll(/<button([^>]*)>([^<]*)<\/button>/g)].map(([, a, label]) => ({ label: unesc(label), disabled: / disabled/.test(a),
+  act: (/data-act="([^"]*)"/.exec(a) || [])[1], msg: /data-msg="([^"]*)"/.test(a) ? JSON.parse(unesc(/data-msg="([^"]*)"/.exec(a)[1])) : undefined }));
+const of = (html, name) => buttons(html).filter((b) => b.msg && b.msg.name === name).map((b) => b.label);
+const LONG = 'abcdefghijklmnopqrstuvwxyz0123456789';
+test('each cookie row has the buttons that make sense for it, each saying what it does', () => {
+  const cookies = [ck('SID', '.example.com', { value: LONG }), ck('_ga', '.example.com'), ck('theme', 'www.example.com', { value: '' }), ck('_gid', '.example.com'), ck('old', '.example.com')];
+  const html = renderReport(buildReport(state({ allow: [{ site: 'example.com', name: '_gid' }], always: [{ site: 'example.com', name: 'old' }] }), tab({ cookies })));
+  assert.deepEqual(of(html, 'SID'), ['Delete (may sign you out)', 'Always delete', 'Show all of it', 'Copy what it holds']);   // kept already: no Keep
+  assert.deepEqual(of(html, '_ga'), ['Delete', 'Keep', 'Always delete', 'Copy what it holds']);
+  assert.deepEqual(of(html, 'theme'), ['Delete', 'Always delete']);                    // holds nothing: nothing to show or copy
+  assert.deepEqual(of(html, '_gid'), ['Delete', 'Always delete', 'Copy what it holds']);   // the user chose Keep already
+  assert.deepEqual(of(html, 'old'), ['Delete', 'Keep', 'Copy what it holds', 'Stop always deleting']);
+  const b = buttons(html).filter((x) => x.msg && x.msg.name === '_ga');
+  assert.deepEqual(b.map((x) => x.msg), [{ type: 'drop', kind: 'cookie', site: 'example.com', name: '_ga' }, { type: 'allow', site: 'example.com', name: '_ga' },
+    { type: 'always', site: 'example.com', name: '_ga' }, { type: 'cookieValue', site: 'example.com', name: '_ga' }]);
+  assert.deepEqual(b.map((x) => x.act), [undefined, undefined, undefined, 'copy']);
+  assert.equal(buttons(html).find((x) => x.label === 'Show all of it').act, 'full');
+});
+test('a cookie on the always-delete list says so, and what happens follows that group\'s switch', () => {
+  const s = (over) => state({ always: [{ site: 'example.com', name: 'theme' }, { site: 'example.com', name: 'SID' }] }, over), c = [ck('theme', '.example.com'), ck('SID', '.example.com')];
+  let r = buildReport(s(), tab({ cookies: c }));
+  assert.equal(what(r, 'theme'), 'on your always-delete list, deleted only after you say so');
+  assert.equal(what(r, 'SID'), 'on your always-delete list, deleted only after you say so');   // the list beats a sign-in name
+  assert.deepEqual(r.cookies.rows.map((x) => x.mine), ['always', 'always']);
+  r = buildReport(s({ storage: { mode: 'auto' } }), tab({ cookies: c }));
+  assert.equal(what(r, 'theme'), 'on your always-delete list, deleted automatically');
+});
+test('"Delete all" has the number on the button; sign-ins are left alone unless the box is ticked', () => {
+  const cookies = [ck('SID', '.example.com'), ck('HSID', '.example.com'), ck('_ga', '.example.com'), ck('theme', 'www.example.com'), ck('lang', 'www.example.com')];
+  let html = renderReport(buildReport(state(), tab({ cookies })));
+  const all = buttons(html).find((b) => b.msg && b.msg.type === 'dropSite');
+  assert.deepEqual([all.label, all.msg, all.disabled], ['Delete 3 cookies on this site', { type: 'dropSite', host: 'www.example.com' }, false]);
+  assert.ok(html.includes('<label><input type="checkbox" data-also="signins"> also the 2 that keep me signed in</label>'));
+  html = renderReport(buildReport(state(), tab({ cookies: cookies.slice(1, 3) })));
+  assert.ok(buttons(html).some((b) => b.label === 'Delete 1 cookie on this site')); assert.ok(html.includes('also the 1 that keeps me signed in'));
+  assert.equal(renderReport(buildReport(state(), tab({ cookies: cookies.slice(2) }))).includes('data-also'), false);   // no sign-ins: no box
+});
+test('while cleaning is paused or switched off the deleting buttons are greyed out, with one sentence why', () => {
+  const cookies = [ck('_ga', '.example.com', { value: LONG })];
+  for (const [o, why] of [[{ hold: { paused: true } }, 'Cleaning is paused, so nothing can be deleted from here right now.'], [{ master: false }, 'Cleaning is switched off, so nothing can be deleted from here right now.']]) {
+    const html = renderReport(buildReport(state(o), tab({ cookies })));
+    assert.ok(text(html).includes(why));
+    assert.deepEqual(buttons(html).filter((b) => b.disabled).map((b) => b.label), ['Delete 1 cookie on this site', 'Delete', 'Always delete']);
+  }
+  assert.equal(buttons(renderReport(buildReport(state(), tab({ cookies })))).some((b) => b.disabled), false);
+});
+test('what is on the always-delete list for this site is listed, also when the cookie is gone, with the way back', () => {
+  const s = state({ always: [{ site: 'example.com', name: 'theme' }, { site: 'shop.example.com', name: '<i>' }, { site: 'other.test', name: 'x' }] });
+  const r = buildReport(s, tab({ host: 'example.com', cookies: [] }));
+  assert.deepEqual(r.always, [{ site: 'example.com', name: 'theme' }, { site: 'shop.example.com', name: '<i>' }]);
+  const html = renderReport(r);
+  assert.match(html, /<details id="always"><summary>Always deleted on this site \(2\)<\/summary>/); assert.doesNotMatch(html, /<i>/);
+  assert.deepEqual(buttons(html).filter((b) => b.label === 'Stop always deleting').map((b) => b.msg)[0], { type: 'always', site: 'example.com', name: 'theme', on: false });
+  assert.equal(renderReport(buildReport(state(), tab({ cookies: [] }))).includes('id="always"'), false);
+});
+test('deleting from a terminal is not offered, and the report says why', () => {
+  const html = renderReport(buildReport(state(), tab({ cookies: [ck('a', 'www.example.com')] })));
+  assert.ok(text(html).includes("Deleting them from a terminal is not offered: Chrome's cookie file cannot be changed safely while Chrome is running. Use the buttons here."));
 });

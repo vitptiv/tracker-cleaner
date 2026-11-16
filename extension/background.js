@@ -11,10 +11,10 @@ const { S, realHost, reason, firstParty } = makeCore({ DOMAINS, COOKIE_RE, GOOGL
 // the pause and the sign-in guard. Only 'run' acts; what gets 'ask' or 'held' goes to the approval queue.
 // The 8088 server still supplies lists, but cannot switch a capability on.
 // State is in chrome.storage.local because this worker sleeps: master, modes, guardUntil, pauseUntil, pending,
-// cacheClearedAt, log, allow, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
+// cacheClearedAt, log, allow, always, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
-  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'sitesOff', 'loops']), now = Date.now();
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
   if (mayRun('C19', set) !== 'run') hold.guard = false;
   // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
@@ -137,7 +137,7 @@ async function state() {
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
-    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], sitesOff: set.sitesOff || [],
+    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [],
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
     // one row per group that has an action capability; it shows the mode of its first one, setMode keeps them all the same.
@@ -160,11 +160,26 @@ async function setMaster(on) { await chrome.storage.local.set({ master: !!on });
 // The user's exceptions (see `spared`).
 const isHost = (h) => typeof h === 'string' && /^[a-z0-9._-]+$/i.test(h);
 // allow: [{ site, name }], site as the action log and the queue give it (the cookie's domain without the leading dot)
+// A cookie the user keeps is no longer one to always delete: Keep takes it off that list (`always`, below).
 async function allowSet(site, name, on) {
-  const list = ((await chrome.storage.local.get('allow')).allow || []).filter((a) => !(a.site === site && a.name === name));
+  const { allow = [], always = [] } = await chrome.storage.local.get(['allow', 'always']), other = (a) => !(a.site === site && a.name === name);
+  const list = allow.filter(other);
   if (on) list.push({ site, name });
-  await chrome.storage.local.set({ allow: list });
+  await chrome.storage.local.set({ allow: list, ...(on && !always.every(other) ? { always: always.filter(other) } : {}) });
   return list;
+}
+// always: [{ site, name }], the user's own always-delete list (the report's button "Always delete"), kept here and not
+// on the 8088 server. refreshBlacklist puts it into the blacklist, so its group's switch (C07) decides what happens when
+// the cookie comes back. The cookie that is there now goes at once, through drop: the user pressed the button.
+async function always(site, name, on) {
+  if (!isHost(site) || typeof name !== 'string' || !name) return { ok: false };
+  const no = on && refusal(await context()); if (no) return no;
+  const list = ((await chrome.storage.local.get('always')).always || []).filter((a) => !(a.site === site && a.name === name));
+  if (on) { list.push({ site, name }); await allowSet(site, name, false); }
+  await chrome.storage.local.set({ always: list });
+  if (on) await drop({ kind: 'cookie', site, name });
+  await sweep('settings');
+  return { ok: true, always: list };
 }
 async function allow(site, name, on) {
   if (!isHost(site) || typeof name !== 'string' || !name) return { ok: false };
@@ -200,7 +215,21 @@ async function cookiesOf(host) {
   return { ok: true, cookies: (await siteCookies(host.toLowerCase())).map((c) => ({ domain: c.domain, name: c.name, value: c.value.slice(0, CUT), long: c.value.length > CUT,
     session: c.session, expirationDate: c.expirationDate })) };
 }
-const MESSAGES = { state, cookies: (m) => cookiesOf(m.host), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
+// The whole of what one cookie holds, for "Show all of it" and "Copy": read now, answered, kept nowhere.
+async function cookieValue(site, name) {
+  const c = isHost(site) && typeof name === 'string' ? (await allCookies()).find((x) => bare(x.domain) === site && x.name === name) : null;
+  return c ? { ok: true, value: c.value } : { ok: false };
+}
+// "Delete N cookies on this site": every cookie the report lists, but those that keep the user signed in only when asked.
+async function dropSite(m) {
+  if (!isHost(m.host)) return { ok: false };
+  const no = refusal(await context()); if (no) return no;
+  const all = (await siteCookies(m.host.toLowerCase())).filter((c) => m.signins === true || !KEEP_RE.test(c.name)), done = [];
+  for (const c of all) if (await remove(c)) done.push({ cap: 'C10', kind: 'cookie', site: bare(c.domain), name: c.name });
+  await logged(done, 'removed');
+  return { ok: true, done: done.length, of: all.length };
+}
+const MESSAGES = { state, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -211,10 +240,10 @@ const MESSAGES = { state, cookies: (m) => cookiesOf(m.host), pause: (m) => pause
 
 // ---- Drop (the audit view's buttons, popup-audit.js): one item now, because the user said so. Through here so
 // that pause and the master switch hold it back, it is in the action log, and a cookie can be undone.
+const refusal = (cx) => cx.hold.paused ? { ok: false, why: 'paused', error: 'cleaning is paused' } : cx.set.master === false ? { ok: false, why: 'off', error: 'cleaning is switched off' } : null;
 async function drop(m) {
-  const str = (...xs) => xs.every((x) => typeof x === 'string' && x), cx = await context();
-  if (cx.hold.paused) return { ok: false, why: 'paused', error: 'cleaning is paused' };
-  if (cx.set.master === false) return { ok: false, why: 'off', error: 'cleaning is switched off' };
+  const str = (...xs) => xs.every((x) => typeof x === 'string' && x), no = refusal(await context());
+  if (no) return no;
   try {
     if (m.kind === 'cookie' && str(m.site, m.name)) { const site = bare(m.site), mine = (c) => bare(c.domain) === site && c.name === m.name;
       let n = 0; for (const c of (await allCookies()).filter(mine)) if (await remove(c)) n++;
@@ -255,21 +284,25 @@ chrome.runtime.onMessage.addListener((m, from, reply) => {
   return true;   // the reply comes later
 });
 // Switches on 127.0.0.1:8088/tracker-cleaner (sent in limits.json). ON false = the whole extension does nothing.
-let ON = true, BLOCK = true, YT = true, DROPS = true, SERVER = false;
+let ON = true, BLOCK = true, YT = true, DROPS = true, SERVER = false, SERVER_BLACK = [];   // SERVER_BLACK: the server's always-delete list, as it last answered
 const STATE = () => ({ on: ON, cookies: S.CLEAN, blocking: BLOCK, yt: YT, drops: DROPS, v: chrome.runtime.getManifest().version });
 async function refreshBlacklist() {
-  const cx = await context(); let again = false;
-  try { const l = await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json();
-    // a list counts only while its capability runs; otherwise the normal rules judge the cookie.
-    // The blacklist also counts while C07 asks or is held, so its cookies can be queued (see judge); allow-list
-    // mode does not: asking about every cookie of every site would only fill the queue.
-    const next = verdict('C07', cx) !== 'no' && Array.isArray(l.cookieBlacklist) ? l.cookieBlacklist : [];
-    const grew = next.some((b) => !S.BLACK.some((x) => x.h === b.h && x.n === b.n)); S.BLACK = next;
+  const cx = await context(); let l = null;
+  try { l = await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json(); } catch {}
+  if (l) SERVER_BLACK = Array.isArray(l.cookieBlacklist) ? l.cookieBlacklist : [];
+  // The blacklist: the user's own always-delete list (`always`, needs no server) and the server's when it has answered.
+  // A list counts only while its capability runs; otherwise the normal rules judge the cookie.
+  // The blacklist also counts while C07 asks or is held, so its cookies can be queued (see judge); allow-list
+  // mode does not: asking about every cookie of every site would only fill the queue.
+  const next = verdict('C07', cx) !== 'no' ? [...(cx.set.always || []).map((a) => ({ h: a.site, n: a.name })), ...SERVER_BLACK] : [];
+  let again = next.some((b) => !S.BLACK.some((x) => x.h === b.h && x.n === b.n)); S.BLACK = next;
+  if (l) {
     const mode = can('C12', cx) && l.cookieMode === 'allowlist' && Array.isArray(l.cookieAllow) && l.cookieAllow.length ? 'allowlist' : 'normal';   // never delete everything by mistake
     const changed = mode !== S.MODE || JSON.stringify(l.cookieAllow || []) !== JSON.stringify(S.ALLOW);
     const clean = l.cookieClean !== false, turnedOn = clean && !S.CLEAN; S.CLEAN = clean;
     ON = l.enabled !== false; BLOCK = ON && l.blocking !== false; YT = ON && l.ytAds !== false; DROPS = ON && l.drops !== false;
-    S.MODE = mode; S.ALLOW = l.cookieAllow || []; again = grew || changed || turnedOn; SERVER = true; } catch { SERVER = false; }
+    S.MODE = mode; S.ALLOW = l.cookieAllow || []; again = again || changed || turnedOn; }
+  SERVER = !!l;
   await applyFeatures();   // also with the server down: the stored settings decide
   return again;
 }
