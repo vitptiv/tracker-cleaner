@@ -631,58 +631,41 @@ both, with the exact sentences.
 
 ## Todo: the tracking lab (not started)
 
-Written 2026-11-15 at the user's request: investigate how Facebook and other sites follow a person from site to
-site, then build pretend sites and a pretend tracker that use the same techniques, so the extension can be tested
-end to end against something that really tracks.
+The design, the research with its sources, the 20 techniques, the table of 33 kinds of trace, the trip and the
+steps with ETAs are on the journal page `/mnt/d/journal/server/tracking-lab.html`
+(http://localhost:8080/tracking-lab.html), written 2026-11-15. It replaces the first version that stood here
+(ten techniques, three open questions). Nothing is built.
 
-**The measure.** The pretend tracker keeps a page, "What I learned about you": each visitor ID and the sites it saw
-that ID on. For every technique: with the extension off the tracker must link visits to two pretend sites under
-one ID (proof the technique works); with the extension on it should fail to. A technique that still links with the
-extension on is a gap, and becomes an extension todo.
+**What it is.** Pretend sites on 127.0.0.1 and a pretend social network, Friendface, that follows a signed-in,
+made-up person across them; its page "What I know about you" shows everything collected. Made-up names and IDs
+only, never deployed. Proposed home: `lab/` in this repo, tests in `test/lab*.test.js` and `test/browser/`.
 
-**Safety.** Everything listens on 127.0.0.1 only, uses made-up IDs, and is never deployed anywhere.
+**The rule.** Phase A runs with the extension switched OFF and is complete only when every one of the 33 rows is
+created, read back, stored and shown, by hand and in the coded real-Chrome trip (or accepted by the user as
+"cannot be created here", with the evidence). Phase B, extension ON, does not start before that.
 
-**Techniques.**
+**Phase A steps (about 150 min of building + 15 min review), tests first.**
 
-| # | Technique | How it works | What should stop it |
-|---|---|---|---|
-| 1 | Pixel with a third-party cookie | A 1x1 image from the tracker on every site; its cookie returns with each request, with the page address | Request blocking; cookie deletion |
-| 2 | Script planting a first-party cookie | The tracker's script sets an ID cookie under the site's own name and reports it home (`_fbp`, `_ga`) | Blocking the script; deletion by name |
-| 3 | Click ID on links | The tracker adds `?fbclid=...` to outgoing links; the landing page saves it in a cookie (`_fbc`) | Stripping link tags |
-| 4 | Redirect ("bounce") tracking | A link passes through the tracker's own address, where it reads and sets its cookie as a first party, then forwards | Deleting the tracker's cookies; maybe nothing today |
-| 5 | Cookie syncing | One tracker redirects its pixel to a partner with its ID in the address | Blocking either request |
-| 6 | Embedded button in a frame | A frame from the tracker reads its own cookie, a sign-in included | Blocking the frame |
-| 7 | Respawning | The ID is also kept in page storage and the cookie is re-created after deletion | Storage cleaning; the loop breaker |
-| 8 | Cache tag | A cached file carries a unique tag the server reads back | Cache clearing only |
-| 9 | Tracker disguised as part of the site | The tracker answers at `metrics.<site>`, so its cookie is first-party and no list matches | Probably nothing today |
-| 10 | Fingerprint | An ID computed from screen, fonts and graphics; nothing stored | Blocking the script only |
+1. Ground rules in a real Chrome: `*.localhost` names, separate sites, cookies between them; else `.test` names
+   with `--host-resolver-rules` and a lab certificate.  2. Ground rules: the hard kinds (code cache, favicon,
+   remembered server, forced-HTTPS, link ping, permission, restart on the same profile).
+3. Server skeleton, one Node program answering as seven sites.  4. Sign-in, profile, feed.
+5. "What I know about you" and the 33 rows as one data file.  6. The canary ("cleaner seems off / on").
+7. Image, browser cookie, page address, request details, joining to the account.
+8. Script kit, site cookie, events with values, beacons.  9. E-mail matching, server-side report.
+10. Click ID, redirector, share links.  11. Like frame, partitioned cookie, "Sign in with".
+12. Cookie syncing, disguised subdomain.  13. Copies of the ID and respawning.
+14. Cache tag, favicon, forced-HTTPS, code cache.  15. Fingerprint, notification permission.
+16. Lab helpers (pretend tomorrow, delete one cookie).  17. The coded trip, 14 steps, with a restart of Chrome.
+18. Checks from outside with `tools/inspect.js`.  19. Completeness check against the 33 rows.
+20. Hand-trip sheet in `TESTING.md`, journal page updated.  21. Review: the user takes the trip by hand.
 
-Described on the write-up but not built, because nothing in the browser can touch them: sites reporting activity
-from their own servers; tracking tied to being signed in to the tracker itself (the sign-in cookies the extension
-keeps are what identify a person inside technique 6, so blocking is the only defence there).
+**Phase B steps (about 36 min + 10 min review), only after step 21.**
 
-**Open questions, to settle in step 3 before building techniques.**
+22. The extension recognises the lab: test-only list entries that `pack.sh` leaves out (the user may choose real
+    cookie names instead).  23. Switch on, rerun the coded trip, read each row at once, after the sweep and after
+    approving.  24. Scoreboard, 33 rows by off / on.  25. The same by hand.
+26. Gaps become extension todos here, one entry per "still tracked" row.
 
-- Does Chrome treat `site-a.localhost`, `site-b.localhost` and `tracker.localhost` as different sites, and allow
-  `SameSite=None; Secure` cookies between them over plain http? If not: map made-up names to 127.0.0.1 inside the
-  throwaway Chrome only (`--host-resolver-rules`), with a self-signed certificate it is told to accept.
-- How the extension recognises the lab tracker. Proposed: a test-only list entry that `pack.sh` leaves out, with a
-  test that the packed lists do not contain it. Note `core.realHost` strips a trailing `.localhost`, so a cookie on
-  `doubleclick.net.localhost` is already judged as `doubleclick.net`; request blocking matches the real name only.
-- The lab lives in this repo under `lab/`, tests under `test/lab*.test.js` and in `test/browser/run.js`.
-
-**Steps (about 10 minutes each), tests first.**
-
-1. Investigate and write up: how each technique works in practice, from the trackers' own public documentation,
-   plus the requests a real pixel makes on a public page in a throwaway Chrome. One journal page.
-2. Lab skeleton: one Node server with no dependencies answering as several sites by `Host`, the tracker's log,
-   "What I learned about you". Tests: a visit is logged under the right site and ID.
-3. Ground rules in a real Chrome: the open questions above, answered by checks in `test/browser/run.js`.
-4. Techniques 1 and 2.  5. Techniques 3 and 4.  6. Techniques 5 and 6.  7. Techniques 7 and 8.
-8. Techniques 9 and 10. For each technique in 4-8: first the test that the tracker links two sites with the
-   extension off, then the expected result with it on.
-9. Scoreboard: one table, technique by extension off / on, tracked or not; part of the real-Chrome run and shown on
-   the journal page.
-10. Gaps become extension todos here, one entry per "still tracked" row.
-
-Expectation, to be tested: techniques 4, 8 and 9 show up as gaps.
+Expectation, to be tested: the redirector, the cache tag and the disguised subdomain show up as gaps; the
+server-side report cannot be stopped from the browser.
