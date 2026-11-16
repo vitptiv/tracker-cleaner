@@ -128,3 +128,18 @@ test('lab step 9 (c5): one fingerprint code on two sites', async () => {
   for (const site of ['gazette.localhost', 'parcelpine.localhost']) await kitSays(jar, { kind: 'page', site, url: `http://${site}/`, fp });
   const r = row(await knows(jar), 'T25'); assert.equal(r.value, 'fp-0badc0de'); assert.deepEqual(r.sites, ['gazette.localhost', 'parcelpine.localhost']); assert.match(r.captures[0].via, /canvas a, graphics b, audio c, fonts d/);
 });
+
+test('lab step 10 (c7): a typed address matches the right account and no other', async () => {
+  await join(MARA); await join(JONAS);
+  const typed = async (email) => { const jar = {}; await kitSays(jar, { kind: 'typed', site: 'gazette.localhost', em: sha(email), field: 'email' }); return knows(jar); };
+  const m = await typed(' Mara.Lindqvist@example.test'), j = await typed(JONAS.email), n = await typed('nobody@example.test');
+  assert.equal(m.who.name, 'Mara Lindqvist'); assert.equal(j.who.name, 'Jonas Weller'); assert.equal(n.who, null);
+  assert.equal(row(m, 'T27').value, `sha256 ${sha(MARA.email)}: matches ${MARA.email}`); assert.match(row(m, 'T27').captures[0].via, /typed into the field "email", not sent/);
+  assert.match(row(n, 'T27').value, /matches no account$/);
+});
+test('lab step 10 (c9): two typing sessions of one made-up person score closer than two people', async () => {
+  const mara1 = [80, 95, 70, 88, 91, 77, 84, 90], mara2 = [83, 92, 74, 85, 95, 79, 81, 86], jonas = [210, 150, 320, 180, 260, 140, 300, 230];
+  assert.ok(rhythmDistance(mara1, mara2) < rhythmDistance(mara1, jonas) / 5);
+  const jar = {}; await kitSays(jar, { kind: 'rhythm', site: 'gazette.localhost', gaps: mara1, moves: 12, dist: 340 });
+  assert.equal(row(await knows(jar), 'T35').value, '9 keys, gap mean 84 ms, spread 8 ms; mouse 12 moves, 340 px');
+});
