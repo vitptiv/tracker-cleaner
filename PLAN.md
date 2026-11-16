@@ -481,7 +481,7 @@ folder with a few entry files). No test reads the user's real profile. The inspe
 8. **Browser checks.** The page opens from the popup, shows a removal made in the same run under the right day,
    a web page cannot fetch or frame the page, and "Clear history" works.
 
-## Todo for 1.23: the report, modelled on Kitesurf's report bar (not started)
+## Todo for 1.23: the report, modelled on Kitesurf's report bar (steps 1 to 4 built, see Progress below)
 
 Written 2026-11-15. The user's own browser (`/mnt/d/workspace/kitesurf-browser`, journal page
 `kitesurf-vs-chrome.html`) has a report bar under the page that the user finds far richer than this extension's
@@ -565,3 +565,30 @@ both, with the exact sentences.
    tracker is blocked; a cookie's value shows cut and in full; the five buttons work on a real cookie; storage
    kinds are counted on a page that sets some; the Tor row says "not running" here. Then TESTING.md and the
    journal page get a short 1.23 section.
+
+### Progress for 1.23
+
+- **Step 1, feature rows** (8 tests, 290 in all). `registry.js`: one sentence per group (`says`), carried by `state()`.
+  New `extension/report-view.js` with the pure `buildReport(state, tab)` and `renderReport(report)`; `tab` is
+  `{ id, host, matched }`, `matched` = the ruleset id of each matched rule (the page gets it from
+  `declarativeNetRequest.getMatchedRules`). Open: "deleted today" and "waiting" are for the whole group, not this
+  site (the history keeps one number per group and day; the queue view holds only the newest 20 items). The link
+  count reads "N links cleaned on this page", not "stripped". Rows with nothing to count (sign-in, Tor, reports)
+  show the state word only.
+- **Step 2, cookie rows** (10 tests, 300 in all). Message `cookies { host }`: the cookies of the site, the sites above
+  and below it, each value cut to 24 characters in the background script. Each row says what the cookie is and what
+  happens to it, following the switches ("has a tracker's name, deleted only after you say so"), not the fixed
+  strings of the step text, which would be untrue when a group asks first, is off or is paused. The Copy button
+  carries `node tools/inspect.js cookies --site <host>`, which step 6 has to build.
+- **Step 3, cookie buttons** (17 tests, 317 in all). Messages `always { site, name, on }`, `cookieValue { site, name }`,
+  `dropSite { host, signins }`; Delete is the existing `drop`. `storage.local.always` is the local always-delete
+  list, merged with 8088's in `refreshBlacklist`. Open, for the owner: the list is still governed by C07, which asks
+  first by default, so "Always delete" deletes at once but the cookie waits in the queue when it comes back, until
+  that group is set to automatic. "Delete all" also deletes cookies the user chose Keep (they stay on the list).
+  Left to the page (step 5): `data-act="full"` / `"copy"` show or copy the reply's `value`; the box
+  `data-also="signins"` adds `signins: true`. Manual deletes are logged under C10, so no feature row counts them.
+- **Step 4, kinds of stored data** (12 tests, 329 in all). Message `stored { tabId, show }` runs `lookInPage` in the tab
+  (`chrome.scripting.executeScript`, main frame only): counts by name; values only for the kind shown, cut to 24
+  characters inside the page. `test/chrome-fake.js` gains `scripting.executeScript` and `pages`. No totals across
+  sites ("in total" in Kitesurf's bar): an extension cannot count those. Every kind's Copy button carries the same
+  `node tools/inspect.js storage --site <host>`, for step 6. Not run in a real Chrome yet (step 8).
