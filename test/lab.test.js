@@ -219,3 +219,24 @@ test('lab step 14: cookie syncing leaves the pair in both tables; the disguised 
   await kitSays(ff, { kind: 'page', site: 'parcelpine.localhost', url: 'u', ffp: 'ffp.1.3.4' }); assert.equal(row(await knows(ff), 'T7').mark, 'not yet seen');
   await ask('metrics.parcelpine', '/c.gif?ffp=ffp.1.3.4', { jar: shop }); assert.equal(row(await knows(ff), 'T7').value, 'pp_sid=' + shop.pp_sid);
 });
+
+test('lab step 15: copies in four stores, the cookie put back, the saved file, the worker, storage totals', async () => {
+  const jar = {}, id = 'ffp.1.7.555', page = { kind: 'page', site: 'gazette.localhost', url: 'u', ffp: id, held: { 'local storage': id, IndexedDB: id, 'cache storage': id },
+    tab: { id: 'tab-ab12', pages: 2 }, storage: { usage: 1234, quota: 5000000 } };
+  const saved = (await ask('friendface', '/saved.js')).text.match(/"(k-\w+)"/)[1];
+  await kitSays(jar, { ...page, saved }); let k = await knows(jar);
+  assert.deepEqual(['T9', 'T11', 'T12', 'T10', 'T14'].map((t) => row(k, t).value), [`key ff_copy = ${id}`, `database ff, key id = ${id}`, `cache ff, entry /ff-id = ${id}`, 'tab tab-ab12, page 2', 'usage 1234 bytes, quota 5000000 bytes']);
+  assert.equal(row(k, 'T15').mark, 'not yet seen');
+  await kitSays(jar, { ...page, saved, respawned: ['local storage', 'IndexedDB'] }); k = await knows(jar);
+  assert.equal(row(k, 'T15').value, `saved.js says ${saved}`); assert.equal(row(k, 'T3').captures[1].via, 'the cookie was gone; put back from local storage, IndexedDB');
+  assert.ok((await ask('friendface', '/sw.js', { jar })).text.includes(JSON.stringify(jar.ff_uid)));
+  await ask('friendface', `/worker?site=friendface.localhost&id=${jar.ff_uid}`, { jar }); await ask('friendface', `/worker?site=parcelpine.localhost&id=${id}`, { jar });
+  assert.deepEqual(row(await knows(jar), 'T13').captures.map((c) => [c.value, c.site]), [[`worker holds ${jar.ff_uid}`, 'friendface.localhost'], [`worker holds ${id}`, 'parcelpine.localhost']]);
+});
+test('lab step 15: rows only Chrome\'s own files can show are handed in from outside; the rows that cannot be created say why', async () => {
+  const jar = {}; await post('/lab/outside', jar, { rows: { T17: '4 compiled files', T18: '3 icons', T19: '12 addresses', T1: 'made up', T20: 'x' } });
+  const k = await knows(jar);
+  for (const t of ['T17', 'T18', 'T19']) { assert.equal(row(k, t).mark, 'tracked'); assert.match(row(k, t).captures[0].via, /checked from outside/); }
+  assert.equal(row(k, 'T1').mark, 'not yet seen');
+  for (const t of ['T20', 'T21']) { assert.equal(row(k, t).mark, 'not buildable here'); assert.ok(row(k, t).reason.length > 40); assert.equal(row(k, t).value, ''); }
+});
