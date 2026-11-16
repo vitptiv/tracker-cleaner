@@ -229,7 +229,27 @@ async function dropSite(m) {
   await logged(done, 'removed');
   return { ok: true, done: done.length, of: all.length };
 }
-const MESSAGES = { state, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
+// ---- What the page in a tab has saved besides cookies. lookInPage runs inside that page (chrome.scripting), so it
+// can use nothing from this file. It counts by names; only for the kind the user asked to see (`show`) does it read
+// what is saved, and it cuts each value to `cut` characters there, before anything leaves the page. Kept nowhere.
+async function lookInPage(show, cut) {
+  const safe = async (f) => { try { return await f(); } catch { return null; } };   // a page can be refused its own storage
+  const names = { local: await safe(() => Object.keys(localStorage)), session: await safe(() => Object.keys(sessionStorage)),
+    databases: await safe(async () => (await indexedDB.databases()).map((d) => d.name)), caches: await safe(() => caches.keys()),
+    workers: await safe(async () => (await navigator.serviceWorker.getRegistrations()).map((w) => w.scope)) };
+  const list = show && names[show], store = !list ? null : show === 'local' ? localStorage : show === 'session' ? sessionStorage : null;
+  const item = (name) => { const v = store ? String(store.getItem(name) ?? '') : '';
+    return { name: String(name).slice(0, 80), ...(store ? { value: v.slice(0, cut), long: v.length > cut } : {}) }; };
+  return { counts: Object.fromEntries(Object.entries(names).map(([k, v]) => [k, v ? v.length : null])), ...(list ? { shown: show, items: list.slice(0, 200).map(item) } : {}) };
+}
+// refused: Chrome lets no extension into this page (chrome://, the web store), or the tab has gone
+async function stored(m) {
+  if (!Number.isInteger(m.tabId)) return { ok: false };
+  const show = ['local', 'session', 'databases', 'caches', 'workers'].includes(m.show) ? m.show : null;
+  try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
+    return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
+}
+const MESSAGES = { state, stored, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),

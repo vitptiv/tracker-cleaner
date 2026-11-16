@@ -218,3 +218,64 @@ test('deleting from a terminal is not offered, and the report says why', () => {
   const html = renderReport(buildReport(state(), tab({ cookies: [ck('a', 'www.example.com')] })));
   assert.ok(text(html).includes("Deleting them from a terminal is not offered: Chrome's cookie file cannot be changed safely while Chrome is running. Use the buttons here."));
 });
+
+// ---- step 4: the other kinds of things a page saves
+const KINDS = [
+  ['local', 'Notes a site keeps in your browser (local storage)', 'A site can write things down in your browser and read them again at every visit, such as your settings or a number to recognise you. They stay until someone deletes them.',
+    "In Chrome's own folder on this computer, in the part called Local Storage."],
+  ['session', 'Notes a site keeps for one tab (session storage)', 'The same kind of notes, but for one tab only. They are gone when you close the tab.',
+    "In Chrome's own folder on this computer, in the part called Session Storage, until the tab is closed."],
+  ['databases', 'Databases a site keeps in your browser (IndexedDB)', 'A bigger store for a site that wants to keep a lot, such as your mail so that it also works without internet.',
+    "In Chrome's own folder on this computer, in the part called IndexedDB."],
+  ['caches', 'Copies of its own pages a site put aside (cache storage)', 'A site can put its pages and pictures aside so that it opens faster, or without internet. These are separate from the copies Chrome saves by itself.',
+    "In Chrome's own folder on this computer, in the part called Service Worker, CacheStorage."],
+  ['workers', 'Programs a site leaves in Chrome (service workers)', 'A small program a site puts into Chrome that can run when the site is not open, for example to show you notifications.',
+    "In Chrome's own folder on this computer, in the part called Service Worker."]];
+const counts = { local: 3, session: 1, databases: 2, caches: 0, workers: 0 };
+test('nothing is looked at until asked: one button that says what it does', () => {
+  const r = buildReport(state(), tab()), html = renderReport(r);
+  assert.deepEqual(r.stored, { asked: false });
+  assert.match(html, /<h2>Other things this page has saved in your browser<\/h2>/);
+  const b = buttons(html).find((x) => x.msg && x.msg.type === 'stored');
+  assert.deepEqual([b.label, b.msg], ['Count what this page has saved', { type: 'stored', tabId: 7 }]);
+  assert.ok(text(html).includes('Nothing on the page is looked at until you press this.'));
+});
+test('each kind: what it is, where it lives, how many on this page, and the command to see it', () => {
+  const r = buildReport(state(), tab({ stored: { ok: true, counts } }));
+  assert.deepEqual(r.stored.kinds.map((k) => [k.id, k.title, k.what, k.where]), KINDS);
+  assert.deepEqual(r.stored.kinds.map((k) => k.count), ['3 on this page', '1 on this page', '2 on this page', '0 on this page', '0 on this page']);
+  const html = renderReport(r), t = text(html);
+  for (const [, title, is, where] of KINDS) { assert.ok(t.includes(title), title); assert.ok(t.includes(is), title); assert.ok(t.includes(where), title); }
+  assert.ok(t.includes('Read from the page just now. Only names and the start of what is saved are shown here, and none of it is saved anywhere else.'));
+  assert.equal(html.split('data-copy="node tools/inspect.js storage --site www.example.com"').length - 1, 5);
+  assert.deepEqual(buttons(html).filter((b) => b.msg && b.msg.show).map((b) => [b.label, b.msg]),
+    [['Show the 3', { type: 'stored', tabId: 7, show: 'local' }], ['Show the 1', { type: 'stored', tabId: 7, show: 'session' }], ['Show the 2', { type: 'stored', tabId: 7, show: 'databases' }]]);
+  assert.doesNotMatch(html, /\bC\d\d\b/);
+});
+test('a kind the page itself may not use says so instead of a number', () => {
+  const r = buildReport(state(), tab({ stored: { ok: true, counts: { ...counts, local: null } } }));
+  assert.equal(r.stored.kinds[0].count, 'this page is not allowed to use it');
+});
+test('a page that refuses scripts: one sentence', () => {
+  const r = buildReport(state(), tab({ stored: { ok: false, refused: true } }));
+  assert.deepEqual(r.stored, { refused: true });
+  assert.ok(text(renderReport(r)).includes('Chrome does not let extensions look at this page.'));
+  assert.equal(buttons(renderReport(r)).some((b) => b.msg && b.msg.type === 'stored'), false);
+});
+test('Show: the names, with the start of each value and never more than 24 characters of it; hostile text escaped', () => {
+  const items = [{ name: 'uid', value: LONG, long: false }, { name: '<b>k', value: '<script>1</script>', long: false }, { name: 'empty', value: '', long: false }];
+  const r = buildReport(state(), tab({ stored: { ok: true, counts, shown: 'local', items } }));
+  assert.deepEqual(r.stored.kinds[0].items, [{ name: 'uid', value: LONG.slice(0, 24), long: true }, { name: '<b>k', value: '<script>1</script>', long: false }, { name: 'empty', value: '', long: false }]);
+  assert.equal(r.stored.kinds[1].items, undefined);
+  const html = renderReport(r);
+  assert.ok(html.includes(`uid <code>${LONG.slice(0, 24)}…</code>`)); assert.equal(html.includes(LONG), false);
+  assert.doesNotMatch(html, /<b>k|<script>/); assert.ok(html.includes('empty <span class="m">holds nothing</span>'));
+  // a kind with names only (databases)
+  const db = renderReport(buildReport(state(), tab({ stored: { ok: true, counts, shown: 'databases', items: [{ name: 'mail' }, { name: 'drafts' }] } })));
+  assert.ok(db.includes('<div class="c">mail</div><div class="c">drafts</div>'));
+});
+test('a tab that is not a web page has nothing of this to show', () => {
+  const r = buildReport(state(), null);
+  assert.equal(r.stored, null);
+  assert.ok(text(renderReport(r)).includes('This tab is not a web page, so there is nothing saved by it to show.'));
+});

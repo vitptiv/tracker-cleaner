@@ -164,3 +164,51 @@ test('Delete all is refused while paused or switched off, and for a host that is
   assert.deepEqual(await bg.send({ type: 'dropSite', host: 'a b' }), { ok: false });
   assert.equal((await bg.names()).length, 5);
 });
+
+// ---- step 4: what the page in the tab has saved, counted in the tab when asked
+const NOTE = 'NOTE-0123456789-abcdefghijklmnopqrstuvwxyz';
+const pages = () => ({ 1: { local: { uid: NOTE, theme: 'dark', seen: '1' }, session: { step: NOTE }, databases: ['mail', 'drafts'], caches: ['v1'], workers: ['https://www.example.com/'] } });
+const drawStored = async (bg, m) => { const stored = await bg.send({ type: 'stored', tabId: 1, ...m });
+  const report = buildReport(await bg.send({ type: 'state' }), { id: 1, host: 'www.example.com', matched: [], cookies: [], stored }); return { stored, report, html: renderReport(report) }; };
+test('counted in the tab: local storage, session storage, databases, cache storage, service workers; names only until Show', async () => {
+  const bg = await load(on({ tabs: [TAB], pages: pages() })), { stored, report, html } = await drawStored(bg);
+  assert.deepEqual(stored, { ok: true, counts: { local: 3, session: 1, databases: 2, caches: 1, workers: 1 } });
+  assert.deepEqual(report.stored.kinds.map((k) => k.count), ['3 on this page', '1 on this page', '2 on this page', '1 on this page', '1 on this page']);
+  assert.equal(JSON.stringify(stored).includes('NOTE'), false); assert.equal(html.includes('NOTE'), false);
+  const [call] = bg.called('scripting.executeScript');
+  assert.deepEqual(call.args[0].target, { tabId: 1 });
+});
+test('a page Chrome keeps extensions out of (chrome://, the web store), and a tab that is gone: "Chrome does not let extensions look at this page"', async () => {
+  const tabs = [{ id: 1, active: true, url: 'chrome://settings/' }, { id: 2, url: 'https://chromewebstore.google.com/' }];
+  const bg = await load(on({ tabs, pages: { 2: {} } }));
+  for (const tabId of [1, 2, 99]) { const { stored, html } = await drawStored(bg, { tabId });
+    assert.deepEqual(stored, { ok: false, refused: true }); assert.ok(html.includes('Chrome does not let extensions look at this page.')); }
+});
+test('Show: the names of one kind, each value cut to 24 characters inside the page; nothing that was read is stored', async () => {
+  const bg = await load(on({ limits: {}, tabs: [TAB], pages: pages(), storage: { modes: { C15: 'auto' } } }));
+  const { stored, html } = await drawStored(bg, { show: 'local' });
+  assert.equal(stored.shown, 'local');
+  assert.deepEqual(stored.items, [{ name: 'uid', value: NOTE.slice(0, 24), long: true }, { name: 'theme', value: 'dark', long: false }, { name: 'seen', value: '1', long: false }]);
+  assert.ok(html.includes(`uid <code>${NOTE.slice(0, 24)}…</code>`)); assert.equal(html.includes(NOTE), false);
+  assert.deepEqual((await drawStored(bg, { show: 'session' })).stored.items, [{ name: 'step', value: NOTE.slice(0, 24), long: true }]);
+  assert.deepEqual((await drawStored(bg, { show: 'databases' })).stored.items, [{ name: 'mail' }, { name: 'drafts' }]);
+  assert.deepEqual((await drawStored(bg, { show: 'workers' })).stored.items, [{ name: 'https://www.example.com/' }]);
+  await bg.alarm('sweep');
+  for (const kept of [bg.state.storage, bg.state.session, bg.state.sync, bg.reports]) assert.equal(JSON.stringify(kept).includes('NOTE-'), false);
+  assert.ok(bg.reports.length > 0);
+});
+test('a page that may not use its own storage: that kind has no number, the rest is counted', async () => {
+  const bg = await load(on({ tabs: [TAB], pages: { 1: { local: null, session: { a: '1' } } } })), { stored, report } = await drawStored(bg);
+  assert.deepEqual(stored.counts, { local: null, session: 1, databases: 0, caches: 0, workers: 0 });
+  assert.equal(report.stored.kinds[0].count, 'this page is not allowed to use it');
+});
+test('the stored message: a tab id that is not a number is refused, an unknown kind shows nothing, a web page is not answered', async () => {
+  const bg = await load(on({ tabs: [TAB], pages: pages() }));
+  for (const tabId of [undefined, '1', 1.5, null]) assert.deepEqual(await bg.send({ type: 'stored', tabId }), { ok: false });
+  assert.equal('items' in await bg.send({ type: 'stored', tabId: 1, show: 'constructor' }), false);
+  assert.equal(await bg.send({ type: 'stored', tabId: 1 }, { id: bg.chrome.runtime.id, url: 'https://www.example.com/', tab: { id: 1 } }), undefined);
+});
+test('Show on a kind the page may not use: still an answer, with nothing to show', async () => {
+  const bg = await load(on({ tabs: [TAB], pages: { 1: { local: null } } })), r = await bg.send({ type: 'stored', tabId: 1, show: 'local' });
+  assert.deepEqual([r.ok, r.counts.local, 'items' in r], [true, null, false]);
+});

@@ -5,6 +5,17 @@ const DESTRUCTIVE = ['cookies.remove', 'tabs.remove', 'browsingData.remove', 'pr
 
 const ID = 'bnejmnaojaiobbkjfhmfcljlbjedmgag';   // this extension, as chrome.runtime.id
 
+const vm = require('node:vm');
+// What a script put into a page finds there. init.pages: { <tab id>: { local: { key: value }, session: { ... },
+// databases: [names], caches: [names], workers: [scopes] } }; local or session null = the page may not use it.
+const pageGlobals = (p) => {
+  const box = (o) => Object.defineProperty({ ...o }, 'getItem', { value: (k) => (k in o ? o[k] : null) }), g = {};
+  for (const [name, k] of [['localStorage', 'local'], ['sessionStorage', 'session']])
+    Object.defineProperty(g, name, { get: () => { if (p[k] === null) throw new Error('The operation is insecure.'); return box(p[k] || {}); } });
+  return Object.assign(g, { indexedDB: { databases: async () => (p.databases || []).map((name) => ({ name, version: 1 })) }, caches: { keys: async () => [...(p.caches || [])] },
+    navigator: { serviceWorker: { getRegistrations: async () => (p.workers || []).map((scope) => ({ scope })) } } });
+};
+
 module.exports = function makeChrome(init = {}) {
   const calls = [];
   const state = { cookies: [], tabs: (init.tabs || []).map((t) => ({ windowId: 1, ...t })), storage: { ...init.storage }, alarms: {},
@@ -79,7 +90,13 @@ module.exports = function makeChrome(init = {}) {
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },
     proxy: { settings: { set: rec('proxy.settings.set', (d) => { state.proxy = d.value; }), clear: rec('proxy.settings.clear', () => { state.proxy = null; }) } },
-    scripting: { getRegisteredContentScripts: rec('scripting.getRegisteredContentScripts', () => state.scripts.map((s) => ({ ...s }))),
+    // As Chrome: the function goes to the page as text (so it can use nothing from around it) and runs among the
+    // page's own things; a chrome:// page, the web store and a tab that is gone are refused.
+    scripting: { executeScript: rec('scripting.executeScript', async ({ target, func, args = [] }) => {
+      const t = state.tabs.find((x) => x.id === target.tabId), page = (init.pages || {})[target.tabId];
+      if (!t || !page || !/^https?:/.test(t.url) || host(t.url) === 'chromewebstore.google.com') throw new Error('Cannot access contents of the page.');
+      return [{ frameId: 0, result: JSON.parse(JSON.stringify(await vm.runInNewContext(`(${func})(...${JSON.stringify(args)})`, pageGlobals(page)))) }]; }),
+      getRegisteredContentScripts: rec('scripting.getRegisteredContentScripts', () => state.scripts.map((s) => ({ ...s }))),
       registerContentScripts: rec('scripting.registerContentScripts', (list) => { state.scripts.push(...list); }),
       unregisterContentScripts: rec('scripting.unregisterContentScripts', (f) => { state.scripts = f && f.ids ? state.scripts.filter((s) => !f.ids.includes(s.id)) : []; }) },
     runtime: { id: ID, getURL: (p) => `chrome-extension://${ID}/${p}`, getManifest: () => ({ version: '0', ...init.manifest }), onInstalled: event(), onStartup: event(), onUpdateAvailable: event(), onMessage: event(),

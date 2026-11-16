@@ -6,7 +6,9 @@
 //          on this tab, null when Chrome did not say
 //          cookies = the reply to { type: 'cookies', host }: this site's cookies as Chrome has them now, each value
 //          already cut to its first 24 characters; left out when Chrome did not say
-// What a cookie holds is shown cut, on the screen only: nothing here writes it anywhere.
+//          stored = the reply to { type: 'stored', tabId }: what the page has saved besides cookies, counted in the
+//          page when asked; left out until then
+// What a cookie or a page's storage holds is shown cut, on the screen only: nothing here writes it anywhere.
 // Every value goes through esc. A button carries its message for background.js in data-msg, or a command to copy in
 // data-copy. Two things are left to the page: a button with data-act sends its message and then shows ('full') or
 // copies ('copy') the `value` of the reply, keeping it nowhere; and "Delete N cookies on this site" is sent with
@@ -61,9 +63,23 @@ const { buildReport, renderReport } = (() => {
       expires: c.session || !(c.expirationDate > 0) ? 'until you close Chrome' : `until ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`, what, signin, tracker: !!r, mine };
   };
 
+  // ---- What the page has saved besides cookies: [id, what it is called, what it is, where it lives]
+  const FOLDER = "In Chrome's own folder on this computer, in the part called ";
+  const KINDS = [
+    ['local', 'Notes a site keeps in your browser (local storage)', 'A site can write things down in your browser and read them again at every visit, such as your settings or a number to recognise you. They stay until someone deletes them.', FOLDER + 'Local Storage.'],
+    ['session', 'Notes a site keeps for one tab (session storage)', 'The same kind of notes, but for one tab only. They are gone when you close the tab.', FOLDER + 'Session Storage, until the tab is closed.'],
+    ['databases', 'Databases a site keeps in your browser (IndexedDB)', 'A bigger store for a site that wants to keep a lot, such as your mail so that it also works without internet.', FOLDER + 'IndexedDB.'],
+    ['caches', 'Copies of its own pages a site put aside (cache storage)', 'A site can put its pages and pictures aside so that it opens faster, or without internet. These are separate from the copies Chrome saves by itself.', FOLDER + 'Service Worker, CacheStorage.'],
+    ['workers', 'Programs a site leaves in Chrome (service workers)', 'A small program a site puts into Chrome that can run when the site is not open, for example to show you notifications.', FOLDER + 'Service Worker.']];
+  const storedOf = (st) => !st ? { asked: false } : !st.ok || !st.counts ? { refused: true }
+    : { kinds: KINDS.map(([id, title, what, where]) => { const n = st.counts[id];
+      return { id, title, what, where, n: Number.isInteger(n) ? n : null, count: Number.isInteger(n) ? `${n} on this page` : 'this page is not allowed to use it',
+        ...(st.shown === id && Array.isArray(st.items) ? { items: st.items.map((it) => typeof it.value !== 'string' ? { name: String(it.name) }
+          : { name: String(it.name), value: it.value.slice(0, CUT), long: it.long === true || it.value.length > CUT }) } : {}) }; }) };
+
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;
-    return { site: host,
+    return { site: host, tabId: tab && Number.isInteger(tab.id) ? tab.id : null, stored: host ? storedOf(tab.stored) : null,
       features: (s.groups || []).map((g) => ({ id: g.id, title: g.title, says: g.says, state: word(g, s), count: counted(g, s, tab) })),
       cookies: host && Array.isArray(tab.cookies) ? { n: tab.cookies.length, rows: tab.cookies.map((c) => cookieRow(c, s, host)) } : null,
       // what the user chose to always delete on this site, also when the cookie is not there right now
@@ -98,7 +114,17 @@ const { buildReport, renderReport } = (() => {
             + (safe ? `<p class="m">See this list in a terminal: <code>${INSPECT}cookies --site ${r.site}</code> <button class="small" data-copy="${INSPECT}cookies --site ${r.site}">Copy command</button></p>` : '')
             + '<p class="m">Deleting them from a terminal is not offered: Chrome&#39;s cookie file cannot be changed safely while Chrome is running. Use the buttons here.</p>'
             + all(c) + `<details id="cookies"><summary>Show the ${count(c.n, 'cookie')}</summary>${c.rows.map(cookie).join('')}</details>`) + always(); };
-    return '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies();
+    const look = (label, show) => r.tabId === null ? '' : btn(label, { type: 'stored', tabId: r.tabId, ...(show ? { show } : {}) });
+    const item = (it) => `<div class="c">${esc(it.name)}${it.value === undefined ? '' : it.value ? ` <code>${esc(it.value)}${it.long ? '…' : ''}</code>` : ' <span class="m">holds nothing</span>'}</div>`;
+    const kind = (k) => `<div class="c" data-kind="${k.id}"><div class="h"><b>${esc(k.title)}</b><span class="m">${esc(k.count)}</span></div><div class="m">${esc(k.what)}</div><div class="m">${esc(k.where)}</div>`
+      + `<div class="b">${k.n ? look(`Show the ${k.n}`, k.id) : ''}${safe ? `<button class="small" data-copy="${INSPECT}storage --site ${r.site}">Copy command</button>` : ''}</div>`
+      + (k.items || []).map(item).join('') + '</div>';
+    const stored = () => { const st = r.stored;
+      return '<h2>Other things this page has saved in your browser</h2>'
+        + (!st ? '<p class="m">This tab is not a web page, so there is nothing saved by it to show.</p>' : st.refused ? '<p>Chrome does not let extensions look at this page.</p>'
+          : !st.kinds ? `<p>${look('Count what this page has saved')} <span class="m">Nothing on the page is looked at until you press this.</span></p>`
+          : '<p class="m">Read from the page just now. Only names and the start of what is saved are shown here, and none of it is saved anywhere else.</p>' + st.kinds.map(kind).join('')); };
+    return '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored();
   };
   return { buildReport, renderReport };
 })();
