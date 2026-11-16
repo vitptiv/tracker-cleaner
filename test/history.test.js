@@ -10,8 +10,18 @@ test('history.js: counts per day and group, and per cookie first seen, last remo
   h = historyAdd(h, [gone('example.com', '_ga')], at(10, 23, 59));
   h = historyAdd(h, [gone('example.com', '_ga')], at(11, 0, 1));
   assert.deepEqual(h, { days: { '2026-11-10': { cookies: 2, google: 1, cache: 1 }, '2026-11-11': { cookies: 1 } },
-    cookies: { 'example.com _ga': { first: at(10, 9), last: at(11, 0, 1), n: 3 }, 'google.com NID': { first: at(10, 9), last: at(10, 9), n: 1 } } });
+    cookies: { 'example.com _ga': { first: at(10, 9), last: at(11, 0, 1), n: 3, d: 1, g: 'cookies' }, 'google.com NID': { first: at(10, 9), last: at(10, 9), n: 1, d: 1, g: 'google' } } });
   assert.equal(historyDay(at(3, 0)), '2026-11-03');
+});
+test('history.js: per cookie, how often it was removed on the day it was last removed (d) and by which group (g)', () => {
+  let h = historyAdd(undefined, [gone('example.com', '_ga')], at(10, 9));
+  h = historyAdd(h, [gone('example.com', '_ga')], at(10, 23, 59));
+  assert.deepEqual(h.cookies['example.com _ga'], { first: at(10, 9), last: at(10, 23, 59), n: 2, d: 2, g: 'cookies' });
+  h = historyAdd(h, [gone('example.com', '_ga', 'storage')], at(11, 0, 1));   // a new day starts at 1
+  assert.deepEqual(h.cookies['example.com _ga'], { first: at(10, 9), last: at(11, 0, 1), n: 3, d: 1, g: 'storage' });
+  // an entry written before 1.23 has neither: counting starts now
+  h = historyAdd({ days: {}, cookies: { 'a.test x': { first: at(11, 8), last: at(11, 8), n: 5 } } }, [gone('a.test', 'x')], at(11, 9));
+  assert.deepEqual(h.cookies['a.test x'], { first: at(11, 8), last: at(11, 9), n: 6, d: 1, g: 'cookies' });
 });
 test('history.js: the given store is not changed; a broken one counts as empty', () => {
   const h = historyAdd(undefined, [gone('a.test', 'x')], at(10, 9)), copy = JSON.stringify(h);
@@ -52,8 +62,8 @@ test('a scripted day: every removal is counted under its day and group, and per 
   bg.now = at(11, 0, 1); await put(bg, 'www.example.com', '_ga');
   assert.deepEqual(await bg.names(), ['session']);
   const want = { days: { '2026-11-10': { cookies: 5, google: 1 }, '2026-11-11': { cookies: 1 } }, cookies: {
-    'www.example.com _ga': { first: at(10, 9), last: at(11, 0, 1), n: 4 }, 'ad.doubleclick.net id': { first: at(10, 9), last: at(10, 9), n: 1 },
-    'google.com NID': { first: at(10, 12), last: at(10, 12), n: 1 }, 'www.example.com _gid': { first: at(10, 12), last: at(10, 12), n: 1 } } };
+    'www.example.com _ga': { first: at(10, 9), last: at(11, 0, 1), n: 4, d: 1, g: 'cookies' }, 'ad.doubleclick.net id': { first: at(10, 9), last: at(10, 9), n: 1, d: 1, g: 'cookies' },
+    'google.com NID': { first: at(10, 12), last: at(10, 12), n: 1, d: 1, g: 'google' }, 'www.example.com _gid': { first: at(10, 12), last: at(10, 12), n: 1, d: 1, g: 'cookies' } } };
   assert.deepEqual(bg.state.storage.history, want);
   assert.deepEqual(await bg.send({ type: 'history' }), { ok: true, ...want });
   bg.now = at(11, 0, 1) + 31 * DAY;                                   // a month on: asked for, the old entries are no longer given
@@ -64,7 +74,7 @@ test('an approved removal and a cache clear are counted too; nothing else of the
   bg.now = at(10, 9); await bg.alarm('sweep');
   assert.equal(bg.state.storage.history, undefined);
   await bg.send({ type: 'approve', group: 'cookies' }); await bg.send({ type: 'approve', group: 'cache' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.history, { days: { '2026-11-10': { cookies: 1, cache: 1 } }, cookies: { 'example.com _ga': { first: at(10, 9), last: at(10, 9), n: 1 } } });
+  assert.deepEqual(bg.state.storage.history, { days: { '2026-11-10': { cookies: 1, cache: 1 } }, cookies: { 'example.com _ga': { first: at(10, 9), last: at(10, 9), n: 1, d: 1, g: 'cookies' } } });
 });
 test('no cookie value anywhere in storage, nothing in storage.sync, and the report to the 8088 server holds no history', async () => {
   const bg = await load(on({ limits: {}, storage: { modes: { C15: 'auto' } }, cookies: [{ name: 'id', domain: '.doubleclick.net', value: 'secret-value' }] }));
@@ -105,5 +115,5 @@ test('"Clear history" empties it; counting starts again with the next removal', 
   assert.deepEqual(await bg.send({ type: 'history' }), { ok: true, days: {}, cookies: {} });
   assert.ok(bg.state.storage.log.length > 0, 'the popup\'s own short log is not part of it');
   bg.now = at(10, 10); await put(bg, 'www.example.com', '_ga');
-  assert.deepEqual(bg.state.storage.history.cookies, { 'www.example.com _ga': { first: at(10, 10), last: at(10, 10), n: 1 } });
+  assert.deepEqual(bg.state.storage.history.cookies, { 'www.example.com _ga': { first: at(10, 10), last: at(10, 10), n: 1, d: 1, g: 'cookies' } });
 });

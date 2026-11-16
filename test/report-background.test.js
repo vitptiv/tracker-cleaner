@@ -12,12 +12,12 @@ test('feature rows from the real state: sentences, state words, deleted today an
   const state = { ...(await bg.send({ type: 'state' })), history: await bg.send({ type: 'history' }) };
   const r = buildReport(state, { id: 1, host: 'www.example.com', matched: ['trackers'] });
   assert.equal(row(r, 'cookies').says, 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.');
-  assert.deepEqual([row(r, 'cookies').state, row(r, 'cookies').count], ['on', '1 deleted today, 0 waiting']);
-  assert.deepEqual([row(r, 'google').state, row(r, 'google').count], ['asks first', '0 deleted today, 1 waiting']);
+  assert.deepEqual([row(r, 'cookies').state, row(r, 'cookies').count], ['on', '1 deleted on this site today, 1 deleted today on all sites, 0 waiting']);
+  assert.deepEqual([row(r, 'google').state, row(r, 'google').count], ['asks first', '0 deleted on this site today, 0 deleted today on all sites, 1 waiting']);
   assert.deepEqual([row(r, 'blocking').state, row(r, 'blocking').count], ['on', '1 blocked on this page']);
   await bg.send({ type: 'pause' });
   assert.equal(row(buildReport(await bg.send({ type: 'state' }), null), 'cookies').state, 'paused');
-  assert.match(renderReport(r), /Cookies Google uses to recognise you.*asks first · 0 deleted today, 1 waiting/s);
+  assert.match(renderReport(r), /Cookies Google uses to recognise you.*asks first · 0 deleted on this site today, 0 deleted today on all sites, 1 waiting/s);
 });
 
 // ---- step 2
@@ -99,20 +99,54 @@ test('Always delete: an ordinary cookie nobody kept is deleted now and goes on a
   assert.deepEqual((await draw(bg)).report.always, [{ site: 'www.example.com', name: 'theme' }]);
   assert.equal(JSON.stringify(bg.state.storage).includes(SHOWN), false);
 });
-test('Always delete follows its group\'s switch afterwards: while that asks first, the cookie waits when it comes back; a later Keep takes it off the list', async () => {
+test('Always delete is your own choice, so it does not wait: with its group on "asks first" (the default) the cookie is deleted when it comes back, not queued', async () => {
   const bg = await load(asks({ cookies: mine() }));
   await press(bg, 'Always delete', 'theme');
   assert.equal((await bg.names()).includes('theme'), false);        // now, because the user pressed the button
   await bg.setCookie({ url: 'https://www.example.com/', name: 'theme', value: 'again' });
-  assert.ok((await bg.names()).includes('theme'));
-  assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => `${i.site} ${i.name}`), ['www.example.com theme']);
-  assert.equal(await what(bg, 'theme'), 'on your always-delete list, deleted only after you say so');
+  assert.equal((await bg.names()).includes('theme'), false);
+  assert.deepEqual((bg.state.storage.pending || {}).storage, undefined);
+  assert.ok(log(bg).filter((l) => l === 'cookie www.example.com theme removed').length >= 2);
+  await bg.setCookie({ url: 'https://www.example.com/', name: 'theme', value: 'again' }); await bg.alarm('sweep');
+  assert.equal((await bg.names()).includes('theme'), false);
+});
+test('Always delete: a later Keep takes the cookie off the list, and it then stays', async () => {
+  const bg = await load(asks({ cookies: mine() }));
+  await press(bg, 'Always delete', 'theme');
+  await bg.send({ type: 'pause' }); await bg.setCookie({ url: 'https://www.example.com/', name: 'theme', value: 'again' });   // paused: it waits
+  assert.equal(await what(bg, 'theme'), 'on your always-delete list, kept while cleaning is paused');
   assert.equal((await press(bg, 'Keep', 'theme')).ok, true);
   assert.deepEqual([bg.state.storage.always, bg.state.storage.allow], [[], [{ site: 'www.example.com', name: 'theme' }]]);
-  assert.deepEqual((bg.state.storage.pending.storage || { items: [] }).items, []);
-  await bg.send({ type: 'setMode', group: 'storage', mode: 'auto' }); await bg.alarm('sweep');
+  await bg.send({ type: 'resume' }); await bg.alarm('sweep');
   assert.ok((await bg.names()).includes('theme'));
+  assert.deepEqual((bg.state.storage.pending.storage || { items: [] }).items, []);
   assert.equal(await what(bg, 'theme'), 'on no tracker list, kept');
+});
+test('the always-delete list is stopped only by its group set to Off or the main switch off; a pause and a sign-in hold it', async () => {
+  const mineToo = { always: [{ site: 'www.example.com', name: 'theme' }] }, back = (bg) => bg.setCookie({ url: 'https://www.example.com/', name: 'theme', value: 'again' });
+  let bg = await load(asks({ storage: { ...mineToo, modes: { C03: 'ask', C06: 'off', C07: 'off' } } }));
+  await back(bg); await bg.alarm('sweep');
+  assert.ok((await bg.names()).includes('theme'));                  // the group is off: left alone, and not queued either
+  assert.deepEqual((bg.state.storage.pending || {}).storage, undefined);
+  assert.equal(await what(bg, 'theme'), 'on your always-delete list, kept because this cleaning is switched off');
+  bg = await load({ tabs: [TAB], storage: { ...mineToo, master: false } });
+  await back(bg); await bg.alarm('sweep');
+  assert.ok((await bg.names()).includes('theme'));
+  bg = await load(asks({ storage: mineToo, tabs: [TAB, { id: 2, active: true, url: 'https://accounts.google.com/signin' }] }));   // a sign-in is going on
+  await back(bg);
+  assert.ok((await bg.names()).includes('theme'));
+  assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => `${i.site} ${i.name}`), ['www.example.com theme']);
+  assert.ok(log(bg).includes('cookie www.example.com theme held'));
+  bg = await load({ tabs: [TAB], storage: mineToo });               // cleaning was never turned on: nothing is deleted without asking
+  await back(bg);
+  assert.ok((await bg.names()).includes('theme'));
+  assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => i.name), ['theme']);
+});
+test('the always-delete list of the 8088 server still follows its group: while that asks first, its cookie waits, and yours beside it goes', async () => {
+  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'other.test', n: 'other' }] }, cookies: mine(), storage: { modes: { C03: 'ask' }, always: [{ site: 'shop.example.com', name: 'cart' }] } }));
+  await bg.alarm('sweep');
+  assert.deepEqual(await bg.names(), ['SID', 'theme', '_ga', 'other']);
+  assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => `${i.site} ${i.name}`), ['other.test other']);
 });
 test('Always delete after Keep takes the cookie off the keep list; "Stop always deleting" is the way back', async () => {
   const bg = await load(asks({ cookies: mine(), storage: { modes: { C03: 'ask', C07: 'auto' }, allow: [{ site: 'example.com', name: '_ga' }] } }));
@@ -144,15 +178,22 @@ test('Show all of it and Copy: the whole value is read from Chrome at that momen
   assert.deepEqual(await bg.send({ type: 'cookieValue', site: '<x>', name: 'SID' }), { ok: false });
   assert.equal(await bg.send({ type: 'cookieValue', site: 'example.com', name: 'SID' }, { id: bg.chrome.runtime.id, url: 'https://www.example.com/' }), undefined);
 });
-test('Delete all on this site: the number on the button is what goes; sign-ins stay unless the box is ticked; other sites are untouched', async () => {
-  const bg = await load(asks({ cookies: mine() }));
-  const b = button((await draw(bg)).html, 'Delete 2 cookies on this site');
+test('Delete all on this site: the number on the button is what goes; sign-ins and what you chose to keep stay unless the box is ticked; other sites are untouched', async () => {
+  const bg = await load(asks({ cookies: [...mine(), { name: '_gid', domain: '.example.com' }], storage: { allow: [{ site: 'example.com', name: '_gid' }] } }));
+  const { html } = await draw(bg), b = button(html, 'Delete 2 cookies on this site');
+  assert.ok(html.includes('2 stay: 1 keeps you signed in, 1 you chose to keep'));
   assert.deepEqual(b.msg, { type: 'dropSite', host: 'www.example.com' });
   assert.deepEqual(await bg.send(b.msg), { ok: true, done: 2, of: 2 }); await bg.settle();
-  assert.deepEqual(await bg.names(), ['SID', 'cart', 'other']);
+  assert.deepEqual(await bg.names(), ['SID', 'cart', 'other', '_gid']);
   assert.deepEqual(log(bg).filter((l) => l.endsWith('removed')), ['cookie www.example.com theme removed', 'cookie example.com _ga removed']);
   assert.equal((await bg.send({ type: 'state' })).undo.length, 2);
-  assert.deepEqual(await bg.send({ ...b.msg, signins: true }), { ok: true, done: 1, of: 1 });   // the box "also the 1 that keeps me signed in"
+  assert.deepEqual(await bg.send({ ...b.msg, kept: true }), { ok: true, done: 2, of: 2 });   // the box "also the ones that keep me signed in and the ones I chose to keep"
+  assert.deepEqual(await bg.names(), ['cart', 'other']);
+  assert.deepEqual(bg.state.storage.allow, [{ site: 'example.com', name: '_gid' }]);        // still on your keep list for when it comes back
+});
+test('Delete all takes a sign-in cookie that is on your always-delete list', async () => {
+  const bg = await load(asks({ cookies: mine(), storage: { modes: { C03: 'ask', C06: 'off', C07: 'off' }, always: [{ site: 'example.com', name: 'SID' }] } }));
+  assert.deepEqual(await bg.send(button((await draw(bg)).html, 'Delete 3 cookies on this site').msg), { ok: true, done: 3, of: 3 });
   assert.deepEqual(await bg.names(), ['cart', 'other']);
 });
 test('Delete all is refused while paused or switched off, and for a host that is not one', async () => {

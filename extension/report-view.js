@@ -12,7 +12,7 @@
 // Every value goes through esc. A button carries its message for background.js in data-msg, or a command to copy in
 // data-copy. Two things are left to the page: a button with data-act sends its message and then shows ('full') or
 // copies ('copy') the `value` of the reply, keeping it nowhere; and "Delete N cookies on this site" is sent with
-// signins: true when the box beside it (data-also="signins") is ticked.
+// kept: true when the box beside it (data-also="kept") is ticked.
 const { buildReport, renderReport } = (() => {
   const dep = typeof module !== 'undefined' ? { lists: require('./lists.js'), makeCore: require('./core.js'), day: require('./history.js').historyDay }
     : { lists: { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE }, makeCore, day: historyDay };
@@ -33,14 +33,19 @@ const { buildReport, renderReport } = (() => {
   // what a group's removal is called: "4 deleted today"
   const DID = { cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
   // Blocked and cleaned links are those of this tab (Chrome counts them per tab). Deleted today and waiting are those
-  // of the whole group: the history keeps one number per group and day, and the button acts on everything that waits.
+  // of the whole group, on all sites. For the groups that delete cookies and nothing else, the history's per-cookie
+  // counters also give this site's share of today (history.js: d and g), for the site and the sites above and below it.
+  const COOKIES_ONLY = ['cookies', 'google', 'allowlist'];
   const counted = (g, s, tab) => {
     const hits = (ids) => tab && Array.isArray(tab.matched) ? tab.matched.filter((id) => ids.includes(id)).length : null;
     if (g.id === 'blocking') { const n = hits(['trackers', 'google-paths']); return n === null ? 'Chrome did not say how many it blocked' : `${n} blocked on this page`; }
     if (g.id === 'params') { const n = hits(['url-params']); return n === null ? 'Chrome did not say how many links it cleaned' : `${n} link${n === 1 ? '' : 's'} cleaned on this page`; }
     if (!DID[g.id]) return '';   // nothing to count: the sign-in pause, Tor, the reports
-    const today = Number((((s.history || {}).days || {})[dep.day(s.now || 0)] || {})[g.id]) || 0;
-    return `${today} ${DID[g.id]} today, ${Number(g.pending) || 0} waiting`;
+    const h = s.history || {}, day = dep.day(s.now || 0), today = Number(((h.days || {})[day] || {})[g.id]) || 0, waiting = `${Number(g.pending) || 0} waiting`;
+    if (!tab || !tab.host || !COOKIES_ONLY.includes(g.id)) return `${today} ${DID[g.id]} today${COOKIES_ONLY.includes(g.id) ? ' on all sites' : ''}, ${waiting}`;
+    const here = Object.entries(h.cookies || {}).filter(([k, c]) => { const site = k.split(' ')[0];
+      return c && c.g === g.id && dep.day(c.last) === day && (under(tab.host, site) || under(site, tab.host)); }).reduce((n, [, c]) => n + (Number(c.d) || 0), 0);
+    return `${here} ${DID[g.id]} on this site today, ${today} ${DID[g.id]} today on all sites, ${waiting}`;
   };
 
   // ---- This site's cookies, judged as background.js would: by the built-in lists and the user's own exceptions
@@ -51,9 +56,11 @@ const { buildReport, renderReport } = (() => {
     const domain = String(c.domain), site = domain.replace(/^\./, ''), real = core.realHost(domain), r = core.reason({ domain, name: c.name });
     const signin = dep.lists.KEEP_RE.test(c.name), value = String(c.value ?? ''), d = new Date(c.expirationDate * 1000);
     // mine: the user's own word on this cookie, 'always' (delete) or 'keep'. The always-delete list beats everything
-    // but a site that is not cleaned at all, and follows the switch of the group it belongs to (storage, C07).
+    // but a site that is not cleaned at all. It does not wait for an approval, whatever mode its group (storage, C07)
+    // is in: only that group set to off, the main switch, a pause or a sign-in keeps the cookie (background.js: mine).
     const on = (list) => (list || []).some((a) => a.site === site && a.name === c.name), mine = on(s.always) ? 'always' : on(s.allow) ? 'keep' : '';
-    const g = (s.groups || []).find((x) => x.id === (mine === 'always' ? 'storage' : r === 'google' ? 'google' : 'cookies')) || {};
+    const found = (s.groups || []).find((x) => x.id === (mine === 'always' ? 'storage' : r === 'google' ? 'google' : 'cookies')) || {};
+    const g = mine === 'always' && found.mode !== 'off' ? { ...found, mode: 'auto' } : found;
     const what = mine !== 'always' && signin ? 'keeps you signed in, kept' + (core.isTrackerHost(real) ? " even though it comes from a tracker's site" : '')
       : mine !== 'always' && !r ? 'on no tracker list, kept'
       : `${mine === 'always' ? 'on your always-delete list' : WHY[r]}, ` + ((s.sitesOff || []).some((x) => under(real, x)) ? 'kept because you told it not to clean this site'
@@ -99,9 +106,12 @@ const { buildReport, renderReport } = (() => {
         + `<div class="b">${btn(c.signin ? 'Delete (may sign you out)' : 'Delete', { type: 'drop', kind: 'cookie', ...id }, off)}`
         + (c.mine === 'always' || (c.tracker && !c.mine) ? btn('Keep', { type: 'allow', ...id }) : '') + (c.mine === 'always' ? '' : btn('Always delete', { type: 'always', ...id }, off))
         + (c.long ? btn('Show all of it', value, ' data-act="full"') : '') + (c.value ? btn('Copy what it holds', value, ' data-act="copy"') : '') + '</div></div>'; };
-    const all = (c) => { const keep = c.rows.filter((x) => x.signin).length;
-      return `<p>${btn(`Delete ${count(c.n - keep, 'cookie')} on this site`, { type: 'dropSite', host: r.site }, ' class="go"' + off)}`
-        + (keep ? ` <label><input type="checkbox" data-also="signins"> also the ${keep} that keep${keep === 1 ? 's' : ''} me signed in</label>` : '') + '</p>'
+    // what "Delete all" leaves alone: the cookies that keep the user signed in (a) and those the user pressed Keep on (b),
+    // but not one the user put on the always-delete list
+    const all = (c) => { const stay = c.rows.filter((x) => x.mine !== 'always'), a = stay.filter((x) => x.signin).length, b = stay.filter((x) => !x.signin && x.mine === 'keep').length, n = a + b;
+      return `<p>${btn(`Delete ${count(c.n - n, 'cookie')} on this site`, { type: 'dropSite', host: r.site }, ' class="go"' + off)}`
+        + (!n ? '' : ` <span class="m">${n} stay${n === 1 ? 's' : ''}: ${[a ? `${a} keep${a === 1 ? 's' : ''} you signed in` : '', b ? `${b} you chose to keep` : ''].filter(Boolean).join(', ')}</span>`
+          + ` <label><input type="checkbox" data-also="kept"> also the ${a && b ? 'ones that keep me signed in and the ones I chose to keep' : a ? `${a} that keep${a === 1 ? 's' : ''} me signed in` : `${b} I chose to keep`}</label>`) + '</p>'
         + (r.stopped ? `<p class="m">Cleaning is ${r.stopped}, so nothing can be deleted from here right now.</p>` : ''); };
     const always = () => !(r.always || []).length ? '' : `<details id="always"><summary>Always deleted on this site (${r.always.length})</summary>`
       + r.always.map((a) => `<div class="c h"><span>${esc(a.site)} · ${esc(a.name)}</span>${btn('Stop always deleting', { type: 'always', site: a.site, name: a.name, on: false })}</div>`).join('') + '</details>';

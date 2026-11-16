@@ -1,7 +1,9 @@
 // Private history: what was removed, as numbers only, for the extension's own "now and history" page. Pure:
 // background.js keeps chrome.storage.local { history: { days, cookies } } and passes it in.
 //   days:    { '2026-11-12': { <group id>: removals that day } }, local days, the last HISTORY_DAYS of them
-//   cookies: { '<site> <name>': { first, last, n } }: first seen being removed, last removed, times removed
+//   cookies: { '<site> <name>': { first, last, n, d, g } }: first seen being removed, last removed, times removed,
+//            times removed on the day of `last` (so the report can say "N deleted on this site today"), and the group
+//            that removed it last. An entry from before 1.23 has no d and g: for it the day's count is not known.
 // Bounded: old days and cookies not removed for HISTORY_DAYS go, and of the cookies only the HISTORY_COOKIES latest
 // stay, each under a key of at most HISTORY_KEY characters. Never a cookie value. It stays on this computer: not in
 // storage.sync, not in a report to the 8088 server, and background.js gives it to the extension's own pages only.
@@ -20,7 +22,7 @@ const historyAdd = (h, items, now) => {
   for (const it of items) { day[it.group] = (day[it.group] || 0) + 1;
     if (it.kind !== 'cookie') continue;
     const k = `${it.site} ${it.name}`.slice(0, HISTORY_KEY), c = cookies[k];
-    cookies[k] = { first: c ? c.first : now, last: now, n: (c ? c.n : 0) + 1 }; }
+    cookies[k] = { first: c ? c.first : now, last: now, n: (c ? c.n : 0) + 1, d: (c && c.d && historyDay(c.last) === d ? c.d : 0) + 1, g: it.group }; }
   return historyTrim({ days: { ...days, [d]: day }, cookies }, now);
 };
 if (typeof module !== 'undefined') module.exports = { HISTORY_DAYS, HISTORY_COOKIES, HISTORY_KEY, historyDay, historyTrim, historyAdd };

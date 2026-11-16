@@ -44,26 +44,42 @@ test('a row with nothing says 0, never an empty cell', () => {
   const r = buildReport(state(), tab());
   assert.equal(row(r, 'blocking').count, '0 blocked on this page');
   assert.equal(row(r, 'params').count, '0 links cleaned on this page');
-  assert.equal(row(r, 'cookies').count, '0 deleted today, 0 waiting');
+  assert.equal(row(r, 'cookies').count, '0 deleted on this site today, 0 deleted today on all sites, 0 waiting');
+  assert.equal(row(r, 'tabs').count, '0 closed today, 0 waiting');
   const html = renderReport(r);
-  assert.ok(html.includes('0 blocked on this page')); assert.ok(html.includes('0 deleted today, 0 waiting'));
+  assert.ok(html.includes('0 blocked on this page')); assert.ok(html.includes('0 deleted on this site today, 0 deleted today on all sites, 0 waiting'));
 });
 test('Chrome did not say what it blocked (it limits how often it may be asked): the row says so', () => {
   for (const t of [tab({ matched: null }), null]) { const r = buildReport(state(), t);
     assert.equal(row(r, 'blocking').count, 'Chrome did not say how many it blocked'); assert.equal(row(r, 'params').count, 'Chrome did not say how many links it cleaned'); }
 });
-test('deleted today comes from the history, waiting from the queue, each with the word that fits the group', () => {
+test('deleted today on all sites comes from the history, waiting from the queue, each with the word that fits the group', () => {
   const history = { days: { '2026-11-15': { cookies: 4, google: 1, tabs: 2, cache: 1, permissions: 3, wifi: 1 }, '2026-11-14': { cookies: 9, storage: 5 } }, cookies: {} };
-  const r = buildReport(state({ history }, { google: { pending: 1 }, cookies: { pending: 12 }, wifi: { pending: 2 } }), tab());
-  assert.equal(row(r, 'cookies').count, '4 deleted today, 12 waiting');
-  assert.equal(row(r, 'google').count, '1 deleted today, 1 waiting');
+  const r = buildReport(state({ history }, { google: { pending: 1 }, cookies: { pending: 12 }, wifi: { pending: 2 } }), null);   // no web page in front: no site to count for
+  assert.equal(row(r, 'cookies').count, '4 deleted today on all sites, 12 waiting');
+  assert.equal(row(r, 'google').count, '1 deleted today on all sites, 1 waiting');
   assert.equal(row(r, 'storage').count, '0 emptied today, 0 waiting');
-  assert.equal(row(r, 'allowlist').count, '0 deleted today, 0 waiting');
+  assert.equal(row(r, 'allowlist').count, '0 deleted today on all sites, 0 waiting');
   assert.equal(row(r, 'tabs').count, '2 closed today, 0 waiting');
   assert.equal(row(r, 'cache').count, '1 cleared today, 0 waiting');
   assert.equal(row(r, 'permissions').count, '3 blocked today, 0 waiting');
   assert.equal(row(r, 'wifi').count, '1 forgotten today, 2 waiting');
   for (const id of ['signin', 'tor', 'server']) assert.equal(row(r, id).count, '', id);   // nothing to count
+});
+test('deleted on this site today: from the per-cookie counters, for this site and the sites above and below it, per group', () => {
+  const at = (h) => new Date(2026, 10, 15, h).getTime(), c = (last, d, g, n = d) => ({ first: last, last, n, d, g });
+  const history = { days: { '2026-11-15': { cookies: 9, google: 2, storage: 1 } }, cookies: {
+    'example.com _ga': c(at(9), 3, 'cookies', 40), 'www.example.com _gid': c(at(13), 2, 'cookies'), 'shop.example.com x': c(at(8), 1, 'cookies'), 'other.test _ga': c(at(10), 4, 'cookies'),
+    'example.com old': c(at(9) - 86400e3, 7, 'cookies'),        // last deleted yesterday: nothing today
+    'example.com before': { first: at(9), last: at(9), n: 2 },  // written before the counters told the day: not counted
+    'google.com NID': c(at(11), 2, 'google'), 'example.com theme': c(at(12), 1, 'storage') } };
+  const count = (host, id) => row(buildReport(state({ history }), tab({ host })), id).count;
+  assert.equal(count('www.example.com', 'cookies'), '5 deleted on this site today, 9 deleted today on all sites, 0 waiting');
+  assert.equal(count('example.com', 'cookies'), '6 deleted on this site today, 9 deleted today on all sites, 0 waiting');
+  assert.equal(count('www.example.com', 'google'), '0 deleted on this site today, 2 deleted today on all sites, 0 waiting');
+  assert.equal(count('www.google.com', 'google'), '2 deleted on this site today, 2 deleted today on all sites, 0 waiting');
+  assert.equal(count('www.example.com', 'allowlist'), '0 deleted on this site today, 0 deleted today on all sites, 0 waiting');
+  assert.equal(count('www.example.com', 'storage'), '1 emptied today, 0 waiting');   // not only cookies: counted for all sites
 });
 test('state words: on, asks first, off, paused, held while you sign in', () => {
   const words = (s) => Object.fromEntries(buildReport(s, tab()).features.map((f) => [f.id, f.state]));
@@ -180,21 +196,39 @@ test('each cookie row has the buttons that make sense for it, each saying what i
 test('a cookie on the always-delete list says so, and what happens follows that group\'s switch', () => {
   const s = (over) => state({ always: [{ site: 'example.com', name: 'theme' }, { site: 'example.com', name: 'SID' }] }, over), c = [ck('theme', '.example.com'), ck('SID', '.example.com')];
   let r = buildReport(s(), tab({ cookies: c }));
-  assert.equal(what(r, 'theme'), 'on your always-delete list, deleted only after you say so');
-  assert.equal(what(r, 'SID'), 'on your always-delete list, deleted only after you say so');   // the list beats a sign-in name
+  assert.equal(what(r, 'theme'), 'on your always-delete list, deleted automatically');   // your own choice: it does not wait, though the group asks first
+  assert.equal(what(r, 'SID'), 'on your always-delete list, deleted automatically');     // the list beats a sign-in name
   assert.deepEqual(r.cookies.rows.map((x) => x.mine), ['always', 'always']);
   r = buildReport(s({ storage: { mode: 'auto' } }), tab({ cookies: c }));
   assert.equal(what(r, 'theme'), 'on your always-delete list, deleted automatically');
+  const w = (st) => what(buildReport(st, tab({ cookies: c })), 'theme'), mine = { always: [{ site: 'example.com', name: 'theme' }] };
+  assert.equal(w(s({ storage: { mode: 'off' } })), 'on your always-delete list, kept because this cleaning is switched off');
+  assert.equal(w(state({ ...mine, master: false })), 'on your always-delete list, kept because this cleaning is switched off');
+  assert.equal(w(state({ ...mine, hold: { paused: true } })), 'on your always-delete list, kept while cleaning is paused');
+  assert.equal(w(state({ ...mine, hold: { guard: true } })), 'on your always-delete list, kept while you sign in');
+  assert.equal(w(state({ ...mine, master: undefined })), 'on your always-delete list, deleted only after you say so');   // cleaning was never turned on
 });
-test('"Delete all" has the number on the button; sign-ins are left alone unless the box is ticked', () => {
-  const cookies = [ck('SID', '.example.com'), ck('HSID', '.example.com'), ck('_ga', '.example.com'), ck('theme', 'www.example.com'), ck('lang', 'www.example.com')];
-  let html = renderReport(buildReport(state(), tab({ cookies })));
+test('"Delete all" has the number of what will go on the button; beside it, how many stay and why; one box to take those too', () => {
+  const cookies = [ck('SID', '.example.com'), ck('HSID', '.example.com'), ck('_ga', '.example.com'), ck('theme', 'www.example.com'), ck('lang', 'www.example.com'), ck('_gid', '.example.com')];
+  const draw = (list, o = {}) => renderReport(buildReport(state(o), tab({ cookies: list }))), kept = { allow: [{ site: 'example.com', name: '_gid' }] };
+  let html = draw(cookies, kept);
   const all = buttons(html).find((b) => b.msg && b.msg.type === 'dropSite');
   assert.deepEqual([all.label, all.msg, all.disabled], ['Delete 3 cookies on this site', { type: 'dropSite', host: 'www.example.com' }, false]);
-  assert.ok(html.includes('<label><input type="checkbox" data-also="signins"> also the 2 that keep me signed in</label>'));
-  html = renderReport(buildReport(state(), tab({ cookies: cookies.slice(1, 3) })));
-  assert.ok(buttons(html).some((b) => b.label === 'Delete 1 cookie on this site')); assert.ok(html.includes('also the 1 that keeps me signed in'));
-  assert.equal(renderReport(buildReport(state(), tab({ cookies: cookies.slice(2) }))).includes('data-also'), false);   // no sign-ins: no box
+  assert.ok(text(html).includes('3 stay: 2 keep you signed in, 1 you chose to keep'));
+  assert.ok(html.includes('<label><input type="checkbox" data-also="kept"> also the ones that keep me signed in and the ones I chose to keep</label>'));
+  html = draw(cookies.slice(0, 5));                                  // sign-ins only
+  assert.ok(text(html).includes('2 stay: 2 keep you signed in')); assert.ok(html.includes('data-also="kept"> also the 2 that keep me signed in</label>'));
+  html = draw(cookies.slice(1, 3));
+  assert.ok(buttons(html).some((b) => b.label === 'Delete 1 cookie on this site'));
+  assert.ok(text(html).includes('1 stays: 1 keeps you signed in')); assert.ok(html.includes('also the 1 that keeps me signed in'));
+  html = draw(cookies.slice(2), kept);                               // a cookie you chose to keep only
+  assert.ok(buttons(html).some((b) => b.label === 'Delete 3 cookies on this site'));
+  assert.ok(text(html).includes('1 stays: 1 you chose to keep')); assert.ok(html.includes('data-also="kept"> also the 1 I chose to keep</label>'));
+  html = draw(cookies.slice(2, 5));                                  // nothing stays: no line, no box
+  assert.equal(html.includes('data-also'), false); assert.equal(/\d stays?:/.test(text(html)), false);
+  // a sign-in cookie you put on your always-delete list is not one that stays
+  html = draw(cookies.slice(0, 3), { always: [{ site: 'example.com', name: 'SID' }] });
+  assert.ok(buttons(html).some((b) => b.label === 'Delete 2 cookies on this site')); assert.ok(text(html).includes('1 stays: 1 keeps you signed in'));
 });
 test('while cleaning is paused or switched off the deleting buttons are greyed out, with one sentence why', () => {
   const cookies = [ck('_ga', '.example.com', { value: LONG })];

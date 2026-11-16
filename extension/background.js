@@ -55,8 +55,13 @@ const spared = (c, cx, noBlack) => {
 // Loop breaker (loop.js): a cookie that would be removed, but that its site has put back LOOP_N times in a row, is not
 // removed again: it waits in the queue, with LOOP_WHY as the third answer, the reason shown to the user.
 const loopKey = (c) => `${bare(c.domain)} ${c.name}`;
+// A cookie on the user's own always-delete list (`always`) is the user's explicit choice, so it does not wait for an
+// approval: it goes whenever cleaning is on, not paused and no sign-in is being protected, whatever mode its group
+// (C07) is in. Only that group set to Off, or the main switch, stops it. The server's list stays under C07's mode.
+const mine = (c, cx) => (cx.set.always || []).some((a) => (a.site === bare(c.domain) || a.site === realHost(c.domain)) && a.name === c.name);
+const mineVerdict = (cx) => mayRun('C07', cx.set) === 'no' ? 'no' : gate('C07', { ...cx.set, modes: { ...cx.set.modes, C07: 'auto' } }, cx.hold);
 const judge = (c, cx) => {
-  const r = spared(c, cx), v = r && verdict(CAP_OF[r], cx), r2 = r === 'blacklist' && v !== 'run' && spared(c, cx, true);
+  const r = spared(c, cx), v = r && (r === 'blacklist' && mine(c, cx) ? mineVerdict(cx) : verdict(CAP_OF[r], cx)), r2 = r === 'blacklist' && v !== 'run' && spared(c, cx, true);
   const [why, did] = r2 && can(CAP_OF[r2], cx) ? [r2, 'run'] : [r, v];
   return did === 'run' && loopStuck(cx.set.loops, loopKey(c), Date.now()) ? [why, 'ask', LOOP_WHY] : [why, did];
 };
@@ -169,8 +174,8 @@ async function allowSet(site, name, on) {
   return list;
 }
 // always: [{ site, name }], the user's own always-delete list (the report's button "Always delete"), kept here and not
-// on the 8088 server. refreshBlacklist puts it into the blacklist, so its group's switch (C07) decides what happens when
-// the cookie comes back. The cookie that is there now goes at once, through drop: the user pressed the button.
+// on the 8088 server. refreshBlacklist puts it into the blacklist; when the cookie comes back it is deleted without
+// asking (see `mine`). The cookie that is there now goes at once, through drop: the user pressed the button.
 async function always(site, name, on) {
   if (!isHost(site) || typeof name !== 'string' || !name) return { ok: false };
   const no = on && refusal(await context()); if (no) return no;
@@ -220,11 +225,14 @@ async function cookieValue(site, name) {
   const c = isHost(site) && typeof name === 'string' ? (await allCookies()).find((x) => bare(x.domain) === site && x.name === name) : null;
   return c ? { ok: true, value: c.value } : { ok: false };
 }
-// "Delete N cookies on this site": every cookie the report lists, but those that keep the user signed in only when asked.
+// "Delete N cookies on this site": every cookie the report lists, but those that keep the user signed in and those the
+// user pressed Keep on only when asked (kept: true). One the user put on the always-delete list goes in any case.
 async function dropSite(m) {
   if (!isHost(m.host)) return { ok: false };
-  const no = refusal(await context()); if (no) return no;
-  const all = (await siteCookies(m.host.toLowerCase())).filter((c) => m.signins === true || !KEEP_RE.test(c.name)), done = [];
+  const cx = await context(), no = refusal(cx); if (no) return no;
+  const on = (list, c) => (list || []).some((a) => a.site === bare(c.domain) && a.name === c.name);
+  const stays = (c) => !on(cx.set.always, c) && (KEEP_RE.test(c.name) || on(cx.set.allow, c));
+  const all = (await siteCookies(m.host.toLowerCase())).filter((c) => m.kept === true || !stays(c)), done = [];
   for (const c of all) if (await remove(c)) done.push({ cap: 'C10', kind: 'cookie', site: bare(c.domain), name: c.name });
   await logged(done, 'removed');
   return { ok: true, done: done.length, of: all.length };
