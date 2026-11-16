@@ -612,3 +612,11 @@ both, with the exact sentences.
   column is never read, the row says "not readable from the file"; a readable value is cut to 24 characters.
   Storage: the files tell only whether the site is on Chrome's list and has a database folder; the other four kinds
   say "cannot be counted from the files" instead of guessing. The fixture's Cookies file gained expiry columns.
+- **Step 7, Tor row** (10 tests, 375 in all). The extension's own switch decides; `torChrome` of the 8088 server is
+  no longer read. `applyProxy` first asks `http://127.0.0.1:9050/`: an answer that names Tor counts as running (Tor
+  answers a web request on that port with a short refusal page); no answer, or another program's answer, and Chrome
+  is left as it is. `state()` carries `tor: { wanted, running, routed }`, and the row in the report and in the popup
+  says "Routed over Tor: yes, websites see an address of the Tor network, not yours", "Routed over Tor: no" or "Tor is
+  not running on this computer; nothing is routed". Decided: if Tor stops while Chrome is routed it stays routed (pages
+  fail) rather than fall back and show the real address, and the row says so. The website's view of the address is
+  not fetched here (the history page's button does that). "Running" is covered by the stand-in only: no Tor here.

@@ -2,21 +2,26 @@
 // fetch and an importScripts that evaluates the named files into the same context. Nothing real is touched.
 // const bg = await load({ limits: { chromeTabs: 1 }, storage: { master: true }, cookies: [...], tabs: [...] });
 // limits undefined = the 8088 server is unreachable. bg.limits can be changed later.
+// tor: what answers on Tor's port 9050: true = Tor, 'other' = some other program, nothing = no one. bg.tor can be changed later.
 // dir 'extension-1.20' loads the untouched baseline, to pin what 1.20 did.
 const vm = require('node:vm'), fs = require('fs'), path = require('path');
 const makeChrome = require('./chrome-fake.js');
 
-module.exports = async function load({ dir = 'extension', limits, ...init } = {}) {
+module.exports = async function load({ dir = 'extension', limits, tor, ...init } = {}) {
   const root = path.join(__dirname, '..', dir), bg = makeChrome({ manifest: JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')), ...init });
-  bg.limits = limits; bg.reports = []; bg.timers = []; bg.now = 1.8e12;   // the clock: tests move bg.now
+  bg.limits = limits; bg.tor = tor; bg.asked = []; bg.reports = []; bg.timers = []; bg.now = 1.8e12;   // the clock: tests move bg.now
   const run = (f) => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   // the clock: Date.now() and new Date() are bg.now; new Date(t) is the real thing
   const Clock = class extends Date { constructor(...a) { super(...(a.length ? a : [bg.now])); } static now() { return bg.now; } };
-  const ctx = vm.createContext({ chrome: bg.chrome, URL, console, Date: Clock,
+  const ctx = vm.createContext({ chrome: bg.chrome, URL, console, Date: Clock, AbortSignal,
     // timers never fire by themselves (1.20 batches its live report for 5 s); a test may call bg.timers[i]()
     setTimeout: (f) => bg.timers.push(f), clearTimeout: () => {},
     importScripts: (...files) => files.forEach(run),
     fetch: async (url, opt = {}) => {
+      bg.asked.push(String(url));
+      // Tor's own port answers a web request with a short refusal page; nothing listening = the connection is refused
+      if (String(url).startsWith('http://127.0.0.1:9050')) { if (!bg.tor) throw new TypeError('Failed to fetch');
+        return { ok: false, status: 501, text: async () => bg.tor === true ? 'Tor is not an HTTP Proxy\nIt appears you have configured your web browser to use Tor as an HTTP proxy.' : 'hello' }; }
       if (bg.limits === undefined) throw new TypeError('fetch failed');
       if (opt.method === 'POST') { bg.reports.push(JSON.parse(opt.body)); return { ok: true, json: async () => ({}) }; }
       return { ok: true, json: async () => JSON.parse(JSON.stringify(bg.limits)) };

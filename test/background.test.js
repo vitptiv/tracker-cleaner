@@ -36,7 +36,7 @@ test('master on, server down: tracker cookies still go', async () => {
 });
 test('master on and a group set to auto: that group acts, with the lists the server supplies', async () => {
   const modes = { C07: 'auto', C09: 'auto', C11: 'auto', C13: 'auto', C14: 'auto', C15: 'auto' };
-  const bg = await load({ limits: { ...GREEDY, cookieMode: 'normal' }, tabs: tabs(), cookies: cookies(), storage: { master: true, modes } });
+  const bg = await load({ tor: true, limits: { ...GREEDY, cookieMode: 'normal' }, tabs: tabs(), cookies: cookies(), storage: { master: true, modes } });
   await everything(bg);
   assert.deepEqual(await bg.names(), ['session']);               // blacklisted SID gone
   assert.deepEqual(bg.state.tabs.map((t) => t.id), [3]);
@@ -67,7 +67,7 @@ test('master off stops everything: cookies, tabs, cache, Tor, reports, blocking 
   assert.deepEqual(bg.state.rulesets, []); assert.deepEqual(bg.state.scripts, []);
 });
 test('switching master off clears the Tor proxy this extension set and disables blocking, at once', async () => {
-  const bg = await load({ limits: { torChrome: true }, storage: { master: true, modes: { C14: 'auto' } } });
+  const bg = await load({ tor: true, storage: { master: true, modes: { C14: 'auto' } } });
   await bg.alarm('proxy');
   assert.equal(bg.state.proxy.rules.singleProxy.port, 9050); assert.deepEqual(bg.state.rulesets, ['trackers', 'google-paths', 'url-params']);
   await bg.chrome.storage.local.set({ master: false }); await bg.settle();

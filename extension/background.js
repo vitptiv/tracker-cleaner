@@ -33,10 +33,10 @@ chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) arm(info.url); }
 // The storage listener at the end of this file applies the change.
 async function pause(minutes) {
   const pauseUntil = Date.now() + (minutes > 0 ? minutes : 10) * 60e3;
-  chrome.alarms.create('resume', { when: pauseUntil }); await chrome.storage.local.set({ pauseUntil });
+  chrome.alarms.create('resume', { when: pauseUntil }); await chrome.storage.local.set({ pauseUntil }); await applyProxy();
   return { pauseUntil };
 }
-async function resume() { await chrome.alarms.clear('resume'); await chrome.storage.local.remove('pauseUntil'); return { pauseUntil: 0 }; }
+async function resume() { await chrome.alarms.clear('resume'); await chrome.storage.local.remove('pauseUntil'); await applyProxy(); return { pauseUntil: 0 }; }
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'resume') resume(); });
 // which capability deletes this cookie, by core.js's reason
 const CAP_OF = { blacklist: 'C07', allowlist: 'C12', name: 'C03', host: 'C03', google: 'C04' };
@@ -144,6 +144,7 @@ async function state() {
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [],
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
+    tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
     // one row per group that has an action capability; it shows the mode of its first one, setMode keeps them all the same.
     // ask: false = nothing destructive in the group, so 'ask' would only mean off: the popup offers On and Off
@@ -156,12 +157,13 @@ async function setMode(group, mode) {
   if (!g || !['auto', 'ask', 'off'].includes(mode)) return { ok: false };
   const modes = { ...(await chrome.storage.local.get('modes')).modes, ...Object.fromEntries(g.caps.map((id) => [id, mode])) };
   await chrome.storage.local.set({ modes });
+  if (group === 'tor') await applyProxy();   // before the reply, so the row that is drawn next is true
   await sweep('settings');
   return { ok: true, modes };
 }
 // A changed setting (master, mode, exception) is followed by a sweep before the reply, so the queue, and with it
 // the counts the popup then asks for, are those of the new setting.
-async function setMaster(on) { await chrome.storage.local.set({ master: !!on }); await sweep('settings'); return { master: !!on }; }
+async function setMaster(on) { await chrome.storage.local.set({ master: !!on }); await applyProxy(); await sweep('settings'); return { master: !!on }; }
 // The user's exceptions (see `spared`).
 const isHost = (h) => typeof h === 'string' && /^[a-z0-9._-]+$/i.test(h);
 // allow: [{ site, name }], site as the action log and the queue give it (the cookie's domain without the leading dot)
@@ -515,14 +517,25 @@ async function enforceTabs(cx, wait) {
   return { tabs: (await chrome.tabs.query({ windowType: 'normal' })).length, closedTabs: close.map(host), keptTabs: keep.map(host) };
 }
 
-// ---- Private browsing via Tor (settings → privacy.torChrome): Chrome's traffic goes through the local
-// Tor service (socks5 127.0.0.1:9050). Local pages stay direct. Checked every minute; changes reported.
-let proxyMode = null;
-async function applyProxy() {
+// ---- Hiding your address from websites (C14): Chrome's traffic goes through the Tor program on this computer
+// (socks5 127.0.0.1:9050). Local pages stay direct. The extension's own switch decides; no 8088 server is asked.
+// Before anything is routed, Tor's port must answer: a web request to it gets a short refusal page that names Tor.
+// With no answer Chrome is left exactly as it is. That also means: routed already and Tor has stopped, it stays routed
+// and pages do not load, which is better than quietly showing websites the real address. Checked every minute.
+const TOR_PORT = 'http://127.0.0.1:9050/';
+const torRuns = async () => { try { return /\bTor\b/.test(await (await fetch(TOR_PORT, { cache: 'no-store', signal: AbortSignal.timeout(3000) })).text()); } catch { return false; } };
+const torRouted = async () => { try { const v = (await chrome.proxy.settings.get({})).value, one = (v.rules || {}).singleProxy || {};
+  return v.mode === 'fixed_servers' && one.host === '127.0.0.1' && one.port === 9050; } catch { return false; } };
+// for the Tor row: is it switched on and allowed right now, did the port answer (null = not asked), is Chrome routed
+const torNow = async (cx) => { const wanted = can('C14', cx); return { wanted, running: wanted ? await torRuns() : null, routed: await torRouted() }; };
+let proxyMode = null, proxying = Promise.resolve();
+// one at a time: a changed switch and the reply to the popup may both ask for it
+const applyProxy = () => (proxying = proxying.then(proxyOnce, proxyOnce));
+async function proxyOnce() {
   const cx = await context();
   if (cx.hold.guard && !cx.hold.paused) return;   // a sign-in is going on: do not change the network path under it
-  let want = 'direct';   // not allowed (off, ask, master off, paused): take our proxy setting away, also with the server down
-  if (can('C14', cx)) try { want = (await (await fetch(LIMITS, { cache: 'no-store' })).json()).torChrome ? 'tor' : 'direct'; } catch { return; }   // server down: leave as is
+  const want = can('C14', cx) ? 'tor' : 'direct';   // not allowed (off, ask, master off, paused): take our proxy setting away
+  if (want === 'tor' && !(await torRuns())) return;   // Tor does not answer: leave Chrome as it is
   if (want === proxyMode) return;
   if (want === 'tor') await chrome.proxy.settings.set({ scope: 'regular', value: { mode: 'fixed_servers', rules: {
     singleProxy: { scheme: 'socks5', host: '127.0.0.1', port: 9050 }, bypassList: ['127.0.0.1', 'localhost', '*.localhost', '[::1]'] } } });

@@ -12,6 +12,10 @@ const DAY_OF = typeof module !== 'undefined' ? require('./history.js').historyDa
 const COMMAND = { cookies: 'cookies', google: 'cookies', allowlist: 'cookies', storage: 'storage', wifi: 'wifi', permissions: 'permissions', cache: 'cache', tor: 'tor' };
 // What the button of a group does, and to what: "Remove 12 cookies"
 const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'] };
+// The Tor row, from background.js's { wanted, running, routed } (as torSays in report-view.js)
+const TOR_SAYS = (t) => t.routed ? (t.running === false ? 'Routed over Tor: yes, but Tor has stopped answering. Pages will not load until Tor runs again or you switch this off'
+    : 'Routed over Tor: yes, websites see an address of the Tor network, not yours')
+  : t.wanted && t.running === false ? 'Tor is not running on this computer; nothing is routed' : 'Routed over Tor: no';
 const renderPopup = (state, tab) => {
   const { esc, renderBaddies } = AUDIT_VIEW, s = state || {}, hold = s.hold || {}, allow = s.allow || [], sitesOff = s.sitesOff || [];
   const msg = (m) => `data-msg="${esc(JSON.stringify(m))}"`;
@@ -60,7 +64,7 @@ const renderPopup = (state, tab) => {
     const [verb, thing] = DOES[g.id] || ['Remove', 'item'];
     const approve = hint ? '' : btn(g.id === 'cache' ? 'Clear the saved copies of pages' : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`, { type: 'approve', group: g.id }, 'go', stopped);
     const today = Number((((s.history || {}).days || {})[DAY_OF(s.now)] || {})[g.id]) || 0, cmd = COMMAND[g.id];
-    const line = `${n ? `${n} pending` : idle ? idle[0].toUpperCase() + idle.slice(1) : 'Nothing waiting'}${today ? ` · ${today} removed today` : ''}${post ? ` · ${post}` : ''}`;
+    const line = `${g.id === 'tor' && s.tor ? TOR_SAYS(s.tor) : n ? `${n} pending` : idle ? idle[0].toUpperCase() + idle.slice(1) : 'Nothing waiting'}${today ? ` · ${today} removed today` : ''}${post ? ` · ${post}` : ''}`;
     const k = Number(g.looping) || 0;
     return `<div class="c" data-group="${esc(g.id)}"><div class="h"><b>${esc(g.title)}</b><select ${msg({ type: 'setMode', group: g.id })}>`
       + (g.ask === false ? ON_OFF : g.noAuto ? MODES.slice(0, 2) : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'

@@ -54,7 +54,7 @@ test('during the guard no tab is closed, no cache cleared, no storage or permiss
   assert.equal(bg.called('runtime.reload').length, 1);
 });
 test('the guard leaves a Tor proxy as it is', async () => {
-  const bg = await load(opt({ limits: { torChrome: true }, storage: { modes: { C14: 'auto' } } }));
+  const bg = await load(opt({ tor: true, storage: { modes: { C14: 'auto' } } }));
   await bg.alarm('proxy'); assert.ok(bg.state.proxy);
   await bg.openTab({ id: 1, active: true, url: 'https://accounts.google.com/' }); await bg.alarm('proxy');
   assert.ok(bg.state.proxy); assert.equal(bg.called('proxy.settings.clear').length, 0);
@@ -65,7 +65,7 @@ test('with the guard switched off (C19 off) a sign-in tab protects nothing', asy
 });
 
 test('pause: nothing is removed, both rulesets and the YouTube scripts are off, Tor is cleared', async () => {
-  const bg = await load(opt({ limits: { torChrome: true }, storage: { modes: { C14: 'auto' } } }));
+  const bg = await load(opt({ tor: true, storage: { modes: { C14: 'auto' } } }));
   await bg.alarm('proxy'); assert.ok(bg.state.proxy); assert.deepEqual(bg.state.rulesets, BOTH);
   assert.deepEqual(await bg.send({ type: 'pause' }), { pauseUntil: bg.now + 10 * MIN }); await bg.settle();
   assert.equal(bg.state.alarms.resume.when, bg.now + 10 * MIN);
@@ -74,7 +74,7 @@ test('pause: nothing is removed, both rulesets and the YouTube scripts are off, 
   assert.deepEqual(bg.state.rulesets, []); assert.deepEqual(bg.state.scripts, []); assert.equal(bg.state.proxy, null);
 });
 test('after the pause alarm everything is back on and the kept cookie goes at the next sweep', async () => {
-  const bg = await load(opt({ limits: { torChrome: true }, storage: { modes: { C14: 'auto' } } }));
+  const bg = await load(opt({ tor: true, storage: { modes: { C14: 'auto' } } }));
   await bg.send({ type: 'pause', minutes: 10 }); await bg.settle(); await tracker(bg);
   bg.now += 10 * MIN - 1; await bg.alarm('proxy'); assert.deepEqual(bg.state.rulesets, []);
   bg.now += 1; await bg.alarm('resume');

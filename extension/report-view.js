@@ -31,6 +31,10 @@ const { buildReport, renderReport } = (() => {
     if (mode === 'ask' || (g.ask && s.master !== true)) return 'asks first';   // nothing is deleted before the user turned cleaning on
     return hold.guard && g.ask ? 'held while you sign in' : 'on';
   };
+  // The Tor row, from background.js's { wanted, running, routed } (as TOR_SAYS in popup-view.js)
+  const torSays = (t) => t.routed ? (t.running === false ? 'Routed over Tor: yes, but Tor has stopped answering. Pages will not load until Tor runs again or you switch this off'
+      : 'Routed over Tor: yes, websites see an address of the Tor network, not yours')
+    : t.wanted && t.running === false ? 'Tor is not running on this computer; nothing is routed' : 'Routed over Tor: no';
   // what a group's removal is called: "4 deleted today"
   const DID = { cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
   // Blocked and cleaned links are those of this tab (Chrome counts them per tab). Deleted today and waiting are those
@@ -41,7 +45,8 @@ const { buildReport, renderReport } = (() => {
     const hits = (ids) => tab && Array.isArray(tab.matched) ? tab.matched.filter((id) => ids.includes(id)).length : null;
     if (g.id === 'blocking') { const n = hits(['trackers', 'google-paths']); return n === null ? 'Chrome did not say how many it blocked' : `${n} blocked on this page`; }
     if (g.id === 'params') { const n = hits(['url-params']); return n === null ? 'Chrome did not say how many links it cleaned' : `${n} link${n === 1 ? '' : 's'} cleaned on this page`; }
-    if (!DID[g.id]) return '';   // nothing to count: the sign-in pause, Tor, the reports
+    if (g.id === 'tor' && s.tor) return torSays(s.tor);
+    if (!DID[g.id]) return '';   // nothing to count: the sign-in pause, the reports
     const h = s.history || {}, day = dep.day(s.now || 0), today = Number(((h.days || {})[day] || {})[g.id]) || 0, waiting = `${Number(g.pending) || 0} waiting`;
     if (!tab || !tab.host || !COOKIES_ONLY.includes(g.id)) return `${today} ${DID[g.id]} today${COOKIES_ONLY.includes(g.id) ? ' on all sites' : ''}, ${waiting}`;
     const here = Object.entries(h.cookies || {}).filter(([k, c]) => { const site = k.split(' ')[0];

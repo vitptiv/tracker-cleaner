@@ -98,7 +98,8 @@ module.exports = function makeChrome(init = {}) {
     // any permission name works: chrome.contentSettings.camera.set(...)
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },
-    proxy: { settings: { set: rec('proxy.settings.set', (d) => { state.proxy = d.value; }), clear: rec('proxy.settings.clear', () => { state.proxy = null; }) } },
+    proxy: { settings: { set: rec('proxy.settings.set', (d) => { state.proxy = d.value; }), clear: rec('proxy.settings.clear', () => { state.proxy = null; }),
+      get: rec('proxy.settings.get', () => ({ value: JSON.parse(JSON.stringify(state.proxy || { mode: 'system' })), levelOfControl: state.proxy ? 'controlled_by_this_extension' : 'controllable_by_this_extension' })) } },
     // As Chrome: the function goes to the page as text (so it can use nothing from around it) and runs among the
     // page's own things; a chrome:// page, the web store and a tab that is gone are refused.
     scripting: { executeScript: rec('scripting.executeScript', async ({ target, func, args = [] }) => {
