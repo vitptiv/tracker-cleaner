@@ -4,3 +4,4 @@ test/fixtures/profile/
 test/fixtures/profile-page/
 *.crx
 *.pem
+lab/data/
