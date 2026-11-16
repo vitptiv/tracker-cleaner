@@ -143,3 +143,16 @@ test('lab step 10 (c9): two typing sessions of one made-up person score closer t
   const jar = {}; await kitSays(jar, { kind: 'rhythm', site: 'gazette.localhost', gaps: mara1, moves: 12, dist: 340 });
   assert.equal(row(await knows(jar), 'T35').value, '9 keys, gap mean 84 ms, spread 8 ms; mouse 12 moves, 340 px');
 });
+
+test('lab step 11 (c8): the permission is read; the push subscription is designed, not built', async () => {
+  const jar = {}; await ask('friendface', '/perm?state=denied', { jar }); assert.equal(row(await knows(jar), 'T22').mark, 'not yet seen');
+  await ask('friendface', '/perm?state=granted', { jar }); const k = await knows(jar);
+  assert.equal(row(k, 'T22').value, 'notifications: granted'); assert.equal(row(k, 'T34').mark, 'designed, not built'); assert.match(row(k, 'T34').reason, /push service/);
+});
+test('lab step 11 (c10): the probe finds the listener the lab opened and misses the closed port', async () => {
+  const knock = (port) => new Promise((done) => http.get({ host: '127.0.0.1', port }, (r) => { r.resume(); done('open'); }).on('error', () => done('closed')));
+  assert.deepEqual([await knock(PORT + 1), await knock(PORT + 2)], ['open', 'closed']);
+  const kit = (await ask('friendface', '/kit.js')).text; assert.ok(kit.includes(`PROBE = [${PORT + 1},${PORT + 2}]`)); assert.ok(!/127\.0\.0\.1:\d/.test(kit) && !/192\.168|10\.0\./.test(kit));
+  const jar = {}; await kitSays(jar, { kind: 'page', site: 'gazette.localhost', url: 'u', probe: [[PORT + 1, 'open'], [PORT + 2, 'closed']] });
+  assert.equal(row(await knows(jar), 'T36').value, `open: ${PORT + 1}; closed: ${PORT + 2}`);
+});
