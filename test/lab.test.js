@@ -192,3 +192,30 @@ test('lab step 13: Hop logs from and to, its cookie comes back, the link pings, 
   assert.match(row(k, 'T31').value, /^share page opened for http:\/\/gazette.*harbour-bridge$/);
   assert.equal((await ask('hop', '/r?to=' + encodeURIComponent('http://example.com/'))).status, 400);
 });
+
+test('lab step 14: the like frame names the signed-in person and keeps a per-site cookie', async () => {
+  const mara = await join(MARA), [, src] = embedded((await ask('tidewater', '/post/mending-a-kite')).text, FRAME);
+  const frame = await ask('friendface', src, { jar: mara }); assert.match(frame.text, /as Mara Lindqvist/);
+  assert.match(frame.headers['set-cookie'].join(), /ff_frame=f-\w+;.*Secure; Partitioned/);
+  await post('/plugins/like', mara, { fsid: 's-1', site: 'tidewater.localhost', href: 'http://tidewater.localhost/post/mending-a-kite' });
+  const k = await knows(mara); assert.equal(row(k, 'T8').value, 'ff_frame=' + mara.ff_frame); assert.equal(row(k, 'T31').value, 'liked http://tidewater.localhost/post/mending-a-kite');
+});
+test('lab step 14: "Sign in with Friendface" gives the blog the account\'s ID, and Friendface a note', async () => {
+  const mara = await join(MARA), blog = {}, post = `http://tidewater.localhost:${PORT}/post/mending-a-kite`, q = `/dialog/oauth?app=tidewater&back=${encodeURIComponent(post)}`;
+  assert.match((await ask('friendface', q, { jar: mara })).text, /Continue as Mara Lindqvist/);
+  assert.equal((await ask('friendface', q.replace('tidewater.localhost', 'elsewhere.localhost'), { jar: mara })).status, 400);
+  const back = new URL((await ask('friendface', q, { method: 'POST', jar: mara })).headers.location);
+  assert.equal((await ask('tidewater', back.pathname + back.search, { jar: blog })).headers.location, post); assert.match(blog.tw_user, /^tw-\w+$/);
+  assert.match((await ask('tidewater', '/post/mending-a-kite', { jar: blog })).text, /Signed in as Mara Lindqvist/);
+  assert.match(row(await knows(mara), 'T32').value, new RegExp(`^tidewater\\.localhost knows this account as ${blog.tw_user} \\(Friendface app ID ffu-\\w+\\)$`));
+  assert.equal((await ask('tidewater', back.pathname + back.search, { jar: {} })).status, 403);
+});
+test('lab step 14: cookie syncing leaves the pair in both tables; the disguised subdomain\'s cookie is hidden from scripts', async () => {
+  const ff = {}, pn = {}, shop = {};
+  const ad = await ask('pennant', '/ad?site=gazette.localhost&pl=pl-9', { jar: pn }), sync = new URL(ad.headers.location);
+  const matched = new URL((await ask('friendface', sync.pathname + sync.search, { jar: ff })).headers.location); await ask('pennant', matched.pathname + matched.search, { jar: pn });
+  assert.equal(row(await knows(ff), 'T6').value, `pn_uid=${pn.pn_uid} is ff_uid=${ff.ff_uid}`); assert.equal(lab.store.pennant.get(pn.pn_uid), ff.ff_uid);
+  const first = await ask('metrics.parcelpine', '/c.gif?ffp=ffp.1.3.4', { jar: shop }); assert.match(first.headers['set-cookie'][0], /^pp_sid=m-\w+;.*HttpOnly/);
+  await kitSays(ff, { kind: 'page', site: 'parcelpine.localhost', url: 'u', ffp: 'ffp.1.3.4' }); assert.equal(row(await knows(ff), 'T7').mark, 'not yet seen');
+  await ask('metrics.parcelpine', '/c.gif?ffp=ffp.1.3.4', { jar: shop }); assert.equal(row(await knows(ff), 'T7').value, 'pp_sid=' + shop.pp_sid);
+});
