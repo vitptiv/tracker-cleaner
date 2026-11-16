@@ -248,3 +248,16 @@ test('lab step 16: helpers move only the server\'s calendar, delete one cookie, 
   const site = { _ffp: 'ffp.1.1.1', other: 'stays' }; assert.match((await ask('gazette', '/lab/delete-id', { jar: site })).text, /Nothing else was touched/); assert.deepEqual(site, { other: 'stays' });
   await ask('friendface', '/lab/forget', { method: 'POST' }); assert.equal((await knows(jar)).history.length, 0);
 });
+
+test('lab step 18: the outside check reads a profile\'s own files', async () => {
+  const fs = require('node:fs'), path = require('node:path'), { execFileSync } = require('node:child_process'), { outside } = require('../lab/outside');
+  const base = fs.existsSync('/mnt/d/tmp') ? '/mnt/d/tmp' : require('node:os').tmpdir(), dir = fs.mkdtempSync(path.join(process.env.TC_BROWSER_TMP || base, 'tc-lab-profile-'));
+  try { assert.deepEqual(outside(dir, PORT), {});
+    fs.mkdirSync(path.join(dir, 'Default', 'Code Cache', 'js'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'Default', 'Code Cache', 'js', 'abc_0'), `\0\0_key http://friendface.localhost:${PORT}/kit.js \0`); fs.writeFileSync(path.join(dir, 'Default', 'Code Cache', 'js', 'other_0'), 'elsewhere');
+    const make = (file, table, urls) => execFileSync('python3', ['-c', `import sqlite3,sys; d=sqlite3.connect(sys.argv[1]); d.execute('create table ${table} (id integer primary key, url text)'); d.executemany('insert into ${table} (url) values (?)', [(u,) for u in sys.argv[2:]]); d.commit()`, path.join(dir, 'Default', file), ...urls]);
+    make('History', 'urls', [`http://gazette.localhost:${PORT}/`, 'https://elsewhere.example/', `http://hop.localhost:${PORT}/r?c=1`]); make('Favicons', 'favicons', [`http://gazette.localhost:${PORT}/favicon.ico`]);
+    assert.deepEqual(outside(dir, PORT), { T17: `compiled copy of http://friendface.localhost:${PORT}/kit.js in 1 code cache file, first abc_0`,
+      T18: `1 lab icons saved: http://gazette.localhost:${PORT}/favicon.ico`, T19: `2 lab addresses in History, first http://gazette.localhost:${PORT}/` });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
