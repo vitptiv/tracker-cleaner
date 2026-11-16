@@ -113,3 +113,18 @@ test('lab step 8 (c3): the cache tag comes back in the request and names the bro
   assert.equal(again.status, 304);
   const k = await knows(fresh); assert.equal(row(k, 'T16').value, `If-None-Match: ${tag}`); assert.deepEqual(row(k, 'T16').sites, ['gazette.localhost']); assert.equal(k.history.length, 1);
 });
+
+const feedClick = async (jar, n = 0) => { const html = (await ask('friendface', '/', { jar })).text; return [...html.matchAll(/href="([^"]*hop\.localhost[^"]+)"/g)].map((m) => new URL(m[1].replace(/&#38;/g, '&')))[n]; };
+test('lab step 9 (c4): the click ID arrives in the address, lands in the site cookie and names the account', async () => {
+  const mara = await join(MARA), link = await feedClick(mara), cid = link.searchParams.get('c'), hopJar = {};
+  const hop = await ask('hop', link.pathname + link.search, { jar: hopJar });
+  assert.equal(hop.status, 302); assert.equal(new URL(hop.headers.location).searchParams.get('ffclid'), cid); assert.match(hop.headers.location, /tidewater\.localhost.*mending-a-kite/);
+  const other = {}; await kitSays(other, { kind: 'page', site: 'tidewater.localhost', url: hop.headers.location, ffc: `ffc.1.1700000000000.${cid}`, ffp: 'ffp.1.1.2' });
+  const k = await knows(other); assert.equal(k.who.name, 'Mara Lindqvist'); assert.equal(row(k, 'T4').value, `_ffc=ffc.1.1700000000000.${cid}`); assert.deepEqual(row(k, 'T4').sites, ['tidewater.localhost']);
+  const stray = {}; await kitSays(stray, { kind: 'page', site: 'tidewater.localhost', url: 'x', ffc: 'ffc.1.1.c-notissued' }); assert.equal((await knows(stray)).who, null);
+});
+test('lab step 9 (c5): one fingerprint code on two sites', async () => {
+  const jar = {}, fp = { code: 'fp-0badc0de', canvas: 'a', graphics: 'b', audio: 'c', fonts: 'd', traits: '1200,900' };
+  for (const site of ['gazette.localhost', 'parcelpine.localhost']) await kitSays(jar, { kind: 'page', site, url: `http://${site}/`, fp });
+  const r = row(await knows(jar), 'T25'); assert.equal(r.value, 'fp-0badc0de'); assert.deepEqual(r.sites, ['gazette.localhost', 'parcelpine.localhost']); assert.match(r.captures[0].via, /canvas a, graphics b, audio c, fonts d/);
+});
