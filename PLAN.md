@@ -628,3 +628,61 @@ both, with the exact sentences.
   'Chrome did not say how many it blocked; press "Read again" to ask it'. A request to 127.0.0.1:9050 with nothing
   listening failed after 1 ms and the proxy setting stayed "system". Manifest 1.23; TESTING.md steps 21 to 28.
   Open: Tor "running" is covered by the stand-in only; nobody has looked at the panel in a window yet.
+
+## Todo: the tracking lab (not started)
+
+Written 2026-11-15 at the user's request: investigate how Facebook and other sites follow a person from site to
+site, then build pretend sites and a pretend tracker that use the same techniques, so the extension can be tested
+end to end against something that really tracks.
+
+**The measure.** The pretend tracker keeps a page, "What I learned about you": each visitor ID and the sites it saw
+that ID on. For every technique: with the extension off the tracker must link visits to two pretend sites under
+one ID (proof the technique works); with the extension on it should fail to. A technique that still links with the
+extension on is a gap, and becomes an extension todo.
+
+**Safety.** Everything listens on 127.0.0.1 only, uses made-up IDs, and is never deployed anywhere.
+
+**Techniques.**
+
+| # | Technique | How it works | What should stop it |
+|---|---|---|---|
+| 1 | Pixel with a third-party cookie | A 1x1 image from the tracker on every site; its cookie returns with each request, with the page address | Request blocking; cookie deletion |
+| 2 | Script planting a first-party cookie | The tracker's script sets an ID cookie under the site's own name and reports it home (`_fbp`, `_ga`) | Blocking the script; deletion by name |
+| 3 | Click ID on links | The tracker adds `?fbclid=...` to outgoing links; the landing page saves it in a cookie (`_fbc`) | Stripping link tags |
+| 4 | Redirect ("bounce") tracking | A link passes through the tracker's own address, where it reads and sets its cookie as a first party, then forwards | Deleting the tracker's cookies; maybe nothing today |
+| 5 | Cookie syncing | One tracker redirects its pixel to a partner with its ID in the address | Blocking either request |
+| 6 | Embedded button in a frame | A frame from the tracker reads its own cookie, a sign-in included | Blocking the frame |
+| 7 | Respawning | The ID is also kept in page storage and the cookie is re-created after deletion | Storage cleaning; the loop breaker |
+| 8 | Cache tag | A cached file carries a unique tag the server reads back | Cache clearing only |
+| 9 | Tracker disguised as part of the site | The tracker answers at `metrics.<site>`, so its cookie is first-party and no list matches | Probably nothing today |
+| 10 | Fingerprint | An ID computed from screen, fonts and graphics; nothing stored | Blocking the script only |
+
+Described on the write-up but not built, because nothing in the browser can touch them: sites reporting activity
+from their own servers; tracking tied to being signed in to the tracker itself (the sign-in cookies the extension
+keeps are what identify a person inside technique 6, so blocking is the only defence there).
+
+**Open questions, to settle in step 3 before building techniques.**
+
+- Does Chrome treat `site-a.localhost`, `site-b.localhost` and `tracker.localhost` as different sites, and allow
+  `SameSite=None; Secure` cookies between them over plain http? If not: map made-up names to 127.0.0.1 inside the
+  throwaway Chrome only (`--host-resolver-rules`), with a self-signed certificate it is told to accept.
+- How the extension recognises the lab tracker. Proposed: a test-only list entry that `pack.sh` leaves out, with a
+  test that the packed lists do not contain it. Note `core.realHost` strips a trailing `.localhost`, so a cookie on
+  `doubleclick.net.localhost` is already judged as `doubleclick.net`; request blocking matches the real name only.
+- The lab lives in this repo under `lab/`, tests under `test/lab*.test.js` and in `test/browser/run.js`.
+
+**Steps (about 10 minutes each), tests first.**
+
+1. Investigate and write up: how each technique works in practice, from the trackers' own public documentation,
+   plus the requests a real pixel makes on a public page in a throwaway Chrome. One journal page.
+2. Lab skeleton: one Node server with no dependencies answering as several sites by `Host`, the tracker's log,
+   "What I learned about you". Tests: a visit is logged under the right site and ID.
+3. Ground rules in a real Chrome: the open questions above, answered by checks in `test/browser/run.js`.
+4. Techniques 1 and 2.  5. Techniques 3 and 4.  6. Techniques 5 and 6.  7. Techniques 7 and 8.
+8. Techniques 9 and 10. For each technique in 4-8: first the test that the tracker links two sites with the
+   extension off, then the expected result with it on.
+9. Scoreboard: one table, technique by extension off / on, tracked or not; part of the real-Chrome run and shown on
+   the journal page.
+10. Gaps become extension todos here, one entry per "still tracked" row.
+
+Expectation, to be tested: techniques 4, 8 and 9 show up as gaps.
