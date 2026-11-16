@@ -240,3 +240,11 @@ test('lab step 15: rows only Chrome\'s own files can show are handed in from out
   assert.equal(row(k, 'T1').mark, 'not yet seen');
   for (const t of ['T20', 'T21']) { assert.equal(row(k, t).mark, 'not buildable here'); assert.ok(row(k, t).reason.length > 40); assert.equal(row(k, t).value, ''); }
 });
+
+test('lab step 16: helpers move only the server\'s calendar, delete one cookie, and empty the log', async () => {
+  const jar = {}; await view('gazette', '/', jar); const day = (await knows(jar)).history[0].when.slice(0, 10);
+  assert.match((await ask('friendface', '/lab/tomorrow')).text, /Only the server moved/); await view('gazette', '/', jar);
+  const h = (await knows(jar)).history; assert.equal(h[0].when.slice(0, 10), day); assert.equal(new Date(h[1].when.slice(0, 10)) - new Date(day), 86400000);
+  const site = { _ffp: 'ffp.1.1.1', other: 'stays' }; assert.match((await ask('gazette', '/lab/delete-id', { jar: site })).text, /Nothing else was touched/); assert.deepEqual(site, { other: 'stays' });
+  await ask('friendface', '/lab/forget', { method: 'POST' }); assert.equal((await knows(jar)).history.length, 0);
+});
