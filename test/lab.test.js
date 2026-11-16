@@ -169,3 +169,26 @@ test('lab step 12 (c11): the shop\'s server reports the purchase; reported twice
   k = await knows(ff); assert.equal(k.purchases.length, 1); assert.deepEqual(k.purchases[0].sources, ['server', 'browser']);
   assert.equal((await ask('friendface', '/s2s/event', { method: 'POST', body: { event: 'Purchase', event_id: 'e-x' } })).status, 403);
 });
+
+test('lab step 13: site cookie, events with values, the closing beacon', async () => {
+  const jar = {}, base = { site: 'gazette.localhost', ffp: 'ffp.1.9.123', pl: 'pl-1', url: 'http://gazette.localhost/search?q=kite+repair' };
+  assert.match((await ask('gazette', '/search?q=kite+repair')).text, /ffq\('track', 'Search', \{ search_string: "kite repair" \}\)/);
+  await kitSays(jar, { kind: 'page', ...base }); await kitSays(jar, { kind: 'event', ...base, name: 'Search', params: { search_string: 'kite repair' } });
+  await ask('friendface', '/beacon', { method: 'POST', jar, body: { kind: 'close', ...base, seconds: 10.2, scroll: 100 } });
+  const k = await knows(jar);
+  assert.equal(row(k, 'T3').value, '_ffp=ffp.1.9.123'); assert.equal(row(k, 'T26').value, 'Search {"search_string":"kite repair"}');
+  assert.equal(row(k, 'T28').value, '10.2 s on http://gazette.localhost/search?q=kite+repair, scrolled 100%'); assert.equal(k.history.length, 1);
+  assert.match((await ask('loopreel', '/')).text, /data-only="beacon"/);
+});
+test('lab step 13: Hop logs from and to, its cookie comes back, the link pings, the share page logs the article', async () => {
+  const mara = await join(MARA), hopJar = {}, feed = `http://friendface.localhost:${PORT}/`;
+  for (const n of [0, 1]) { const link = await feedClick(mara, n); await ask('friendface', `/ping?c=${link.searchParams.get('c')}`, { method: 'POST', jar: mara });
+    await ask('hop', link.pathname + link.search, { jar: hopJar, headers: { Referer: feed } }); }
+  await ask('friendface', '/share?u=' + encodeURIComponent(`http://gazette.localhost:${PORT}/article/harbour-bridge`), { jar: mara });
+  const k = await knows(mara);
+  assert.match(row(k, 'T30').value, new RegExp(`^${feed} to http://tidewater\\.localhost:${PORT}/post/mending-a-kite, click c-`)); assert.equal(row(k, 'T30').captures.length, 2);
+  assert.equal(row(k, 'T5').value, 'hop_id=' + hopJar.hop_id); assert.equal(row(k, 'T5').captures.length, 1);
+  assert.match(row(k, 'T29').value, /^click c-\w+ to http:\/\/tidewater/); assert.deepEqual(row(k, 'T29').sites, ['tidewater.localhost', 'parcelpine.localhost']);
+  assert.match(row(k, 'T31').value, /^share page opened for http:\/\/gazette.*harbour-bridge$/);
+  assert.equal((await ask('hop', '/r?to=' + encodeURIComponent('http://example.com/'))).status, 400);
+});
