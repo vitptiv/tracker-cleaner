@@ -66,6 +66,7 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
     ok(row(k, 'T24').captures.some((c) => c.value.startsWith('address 203.0.113.7 (forwarded; simulated)') && c.site === 'loopreel.localhost'), 'the same browser from a second address is logged as a second address');
 
     k = await step(6, async () => { await t.go(at('gazette')); await landed(); await t.type('#search [name=q]', 'kite repair'); await t.clickAndLoad('#search button'); await landed();
+      for (let i = 0; i < 12; i++) { await t.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 200 + i * 25, y: 300 + (i % 3) * 20 }); await sleep(20); }
       await t.type('#nl', MARA.email, 60); await sleep(1200);
       await t.go(at('gazette', '/article/harbour-bridge')); await landed(); await t.click('#share');
       const share = await until(async () => (await b.send('Target.getTargets')).targetInfos.find((x) => x.url.includes('/share?u=')));

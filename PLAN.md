@@ -629,12 +629,16 @@ both, with the exact sentences.
   listening failed after 1 ms and the proxy setting stayed "system". Manifest 1.23; TESTING.md steps 21 to 28.
   Open: Tor "running" is covered by the stand-in only; nobody has looked at the panel in a window yet.
 
-## Todo: the tracking lab (not started)
+## Todo: the tracking lab (Phase A built 2026-11-16; review by hand open)
 
 Design, the 20 techniques, the table of traces, the trip and the steps with ETAs: journal page
 `/mnt/d/journal/server/tracking-lab.html` (http://localhost:8080/tracking-lab.html). Step list revised 2026-11-15
 after the source sweep on `tracking-ways.html` (data: `server/data/tracking-sources.json`, `tracking-ways.json`).
-Nothing is built, nothing downloaded.
+Phase A is built in `lab/` from scratch, nothing downloaded: `node lab/server.js`, tests `test/lab.test.js` (in the
+suite) and the real-Chrome trip `TC_BROWSER_TMP=/mnt/d/tmp node test/lab/trip.js`. Result: 33 of 36 rows tracked;
+T20 remembered servers and T21 forced-HTTPS "not buildable here" (plain http on loopback), T34 push subscription
+"designed, not built" (would leave the machine, needs a package). No chunk was used. Step 18 reads Chrome's files
+with its own `lab/outside.js`, not `tools/inspect.js`.
 
 **What it is.** Pretend sites on 127.0.0.1 and a pretend network, Friendface, that follows a made-up signed-in
 person; "What I know about you" is a checklist, one row per kind of trace with the captured identifier. Never
@@ -650,24 +654,24 @@ A named chunk is a starting point only if its licence and contents check out; ET
 
 **Phase A steps (about 163 min + 15 min review; was 150; 177 without chunks), tests first.**
 
-1. Ground rules: `*.localhost` names and cookies (12).  2. Ground rules: the hard kinds, plus 127.0.0.x, push
-   subscription, loopback request (14).  3. Server skeleton (8).  4. Sign-in, profile, feed (8).
-5. "What I know about you" and the 36 rows as one data file (6).  6. The canary (5).
-7. c1 + c6: third-party cookie on an image, request details, simulated addresses (8). Chunk: HTTPLeaks `leak.html`.
-8. c2 + c3: frame storage ID, cache tag (6, was 9). Chunks: privacytests `static/supercookies*`, `live/caching.js`.
-9. c4 + c5: click ID on links, canvas/graphics/audio fingerprint (6, was 8). Chunks: brave/adblock-lists
+[x] 1. Ground rules: `*.localhost` names and cookies (12).  [x] 2. Ground rules: the hard kinds, plus 127.0.0.x, push
+   subscription, loopback request (14).  [x] 3. Server skeleton (8).  [x] 4. Sign-in, profile, feed (8).
+[x] 5. "What I know about you" and the 36 rows as one data file (6).  [x] 6. The canary (5).
+[x] 7. c1 + c6: third-party cookie on an image, request details, simulated addresses (8). Chunk: HTTPLeaks `leak.html`.
+[x] 8. c2 + c3: frame storage ID, cache tag (6, was 9). Chunks: privacytests `static/supercookies*`, `live/caching.js`.
+[x] 9. c4 + c5: click ID on links, canvas/graphics/audio fingerprint (6, was 8). Chunks: brave/adblock-lists
    `clean-urls.json`; fingerprintjs `src/sources/canvas.ts, audio.ts`.
-10. c7 + c9: typed e-mail capture, typing and mouse rhythm (8). No chunk.
-11. c8 + c10: push subscription endpoint with the permission, loopback probing (9, was 12). Chunk:
+[x] 10. c7 + c9: typed e-mail capture, typing and mouse rhythm (8). No chunk.
+[x] 11. c8 + c10: push subscription endpoint with the permission, loopback probing (9, was 12). Chunk:
     duckduckgo/privacy-test-pages `local-port-scan/`.
-12. c11: server-to-server report, joining to the account (5, was 6). Chunk: matomo-nodejs-tracker `index.js`.
-13. Rest: kit, site cookie, events, beacons, redirector, share links (10, was 12). Chunks: privacy-test-pages
+[x] 12. c11: server-to-server report, joining to the account (5, was 6). Chunk: matomo-nodejs-tracker `index.js`.
+[x] 13. Rest: kit, site cookie, events, beacons, redirector, share links (10, was 12). Chunks: privacy-test-pages
     `bounce-tracking/`, brave `debounce.json`.
-14. Rest, frames and names: like frame, "Sign in with", cookie syncing, disguised subdomain (14). No chunk.
-15. Rest, stores and caches: respawning, storage totals, icon, forced-HTTPS, compiled copy, font traits (9, was
+[x] 14. Rest, frames and names: like frame, "Sign in with", cookie syncing, disguised subdomain (14). No chunk.
+[x] 15. Rest, stores and caches: respawning, storage totals, icon, forced-HTTPS, compiled copy, font traits (9, was
     12). Chunks: privacytests `static/hsts.js`, jonasstrehle/supercookie `server/main.js`, fingerprintjs `fonts.ts`.
-16. Lab helpers (5).  17. The coded trip with a restart of Chrome (12).  18. Checks from outside with
-    `tools/inspect.js` (8).  19. Completeness check (5).  20. Hand-trip sheet, journal page (5).  21. Review.
+[x] 16. Lab helpers (5).  [x] 17. The coded trip with a restart of Chrome (12).  [x] 18. Checks from outside with
+    `tools/inspect.js` (8).  [x] 19. Completeness check (5).  [x] 20. Hand-trip sheet, journal page (5).  [ ] 21. Review.
 
 **Phase B steps (about 36 min + 10 min review), only after step 21.** 22. The extension recognises the lab
 (test-only entries `pack.sh` leaves out).  23. Switch on, rerun the trip.  24. Scoreboard, 36 rows by off / on.
