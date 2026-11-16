@@ -7,6 +7,7 @@ module.exports = {
   T9: /^key ff_copy = ffp\.1\.\d{13}\.\d+$/, T10: /^tab tab-[0-9a-f]+, page \d+$/, T11: /^database ff, key id = ffp\.1\./, T12: /^cache ff, entry \/ff-id = ffp\.1\./,
   T13: /^worker holds u-[0-9a-f]{10}$/, T14: /^usage \d+ bytes, quota \d+ bytes$/, T15: /^saved\.js says k-[0-9a-f]{10}$/, T16: /^If-None-Match: "t-[0-9a-f]{10}"$/,
   T17: /^compiled copy of http:\/\/friendface\.localhost:\d+\/kit\.js in \d+ code cache file/, T18: /^\d+ lab icons saved: http/, T19: /^\d+ lab addresses in History, first http:\/\/[\w.]+\.localhost:\d+\//,
+  T20: /^https:\/\/friendface\.test:\d+ remembered with alternative server quic port \d+$/, T21: /^forced-HTTPS bit set for friendface\.test: the plain request http:\/\/friendface\.test:\d+\/hsts\/read arrived as https$/,
   T22: /^notifications: granted$/, T23: /^http:\/\/gazette\.localhost:\d+\/ \(came from nowhere\)$/, T24: /^address 127\.0\.0\.1, HeadlessChrome\/[\d.]+, [\w-]+, header pattern h-[0-9a-f]{6}$/,
   T25: /^fp-[0-9a-f]{8}$/, T26: /^Search \{"search_string":"kite repair"\}$/, T27: /^sha256 [0-9a-f]{64}: matches mara\.lindqvist@example\.test$/,
   T28: /^[\d.]+ s on http:\/\/gazette\.localhost:\d+\/, scrolled \d+%$/, T29: /^click c-[0-9a-f]{8} to http:\/\/tidewater/, T30: /^http:\/\/friendface\.localhost:\d+\/ to http:\/\/tidewater\.localhost:\d+\/post\/mending-a-kite, click c-/,

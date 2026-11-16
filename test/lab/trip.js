@@ -3,7 +3,8 @@
 // lab/trip.json as Mara Lindqvist, and demands that every row that can be created here is ticked on "What I know
 // about you" with a real captured value, and that the reconstructed history is the trip. node test/lab/trip.js
 const assert = require('node:assert'), http = require('node:http');
-const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until } = require('./chrome');
+const fs = require('node:fs');
+const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json'), EXPECT = require('./expect');
 const PORT = Number(process.env.LAB_PORT) || 8200, MARA = { name: 'Mara Lindqvist', email: 'mara.lindqvist@example.test', password: 'lab-only-1' };
 const at = (site, p = '/') => `http://${site}.localhost:${PORT}${p}`;
@@ -13,7 +14,10 @@ const ok = (cond, what) => { assert.ok(cond, what); passed++; };
 const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
 
 (async () => {
-  const lab = await start({ port: PORT }); let b = await launch(), b2;
+  // a certificate made for this run in a throwaway folder; only this Chrome accepts it, and only it resolves *.test, to this computer
+  const certDir = newProfile(), cert = labCert(certDir); fs.rmSync(certDir, { recursive: true, force: true });
+  const flags = [cert.flag, '--host-resolver-rules=MAP *.test 127.0.0.1, MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE *.localhost, EXCLUDE 127.0.0.1'];
+  const lab = await start({ port: PORT, tls: cert }); let b = await launch(undefined, flags), b2;
   const visited = [], ticked = new Set();
   try {
     await b.send('Browser.grantPermissions', { origin: at('friendface', '').replace(/\/$/, ''), permissions: ['notifications'] });   // the press on "Allow"
@@ -89,7 +93,7 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
     await step(8, async () => { const dir = b.dir; await b.close(true); const found = outside(dir, PORT);
       // the outside result is handed to the lab under this browser's cookie
       await new Promise((done, fail) => http.request({ host: '127.0.0.1', port: PORT, path: '/lab/outside', method: 'POST', headers: { Host: `friendface.localhost:${PORT}`, Cookie: `ff_uid=${uid}` } }, (r) => { r.resume(); r.on('end', done); }).on('error', fail).end(JSON.stringify({ rows: found })));
-      b = await launch(dir); kt = await b.tab(at('friendface', '/what-i-know')); t = await b.tab(); });
+      b = await launch(dir, flags); kt = await b.tab(at('friendface', '/what-i-know')); t = await b.tab(); });
     same((await know()).who.name, MARA.name, 'still signed in after the restart');
 
     await step(9, async () => { await t.go(at('gazette', '/article/harbour-bridge')); await landed(); });

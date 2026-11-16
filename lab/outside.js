@@ -19,6 +19,9 @@ function outside(profile, port = 8200) {
   if (icons.length) out.T18 = `${icons.length} lab icons saved: ${icons.join(' ')}`;
   const urls = rows(path.join(def, 'History'), 'select url from urls where url like ? order by id', like);
   if (urls.length) out.T19 = `${urls.length} lab addresses in History, first ${urls[0]}`;
+  // remembered servers: only an https server gets an entry, so this needs the lab certificate
+  try { const servers = JSON.parse(fs.readFileSync(path.join(def, 'Network Persistent State'), 'utf8')).net.http_server_properties.servers.filter((x) => /^https:\/\/friendface\.test:\d+$/.test(x.server));
+    if (servers.length) out.T20 = `${servers[0].server} remembered${(servers[0].alternative_service || []).map((a) => ` with alternative server ${a.protocol_str} port ${a.port}`).join('')}`; } catch {}
   return out;
 }
 module.exports = { outside };

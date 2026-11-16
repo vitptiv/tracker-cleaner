@@ -10,13 +10,13 @@ const newProfile = () => { const base = process.env.TC_BROWSER_TMP || '/mnt/d/tm
   if (/google-chrome/.test(base)) throw new Error('refusing a real Chrome folder');
   return fs.mkdtempSync(path.join(base, 'tc-lab-chrome-')); };
 
-async function launch(dir = newProfile()) {
+async function launch(dir = newProfile(), extra = []) {
   if (!path.basename(dir).startsWith('tc-lab-chrome-')) throw new Error('not a lab profile: ' + dir);
   const child = spawn(process.env.CHROME || 'google-chrome', ['--headless=new', '--remote-debugging-pipe', `--user-data-dir=${dir}`,
     '--no-first-run', '--no-default-browser-check', '--disable-search-engine-choice-screen', '--disable-background-networking',
     '--disable-component-update', '--disable-sync', '--disable-domain-reliability',
     '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE *.localhost, EXCLUDE 127.0.0.1',
-    '--window-size=1200,900', 'about:blank'], { stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] });
+    '--window-size=1200,900', ...extra, 'about:blank'], { stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] });
   const waiting = new Map(), sessions = new Map();
   let n = 0, buf = '', dead = false;
   child.stdio[3].on('error', () => {});
@@ -63,4 +63,10 @@ async function launch(dir = newProfile()) {
     if (!keep) try { fs.rmSync(dir, { recursive: true, force: true }); } catch {} };
   return { send, tab, cookies, close, dir, pid: child.pid };
 }
-module.exports = { launch, sleep, until };
+// a self-signed certificate for the lab's names, made in a throwaway folder and trusted by nothing but the Chrome started with `flag`
+function labCert(dir) { const { execFileSync } = require('node:child_process'), crypto = require('node:crypto'), key = path.join(dir, 'lab-key.pem'), crt = path.join(dir, 'lab-cert.pem');
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', crt, '-days', '2', '-subj', '/CN=friendface.localhost',
+    '-addext', 'subjectAltName=DNS:friendface.localhost,DNS:*.friendface.localhost,DNS:localhost,DNS:friendface.test,DNS:*.friendface.test'], { stdio: 'ignore' });
+  const cert = fs.readFileSync(crt), spki = crypto.createHash('sha256').update(new crypto.X509Certificate(cert).publicKey.export({ type: 'spki', format: 'der' })).digest('base64');
+  return { key: fs.readFileSync(key), cert, flag: `--ignore-certificate-errors-spki-list=${spki}` }; }
+module.exports = { launch, sleep, until, newProfile, labCert };

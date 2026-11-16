@@ -81,14 +81,15 @@ const routes = {
 ${POSTS.map(([site, path, title], i) => { const cid = rid('c', 4); c.store.group([...w.ids, 'click:' + cid]); c.store.clicks.set(cid, c.lab.at(site, path));
     return `<p class="post"><a id="post-${i + 1}" href="${esc(c.lab.at('hop', `/r?c=${cid}&to=${encodeURIComponent(c.lab.at(site, path))}`))}" ping="/ping?c=${cid}">${esc(title)}</a></p>`; }).join('\n')}
 <script>navigator.serviceWorker.register('/sw.js');
-(Notification.permission === 'default' ? Notification.requestPermission() : Promise.resolve(Notification.permission)).then((p) => fetch('/perm?state=' + p));</script>`); },
+(Notification.permission === 'default' ? Notification.requestPermission() : Promise.resolve(Notification.permission)).then((p) => fetch('/perm?state=' + p));</script>${c.lab.tlsPort ? `<img alt="" width="1" height="1" src="https://friendface.test:${c.lab.tlsPort}/hsts/set?u=${w.uid}">` : ''}`); },
   'POST /join': (c, w) => { const b = c.body, a = c.store.addAccount(b.name, b.email, b.password);
     return a ? signedIn(c, w, c.store.signIn(b.email, b.password)) : c.to('/?e=' + encodeURIComponent('That did not work: all three fields are needed, and an address can join once.')); },
   'POST /login': (c, w) => { const token = c.store.signIn(c.body.email, c.body.password);
     return token ? signedIn(c, w, token) : c.to('/?e=' + encodeURIComponent('Wrong e-mail or password.')); },
   'GET /logout': (c) => { c.store.sessions.delete(c.cookies.ff_session); c.cookie('ff_session=; Path=/; Max-Age=0; SameSite=None; Secure; HttpOnly'); return c.to('/'); },
   'GET /profile': (c, w) => w.account ? c.html(w.account.name, `<p id="email">${c.lab.esc(w.account.email)}</p><p>Account ${w.account.id}. A made-up person.</p>`) : c.to('/'),
-  'GET /what-i-know': (c, w) => c.html('What I know about you', page(know(c.store, c.store.lookup(w.ids.filter(Boolean))), c.lab.esc)),
+  'GET /what-i-know': (c, w) => c.html('What I know about you', page(know(c.store, c.store.lookup(w.ids.filter(Boolean))), c.lab.esc)
+    + (c.lab.tlsPort ? `<img alt="" width="1" height="1" src="http://friendface.test:${c.lab.tlsPort}/hsts/read?u=${w.uid}">` : '')),
   'GET /what-i-know.json': (c, w) => c.json(know(c.store, c.store.lookup(w.ids.filter(Boolean)))),
   // technique 1: the invisible image
   'GET /tr': (c, w) => { const site = c.p('site'), ids = [...w.ids, c.p('pl') && 'pl:' + c.p('pl')];

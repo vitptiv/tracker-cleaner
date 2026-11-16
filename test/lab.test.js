@@ -236,9 +236,9 @@ test('lab step 15: copies in four stores, the cookie put back, the saved file, t
 test('lab step 15: rows only Chrome\'s own files can show are handed in from outside; the rows that cannot be created say why', async () => {
   const jar = {}; await post('/lab/outside', jar, { rows: { T17: '4 compiled files', T18: '3 icons', T19: '12 addresses', T1: 'made up', T20: 'x' } });
   const k = await knows(jar);
-  for (const t of ['T17', 'T18', 'T19']) { assert.equal(row(k, t).mark, 'tracked'); assert.match(row(k, t).captures[0].via, /checked from outside/); }
-  assert.equal(row(k, 'T1').mark, 'not yet seen');
-  for (const t of ['T20', 'T21']) { assert.equal(row(k, t).mark, 'not buildable here'); assert.ok(row(k, t).reason.length > 40); assert.equal(row(k, t).value, ''); }
+  for (const t of ['T17', 'T18', 'T19', 'T20']) { assert.equal(row(k, t).mark, 'tracked'); assert.match(row(k, t).captures[0].via, /checked from outside/); }
+  assert.equal(row(k, 'T1').mark, 'not yet seen'); assert.equal(row(k, 'T21').mark, 'not yet seen');
+  assert.equal(row(k, 'T34').mark, 'designed, not built'); assert.ok(row(k, 'T34').reason.length > 40); assert.equal(row(k, 'T34').value, '');
 });
 
 test('lab step 16: helpers move only the server\'s calendar, delete one cookie, and empty the log', async () => {
@@ -282,7 +282,7 @@ test('lab step 19: completeness, every row has a technique and its checks or a m
   const traces = require('../lab/traces.json'), trip = require('../lab/trip.json'), expect = require('./lab/expect'), src = fs.readFileSync(path.join(__dirname, 'lab', 'trip.js'), 'utf8');
   assert.deepEqual(gaps(traces, trip, expect, src), []);
   assert.deepEqual(traces.map((t) => t.id), Array.from({ length: 36 }, (_, i) => 'T' + (i + 1)));
-  assert.deepEqual(traces.filter((t) => t.status !== 'built').map((t) => `${t.id} ${t.status}`), ['T20 not buildable here', 'T21 not buildable here', 'T34 designed, not built']);
+  assert.deepEqual(traces.filter((t) => t.status !== 'built').map((t) => `${t.id} ${t.status}`), ['T34 designed, not built']);
   // taking one thing away must be noticed
   const without = (id) => Object.fromEntries(Object.entries(expect).filter(([k]) => k !== id));
   assert.deepEqual(gaps(traces, trip, without('T16'), src), ['T16 has no value check']);
@@ -296,4 +296,17 @@ test('lab step 20: the hand-trip sheet in TESTING.md has the same steps as the c
   const sheet = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'TESTING.md'), 'utf8'), trip = require('../lab/trip.json');
   for (const s of trip) assert.ok(sheet.includes(`- [ ] ${s.n}. **${s.title}.** ${s.hand}${s.traces.length ? ` Ticks: ${s.traces.join(' ')}.` : ''}\n`), `step ${s.n}`);
   assert.equal((sheet.split('## The tracking lab by hand')[1].match(/^- \[ \] \d+\./gm) || []).length, trip.length);
+});
+
+test('lab review: with a lab certificate the forced-HTTPS bit is set over https and read back only when the plain request arrives encrypted', async (t) => {
+  const fs = require('node:fs'), https = require('node:https'), { newProfile, labCert } = require('./lab/chrome');
+  let cert; const dir = newProfile(); try { cert = labCert(dir); } catch { return t.skip('no openssl'); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  const tl = await start({ port: PORT + 10, tls: cert }), P = tl.tlsPort, H = { Host: `friendface.test:${P}` };
+  const get = (mod, path) => new Promise((done, fail) => mod.get({ host: '127.0.0.1', port: P, path, headers: H, rejectUnauthorized: false, agent: false }, (r) => { r.resume(); r.on('end', () => done(r.headers)); }).on('error', fail));
+  try { const set = await get(https, '/hsts/set?u=u-1'); assert.match(set['strict-transport-security'], /max-age=31536000/); assert.match(set['alt-svc'], /^h3=":\d+"/);
+    assert.equal((await get(http, '/hsts/set?u=u-1'))['strict-transport-security'], undefined);
+    await get(http, '/hsts/read?u=u-1'); assert.equal(tl.store.records.length, 0);
+    await get(https, '/hsts/read?u=u-1'); assert.deepEqual(tl.store.records.map((r) => [r.trace, r.site]), [['T21', 'friendface.test']]);
+    assert.ok(!(await ask('friendface', '/', { jar: await join(MARA) })).text.includes('friendface.test'), 'without a certificate no page asks for a .test name');
+  } finally { await tl.close(); }
 });

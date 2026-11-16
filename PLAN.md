@@ -635,9 +635,12 @@ Design, the 20 techniques, the table of traces, the trip and the steps with ETAs
 `/mnt/d/journal/server/tracking-lab.html` (http://localhost:8080/tracking-lab.html). Step list revised 2026-11-15
 after the source sweep on `tracking-ways.html` (data: `server/data/tracking-sources.json`, `tracking-ways.json`).
 Phase A is built in `lab/` from scratch, nothing downloaded: `node lab/server.js`, tests `test/lab.test.js` (in the
-suite) and the real-Chrome trip `TC_BROWSER_TMP=/mnt/d/tmp node test/lab/trip.js`. Result: 33 of 36 rows tracked;
-T20 remembered servers and T21 forced-HTTPS "not buildable here" (plain http on loopback), T34 push subscription
-"designed, not built" (would leave the machine, needs a package). No chunk was used. Step 18 reads Chrome's files
+suite) and the real-Chrome trip `TC_BROWSER_TMP=/mnt/d/tmp node test/lab/trip.js`. Result: 35 of 36 rows tracked;
+T34 push subscription "designed, not built" (would leave the machine, needs a package). T20 remembered servers and
+T21 forced-HTTPS work only over https: the trip makes a self-signed certificate with `openssl` for one run, serves
+`friendface.test` on port 8203, and the throwaway Chrome alone accepts it (by key hash) and resolves `*.test` to
+127.0.0.1; by hand they stay open. Simulated, and said so in the rows: the second address (forwarded-for header)
+and the press on "Allow" (control-channel grant). No chunk was used. Step 18 reads Chrome's files
 with its own `lab/outside.js`, not `tools/inspect.js`.
 
 **What it is.** Pretend sites on 127.0.0.1 and a pretend network, Friendface, that follows a made-up signed-in

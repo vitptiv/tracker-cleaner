@@ -80,11 +80,13 @@
  {
   "n": 8,
   "title": "Close Chrome and start it again",
-  "hand": "Close the lab's Chrome completely. Run node lab/outside.js on its profile folder, then start it again on the same profile.",
+  "hand": "Close the lab's Chrome completely. Run node lab/outside.js on its profile folder, then start it again on the same profile. Open http://friendface.localhost:8200/what-i-know. (T20 and T21 need the lab certificate, which only the coded trip sets up.)",
   "traces": [
    "T17",
    "T18",
-   "T19"
+   "T19",
+   "T20",
+   "T21"
   ]
  },
  {
