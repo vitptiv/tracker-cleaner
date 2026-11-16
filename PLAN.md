@@ -631,48 +631,51 @@ both, with the exact sentences.
 
 ## Todo: the tracking lab (not started)
 
-The design, the research with its sources, the 20 techniques, the table of 33 kinds of trace, the trip and the
-steps with ETAs are on the journal page `/mnt/d/journal/server/tracking-lab.html`
-(http://localhost:8080/tracking-lab.html), written 2026-11-15. It replaces the first version that stood here
-(ten techniques, three open questions). Nothing is built.
+Design, the 20 techniques, the table of traces, the trip and the steps with ETAs: journal page
+`/mnt/d/journal/server/tracking-lab.html` (http://localhost:8080/tracking-lab.html). Step list revised 2026-11-15
+after the source sweep on `tracking-ways.html` (data: `server/data/tracking-sources.json`, `tracking-ways.json`).
+Nothing is built, nothing downloaded.
 
 **What it is.** Pretend sites on 127.0.0.1 and a pretend social network, Friendface, that follows a signed-in,
-made-up person across them; its page "What I know about you" shows everything collected. Made-up names and IDs
-only, never deployed. Proposed home: `lab/` in this repo, tests in `test/lab*.test.js` and `test/browser/`.
+made-up person across them; "What I know about you" shows everything collected as a checklist, one row per kind
+of trace with the captured identifier. Made-up names only, never deployed. Proposed home: `lab/`, tests in
+`test/lab*.test.js` and `test/browser/`.
 
-**The rule.** Phase A runs with the extension switched OFF and is complete only when every one of the 33 rows is
-created, read back, stored and shown, by hand and in the coded real-Chrome trip (or accepted by the user as
-"cannot be created here", with the evidence). Phase B, extension ON, does not start before that.
+**The rule.** Phase A runs with the extension OFF and is complete only when every row is created, read back,
+stored and shown, by hand and in the coded real-Chrome trip (or accepted by the user as "cannot be created
+here"). Phase B, extension ON, does not start before that.
 
-**The checklist of marks (owner's requirement, 2026-11-15).** "What I know about you" is a checklist: one row per
-kind of tracking the lab can do, each with its type, a mark ("not yet seen" or "tracked") and the actual
-identifiers and unique values captured (cookie ID, storage key and value, cache tag, click ID, fingerprint code
-...), plus when and on which site. The build is test-driven against it: the lab is done only when, after the
-coded end-to-end trip, every row is "tracked" with a real captured value; each step below ticks its own rows.
-Classes of tracking against transports, and what the extension covers: `/mnt/d/journal/server/data/tracking-ways.json`.
+**What changed.** Steps 7-12 build the orthogonal set, one way per class c1-c11 (different class = a defence
+that stops one leaves the other working); 13-15 the rest of the 20 techniques. New ways: simulated addresses
+(c6), typing and mouse rhythm (c9), loopback probing (c10), push subscription (c8); traces 33 -> 36 (T34-T36).
+A named chunk is a starting point only if its licence and contents check out; ETAs assume they do.
 
-**Phase A steps (about 150 min of building + 15 min review), tests first.**
+**Phase A steps (about 163 min + 15 min review; was 150; 177 without chunks), tests first.**
 
-1. Ground rules in a real Chrome: `*.localhost` names, separate sites, cookies between them; else `.test` names
-   with `--host-resolver-rules` and a lab certificate.  2. Ground rules: the hard kinds (code cache, favicon,
-   remembered server, forced-HTTPS, link ping, permission, restart on the same profile).
-3. Server skeleton, one Node program answering as seven sites.  4. Sign-in, profile, feed.
-5. "What I know about you" and the 33 rows as one data file.  6. The canary ("cleaner seems off / on").
-7. Image, browser cookie, page address, request details, joining to the account.
-8. Script kit, site cookie, events with values, beacons.  9. E-mail matching, server-side report.
-10. Click ID, redirector, share links.  11. Like frame, partitioned cookie, "Sign in with".
-12. Cookie syncing, disguised subdomain.  13. Copies of the ID and respawning.
-14. Cache tag, favicon, forced-HTTPS, code cache.  15. Fingerprint, notification permission.
-16. Lab helpers (pretend tomorrow, delete one cookie).  17. The coded trip, 14 steps, with a restart of Chrome.
-18. Checks from outside with `tools/inspect.js`.  19. Completeness check against the 33 rows.
-20. Hand-trip sheet in `TESTING.md`, journal page updated.  21. Review: the user takes the trip by hand.
+1. Ground rules: `*.localhost` names and cookies (12).  2. Ground rules: the hard kinds, plus 127.0.0.x, push
+   subscription, loopback request (14).  3. Server skeleton (8).  4. Sign-in, profile, feed (8).
+5. "What I know about you" and the 36 rows as one data file (6).  6. The canary (5).
+7. c1 + c6: third-party cookie on an image, page address, request details, simulated addresses (8).
+   Chunk: cure53/HTTPLeaks `leak.html` (checklist only).
+8. c2 + c3: storage ID in a third-party frame, cache tag (6, was 9). Chunks: privacytests
+   `static/supercookies*`, `live/caching.js`.
+9. c4 + c5: click ID on links, canvas/graphics/audio fingerprint (6, was 8). Chunks: brave/adblock-lists
+   `clean-urls.json`; fingerprintjs `src/sources/canvas.ts, audio.ts`.
+10. c7 + c9: typed e-mail capture, typing and mouse rhythm (8). No chunk.
+11. c8 + c10: push subscription endpoint with the permission, loopback probing (9, was 12). Chunk:
+    duckduckgo/privacy-test-pages `local-port-scan/`.
+12. c11: server-to-server report, joining to the account (5, was 6). Chunk: matomo-nodejs-tracker `index.js`.
+13. Rest, links and scripts: kit, site cookie, events, beacons, redirector, share links (10, was 12). Chunks:
+    privacy-test-pages `bounce-tracking/`, brave `debounce.json`.
+14. Rest, frames and names: like frame, "Sign in with", cookie syncing, disguised subdomain (14). No chunk.
+15. Rest, stores and caches: respawning, storage totals, icon, forced-HTTPS, compiled copy, font traits (9, was
+    12). Chunks: privacytests `static/hsts.js`, jonasstrehle/supercookie `server/main.js`, fingerprintjs `fonts.ts`.
+16. Lab helpers (5).  17. The coded trip with a restart of Chrome (12).  18. Checks from outside with
+    `tools/inspect.js` (8).  19. Completeness check (5).  20. Hand-trip sheet, journal page (5).  21. Review.
 
-**Phase B steps (about 36 min + 10 min review), only after step 21.**
+**Phase B steps (about 36 min + 10 min review), only after step 21.** 22. The extension recognises the lab
+(test-only entries `pack.sh` leaves out).  23. Switch on, rerun the trip.  24. Scoreboard, 36 rows by off / on.
+25. The same by hand.  26. Gaps become extension todos here.
 
-22. The extension recognises the lab: test-only list entries that `pack.sh` leaves out (the user may choose real
-    cookie names instead).  23. Switch on, rerun the coded trip, read each row at once, after the sweep and after
-    approving.  24. Scoreboard, 33 rows by off / on.  25. The same by hand.
-26. Gaps become extension todos here, one entry per "still tracked" row.
-
-Expectation, to be tested: the redirector, the cache tag and the disguised subdomain show up as gaps; the
-server-side report cannot be stopped from the browser.
+Expectation, to be tested: redirector, cache tag and disguised subdomain show up as gaps; the server-side
+report cannot be stopped from the browser.
