@@ -481,7 +481,7 @@ folder with a few entry files). No test reads the user's real profile. The inspe
 8. **Browser checks.** The page opens from the popup, shows a removal made in the same run under the right day,
    a web page cannot fetch or frame the page, and "Clear history" works.
 
-## Todo for 1.23: the report, modelled on Kitesurf's report bar (steps 1 to 4 built, see Progress below)
+## Todo for 1.23: the report, modelled on Kitesurf's report bar (all eight steps are built, see Progress below)
 
 Written 2026-11-15. The user's own browser (`/mnt/d/workspace/kitesurf-browser`, journal page
 `kitesurf-vs-chrome.html`) has a report bar under the page that the user finds far richer than this extension's
@@ -620,3 +620,11 @@ both, with the exact sentences.
   not running on this computer; nothing is routed". Decided: if Tor stops while Chrome is routed it stays routed (pages
   fail) rather than fall back and show the real address, and the row says so. The website's view of the address is
   not fetched here (the history page's button does that). "Running" is covered by the stand-in only: no Tor here.
+- **Step 8, real-Chrome checks** (1 Node test more, 376 in all; `npm run test:browser`: all 33 checks pass, R1 to R9
+  new, Chrome 157 headless). Found: `chrome.sidePanel.open` is refused without a user gesture and works from a real
+  mouse click on the popup's button; the panel is an ordinary page target, so the checks drove the panel itself, not
+  a tab. It is told about tab changes (`tabs.onActivated`, `tabs.onUpdated`). Copying needs a real click too.
+  `getMatchedRules` answers 20 times in 10 minutes and then refuses, except after a real click: the row now says
+  'Chrome did not say how many it blocked; press "Read again" to ask it'. A request to 127.0.0.1:9050 with nothing
+  listening failed after 1 ms and the proxy setting stayed "system". Manifest 1.23; TESTING.md steps 21 to 28.
+  Open: Tor "running" is covered by the stand-in only; nobody has looked at the panel in a window yet.

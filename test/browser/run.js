@@ -6,7 +6,7 @@
 // Branded Chrome ignores --load-extension: the extension is loaded with the DevTools method
 // Extensions.loadUnpacked, which needs --remote-debugging-pipe and --enable-unsafe-extension-debugging.
 // Env: CHROME (binary, default google-chrome), TC_BROWSER_TMP (where the profile goes), TC_HEADFUL=1 (show the window),
-// TC_VERIFY=1 (only the third run, the V checks).
+// TC_VERIFY=1 (only the third run, the V checks), TC_REPORT=1 (only the fourth run, the R checks of the 1.23 report).
 const { spawn, execFileSync } = require('node:child_process'), fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const EXT = path.join(__dirname, '..', '..', 'extension');
 const AUDIT = '127.0.0.1:8088';   // the optional local audit server: Chrome prints a red line for every unanswered fetch
@@ -133,6 +133,7 @@ async function main() {
   try { await within(fetch('https://example.com/', { method: 'HEAD' }), 10000, 'network'); } catch { online = false; }
   const offline = online ? '' : 'no network from this machine';
   if (process.env.TC_VERIFY) { await verify(offline); process.exit(failed ? 1 : 0); }
+  if (process.env.TC_REPORT) { await report(offline); process.exit(failed ? 1 : 0); }
   let x;
   try { x = await start(); } catch (e) { console.log(`FAIL 1. The extension loads: ${e.message.split('\n')[0]}`); process.exit(1); }
   const { b, sw, swRed, P } = x;
@@ -140,7 +141,7 @@ async function main() {
   try {
     await check(1, 'The extension loads', async (ok, see) => {
       const v = await sw(`await ready; return chrome.runtime.getManifest().version;`);
-      ok(v === '1.22', `manifest version ${v}`);
+      ok(v === '1.23', `manifest version ${v}`);
       await sleep(1500);   // the sweep of onInstalled
       const [first, audit1] = swRed();
       ok(!first.length, `service worker errors after start-up: ${brief(first)}`);
@@ -462,6 +463,7 @@ async function main() {
   });
 
   await verify(offline);
+  await report(offline);
 
   console.log(failed ? `${failed} check${failed === 1 ? '' : 's'} FAILED` + (skipped ? `, ${skipped} not run` : '') : skipped ? `no failures, but ${skipped} checks NOT RUN` : 'all checks passed');
   process.exit(failed ? 1 : 0);
@@ -566,5 +568,206 @@ async function verify(offline) {
       see(`after clearing history: stored icons ${iconsBefore ?? 'none'} -> ${iconsAfter ?? 'not readable'}, addresses in the History file ${urlsBefore ?? 'none'} -> ${urlsAfter ?? 'not readable'}`);
     }, offline);
   } finally { await v.close(); }
+}
+
+// ---- fourth run, fresh profile: the report of 1.23 (report.html), beside the page or in a tab of its own.
+// R1 and R2 report what Chrome really does for the two open questions of PLAN.md ("Todo for 1.23"): can the popup's
+// button open the side panel, and is the report told when another tab comes to the front.
+const portOpen = (port) => new Promise((done) => { const s = require('node:net').connect(port, '127.0.0.1'); s.on('connect', () => { s.destroy(); done(true); }); s.on('error', () => done(false)); });
+async function report(offline) {
+  let r;
+  try { r = await start(); } catch (e) { failed++; console.log(`FAIL R. Report run: ${e.message.split('\n')[0]}`); return; }
+  const { b, sw } = r, targets = async () => (await b.send('Target.getTargets')).targetInfos, isReport = (t) => t.url.startsWith(`${r.origin}/report.html`);
+  const tabId = async (s) => { const u = await s.ev('location.href'); return sw(`return ((await chrome.tabs.query({})).find((t) => t.url === ${JSON.stringify(u)}) || {}).id;`); };
+  let rep = null, how = '', site = null, other = null;
+  // the report page, driven like the popup: R.text() is everything on it, also what is inside closed lists
+  const R = { text: () => rep.ev(`document.getElementById('out').textContent`), note: () => rep.ev(`document.getElementById('note').textContent`),
+    drawn: () => until(() => rep.ev(`(() => { const o = document.getElementById('out'); return !!o && o.children.length > 0 && !o.textContent.includes('Loading'); })()`), 8000),
+    row: (group) => rep.ev(`(document.querySelector('[data-group="${group}"]') || {}).innerText || ''`),
+    // presses the first button whose label starts so; cookie: inside the row of the cookie with that name
+    click: (label, cookie) => rep.ev(`(() => { const rows = [...document.querySelectorAll('#cookies > .c')], root = ${cookie ? `rows.find((x) => x.querySelector('b').textContent === ${JSON.stringify(cookie)})` : `document.getElementById('out')`};
+      const el = root && [...root.querySelectorAll('button')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(label)}));
+      if (!el || el.disabled) return false; el.click(); return true; })()`),
+    cookieRow: (name) => rep.ev(`(([...document.querySelectorAll('#cookies > .c')].find((x) => x.querySelector('b').textContent === ${JSON.stringify(name)}) || {}).textContent) || ''`),
+    again: async () => { await R.click('Read again'); await sleep(400); await R.drawn(); },
+    // a real mouse click on the element the expression gives, which Chrome takes for the user's own (lists are opened so it can be seen)
+    mouse: async (expr) => { const at = await rep.ev(`(() => { document.querySelectorAll('details').forEach((d) => { d.open = true; }); const el = ${expr}; if (!el) return null; el.scrollIntoView({ block: 'center' });
+        const q = el.getBoundingClientRect(); return { x: q.x + q.width / 2, y: q.y + q.height / 2 }; })()`);
+      if (!at) return false;
+      for (const type of ['mousePressed', 'mouseReleased']) await rep.send('Input.dispatchMouseEvent', { type, x: at.x, y: at.y, button: 'left', clickCount: 1 });
+      return true; } };
+  const cookieButton = (name, label) => `[...([...document.querySelectorAll('#cookies > .c')].find((x) => x.querySelector('b').textContent === ${JSON.stringify(name)}) || document.createElement('p')).querySelectorAll('button')].find((x) => x.textContent.startsWith(${JSON.stringify(label)}))`;
+  try {
+    await sw(`await ready;`); await sleep(1000);
+    if (!offline) { site = await r.tab('https://example.com/'); other = await r.tab('https://example.org/'); }
+
+    await check('R1', 'Can the popup\'s button open the report beside the page (chrome.sidePanel.open)?', async (ok, see) => {
+      const pop = await r.tab(`${r.origin}/popup.html`); await sleep(800);
+      const has = await pop.ev(`(() => { const x = document.getElementById('report'); return !!x && x.textContent === 'Open the report beside the page'; })()`);
+      if (!ok(has, 'the popup has no button "Open the report beside the page"')) return;
+      // asked directly first, once without and once with what Chrome takes for a click
+      const ask = async (userGesture) => { const v = await pop.send('Runtime.evaluate', { userGesture, awaitPromise: true, returnByValue: true,
+        expression: `chrome.windows.getCurrent().then((w) => chrome.sidePanel.open({ windowId: w.id })).then(() => 'opened', (e) => 'refused: ' + e.message)` }); return v.result.value; };
+      const plain = await ask(false), before = (await targets()).filter(isReport).length;
+      // then the button itself, pressed with a real mouse click
+      const at = await pop.ev(`(() => { const q = document.getElementById('report').getBoundingClientRect(); return { x: q.x + q.width / 2, y: q.y + q.height / 2 }; })()`);
+      await b.send('Target.activateTarget', { targetId: pop.targetId }); await sleep(200);
+      for (const type of ['mousePressed', 'mouseReleased']) await pop.send('Input.dispatchMouseEvent', { type, x: at.x, y: at.y, button: 'left', clickCount: 1 });
+      await sleep(1500);
+      const all = await targets(), reports = all.filter(isReport), popGone = !all.some((t) => t.targetId === pop.targetId);
+      const panel = reports.find((t) => !t.url.includes('?tab=')), tab = reports.find((t) => t.url.includes('?tab='));
+      see(`FOUND: asked without a click, Chrome answered "${plain}"; after a real mouse click on the button: ${panel ? `a "${panel.type}" target on report.html appeared (the side panel)` : 'no side panel target appeared'}`
+        + `${tab ? `, and the report opened in a tab instead (${tab.url.replace(r.origin, '')})` : ''}; the popup ${popGone ? 'closed itself, as it does after opening the panel' : 'stayed open'}; report targets before the click: ${before}`);
+      ok(reports.length > 0 || plain === 'opened', 'the button opened neither the side panel nor a tab with the report');
+      if (panel) { try { rep = await b.attach(panel.targetId, ['Runtime', 'Log', 'Page', 'Network']); how = 'the side panel'; } catch (e) { see(`the side panel target could not be driven: ${e.message.split('\n')[0]}`); } }
+      if (!rep && tab) { rep = await b.attach(tab.targetId, ['Runtime', 'Log', 'Page', 'Network']); how = 'a tab opened by the button'; }
+      if (!popGone) await b.send('Target.closeTarget', { targetId: pop.targetId }).catch(() => {});
+    });
+    // the remaining checks need the report page: if the button gave none that can be driven, it is opened as a tab
+    if (!rep) { rep = await r.tab(`${r.origin}/report.html${site ? `?tab=${await tabId(site)}` : ''}`); how = 'a tab opened by this script (report.html?tab=...)'; }
+    await R.drawn();
+    console.log(`     the report for R2 to R9 is ${how}`);
+
+    await check('R2', 'Is the report told when another tab comes to the front, or the tab goes to another address?', async (ok, see) => {
+      const about = async () => (/This page: ([^ ]+)|This tab is not a web page/.exec(await R.text()) || [''])[0];
+      const seen = [];
+      for (const [t, host] of [[site, 'example.com'], [other, 'example.org'], [site, 'example.com']]) { await b.send('Target.activateTarget', { targetId: t.targetId });
+        const got = await until(async () => (await about()) === `This page: ${host}` ? host : null, 5000); seen.push(`${host} to the front: ${got ? 'followed' : `not followed (still "${await about()}")`}`); ok(!!got, `the report did not follow to ${host}`); }
+      await r.go(site, 'https://example.com/?page=2'); await sleep(300);
+      const t0 = (/Read at (\d\d:\d\d:\d\d)/.exec(await R.text()) || [])[1]; await sleep(1100);
+      await r.go(site, 'https://www.iana.org/help/example-domains');
+      const moved = await until(async () => (await about()) === 'This page: www.iana.org', 8000);
+      ok(moved, `after the tab went to www.iana.org the report says "${await about()}"`);
+      see(`FOUND: ${seen.join('; ')}; the tab went to another site: ${moved ? 'the report was drawn again for www.iana.org' : 'not noticed'} (read at ${t0} before)`);
+      await r.go(site, 'https://example.com/');
+      await until(async () => (await about()) === 'This page: example.com', 8000);
+    }, offline);
+
+    await check('R3', 'Turn on from the report; the count of blocked requests moves when a tracker is blocked', async (ok, see) => {
+      ok((await R.text()).includes('Cleaning is off until you turn it on.'), 'a fresh profile does not say "Cleaning is off until you turn it on."');
+      ok(await R.click('Turn on'), 'no "Turn on" button'); ok(await until(async () => (await R.text()).includes('Cleaning is on'), 8000), 'the report does not say "Cleaning is on"');
+      const n = async () => { const row = await R.row('blocking'); return /Chrome did not say/.test(row) ? 'Chrome did not say' : Number((/(\d+) blocked on this page/.exec(row) || [])[1]); };
+      const before = await n(), t = await requestTracker(site);
+      ok(t.blocked, `the tracker request was not blocked: ${t.end} ${t.why}`);
+      await R.again(); const after = await n();
+      ok(Number.isInteger(before) && after === before + 1, `blocked on this page: ${before} before, ${after} after one blocked request`);
+      see(`"Turn on" in the report: "Cleaning is on"; "${before} blocked on this page" before, "${after} blocked on this page" after one request to google-analytics.com was blocked and "Read again"`);
+    }, offline);
+
+    const LONG = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH';
+    await check('R4', 'A cookie\'s value shows cut to 24 characters, and whole after "Show all of it"', async (ok, see) => {
+      await setInPage(site, `tclong=${LONG}; max-age=3600`); await setInPage(site, 'tcplain=1; max-age=3600');
+      await R.again();
+      const row = await R.cookieRow('tclong'), all = await R.text();
+      ok(row.includes(LONG.slice(0, 24) + '…'), `the row of tclong: ${row.slice(0, 160)}`); ok(!all.includes(LONG), 'the whole value is on the page before "Show all of it"');
+      ok(/until \d+ [A-Z][a-z]{2} \d{4}/.test(row) && row.includes('on no tracker list, kept'), `the row does not say how long it stays and what it is: ${row.slice(0, 160)}`);
+      ok(await R.click('Show all of it', 'tclong'), 'no "Show all of it" button in the row');
+      const full = await until(async () => (await R.cookieRow('tclong')).includes(LONG), 4000);
+      ok(full, `after the press the row says: ${(await R.cookieRow('tclong')).slice(0, 160)}`);
+      const kept = await sw(`return JSON.stringify([await chrome.storage.local.get(null), await chrome.storage.session.get(null)]).includes(${JSON.stringify(LONG.slice(0, 24))});`);
+      ok(kept === false, 'the value is in the extension\'s storage');
+      see(`"${(/\d+ cookies? on example\.com/.exec(all) || [''])[0]}"; tclong shows "${LONG.slice(0, 24)}…" and after "Show all of it" all ${LONG.length} characters; nothing of it in storage.local or storage.session`);
+    }, offline);
+
+    await check('R5', 'The buttons work on real cookies: Copy, Delete, Keep, Always delete, and "Delete N cookies on this site"', async (ok, see) => {
+      const seen = [];
+      // Copy: the clipboard of a headless Chrome is allowed here first; what the page says is what counts
+      await b.send('Browser.grantPermissions', { origin: r.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }).catch(() => {});
+      await b.send('Target.activateTarget', { targetId: rep.targetId }).catch(() => {});
+      // pressed twice: as a script presses it, and with a real mouse click, which is what Chrome wants before it lets a page copy
+      ok(await R.click('Copy what it holds', 'tclong'), 'no "Copy what it holds" button');
+      const byScript = await until(async () => { const n = await R.note(); return /^Copied|^Could not copy/.test(n) ? n : null; }, 4000);
+      await rep.ev(`document.getElementById('note').textContent = ''`);
+      ok(await R.mouse(cookieButton('tclong', 'Copy what it holds')), 'the Copy button could not be clicked with the mouse');
+      const copied = await until(async () => { const n = await R.note(); return /^Copied|^Could not copy/.test(n) ? n : null; }, 4000);
+      const clip = await rep.ev(`navigator.clipboard.readText().catch((e) => 'not readable: ' + e.message)`);
+      seen.push(`Copy: pressed by a script the page said "${byScript}"; after a real mouse click it said "${copied}", and the clipboard then held ${clip === LONG ? 'the whole value' : `"${String(clip).slice(0, 90)}"`}`);
+      ok(!!copied && !!byScript, `Copy gave no answer: "${byScript}", "${copied}"`);
+      await b.send('Target.activateTarget', { targetId: site.targetId });
+      // Delete
+      ok(await R.click('Delete', 'tcplain'), 'no Delete button for tcplain');
+      ok(await until(async () => !(await r.cookie('tcplain', 'example.com'))), 'tcplain is still there after Delete'); seen.push('Delete: tcplain gone');
+      ok(await until(async () => /Put back 1 deleted cookie/.test(await R.text()), 4000), 'the top line does not offer "Put back 1 deleted cookie"');
+      // Keep: a tracker's cookie that waits (that group set to ask first, so it is still there to press on)
+      await rep.ev(`chrome.runtime.sendMessage({ type: 'setMode', group: 'cookies', mode: 'ask' })`);
+      await setInPage(site, '_ga=GA1.2.3; max-age=3600'); await sleep(800); await R.again();
+      const waits = (/Trackers' cookies: \d+ waiting/.exec(await R.text()) || [''])[0];
+      ok(!!waits && (await R.cookieRow('_ga')).includes("has a tracker's name, deleted only after you say so"), `_ga does not wait: "${waits}", row: ${(await R.cookieRow('_ga')).slice(0, 120)}`);
+      ok(await R.click('Keep', '_ga'), 'no Keep button for _ga');
+      ok(await until(async () => (await R.cookieRow('_ga')).includes('kept because you chose Keep'), 5000), `after Keep the row says: ${(await R.cookieRow('_ga')).slice(0, 140)}`);
+      await rep.ev(`chrome.runtime.sendMessage({ type: 'setMode', group: 'cookies', mode: 'auto' })`); await sleep(800);
+      ok(!!(await r.cookie('_ga', 'example.com')), '_ga was deleted although Keep was pressed'); seen.push(`Keep: "${waits}" before, then "kept because you chose Keep", and _ga survived cleaning set back to automatic`);
+      // Always delete: gone now, and gone again when the site puts it back, with its group still on "asks first"
+      await setInPage(site, 'tcalways=1; max-age=3600'); await R.again();
+      ok(await R.click('Always delete', 'tcalways'), 'no "Always delete" button for tcalways');
+      ok(await until(async () => !(await r.cookie('tcalways', 'example.com'))), 'tcalways is still there after "Always delete"');
+      await setInPage(site, 'tcalways=2; max-age=3600');
+      const again = await until(async () => !(await r.cookie('tcalways', 'example.com')), 6000);
+      const mode = (await rep.ev(`chrome.runtime.sendMessage({ type: 'state' })`)).groups.find((g) => g.id === 'storage');
+      ok(again, 'tcalways came back and was not deleted'); ok(mode.mode === 'ask' && mode.pending === 0, `its group: mode ${mode.mode}, ${mode.pending} waiting`);
+      await R.again(); ok((await R.text()).includes('Always deleted on this site (1)'), 'no list "Always deleted on this site (1)"');
+      seen.push(`Always delete: tcalways gone, and gone again ${again ? 'within 6 s' : 'NOT'} when the page set it anew, with its group on "asks first" and nothing waiting`);
+      // Delete all: _ga stays (Keep), the rest goes
+      await setInPage(site, 'tcone=1; max-age=3600'); await R.again();
+      const label = await rep.ev(`([...document.querySelectorAll('button')].find((x) => /^Delete \\d+ cookies? on this site$/.test(x.textContent)) || {}).textContent || ''`);
+      const stay = (/\d+ stays?: .*?(?= also the)/.exec(await R.text()) || [''])[0];
+      const names = async () => (await r.cookies()).filter((c) => c.domain.replace(/^\./, '') === 'example.com').map((c) => c.name).sort();
+      const had = await names();
+      ok(await R.click('Delete '), 'no "Delete N cookies on this site" button');
+      const left = await until(async () => { const n = await names(); return n.length === 1 ? n : null; }, 6000) || await names();
+      ok(label === `Delete ${had.length - 1} cookies on this site` && left.join() === '_ga', `button "${label}", cookies before ${had.join(', ')}, after ${left.join(', ')}`);
+      seen.push(`"${label}" with "${stay}" beside it: of ${had.join(', ')} only ${left.join(', ')} is left; the page said "${await R.note()}"`);
+      see(seen.join('; '));
+    }, offline);
+
+    await check('R6', 'What the page has saved is counted in the tab only when asked, kind by kind', async (ok, see) => {
+      await site.ev(`(async () => { localStorage.setItem('tc-uid', ${JSON.stringify(LONG)}); localStorage.setItem('tc-theme', 'dark'); sessionStorage.setItem('tc-step', '3');
+        await new Promise((done, no) => { const q = indexedDB.open('tc-db'); q.onsuccess = () => { q.result.close(); done(); }; q.onerror = no; }); await caches.open('tc-cache'); return true; })()`);
+      await R.again();
+      ok((await R.text()).includes('Nothing on the page is looked at until you press this.'), 'the report does not wait for the press');
+      ok(await R.click('Count what this page has saved'), 'no button "Count what this page has saved"');
+      ok(await until(async () => (await R.text()).includes('Read from the page just now.'), 6000), `after the press: ${(await R.text()).slice(-300)}`);
+      const counts = await rep.ev(`Object.fromEntries([...document.querySelectorAll('[data-kind]')].map((k) => [k.dataset.kind, k.querySelector('.h .m').textContent]))`);
+      const want = { local: '2 on this page', session: '1 on this page', databases: '1 on this page', caches: '1 on this page', workers: '0 on this page' };
+      for (const [k, v] of Object.entries(want)) ok(counts[k] === v, `${k}: "${counts[k]}", expected "${v}"`);
+      ok(await rep.ev(`(() => { const x = document.querySelector('[data-kind="local"] button[data-msg]'); if (!x || x.textContent !== 'Show the 2') return false; x.click(); return true; })()`), 'no button "Show the 2" for local storage');
+      const shown = await until(async () => { const t = await rep.ev(`(document.querySelector('[data-kind="local"]') || {}).textContent || ''`); return t.includes('tc-uid') ? t : null; }, 6000) || '';
+      ok(shown.includes(`tc-uid ${LONG.slice(0, 24)}…`) && shown.includes('tc-theme dark') && !shown.includes(LONG), `the list: ${shown.slice(-160)}`);
+      see(`before the press nothing is read; after it: ${Object.entries(counts).map(([k, v]) => `${k} "${v}"`).join(', ')}; "Show the 2" lists tc-uid cut to 24 characters and tc-theme`);
+    }, offline);
+
+    const torHere = await portOpen(9050);
+    await check('R7', 'Tor switched on with nothing listening on port 9050: nothing is routed, and the row says so', async (ok, see) => {
+      const ms = await sw(`const t = Date.now(), a = await torRuns(); return [a, Date.now() - t];`);
+      ok(ms[0] === false, 'the port check says Tor is running'); ok(ms[1] < 3000, `the port check took ${ms[1]} ms`);
+      await rep.ev(`chrome.runtime.sendMessage({ type: 'setMode', group: 'tor', mode: 'auto' })`); await R.again();
+      const row = (await R.row('tor')).replace(/\n+/g, ' / '), proxy = await sw(`return (await chrome.proxy.settings.get({})).value.mode;`);
+      ok(row.includes('Tor is not running on this computer; nothing is routed'), `the Tor row: ${row}`); ok(proxy !== 'fixed_servers', `Chrome's proxy setting is ${proxy}`);
+      const loads = await site.ev(`fetch('https://example.com/?tor-check', { cache: 'no-store' }).then((x) => x.status, () => 0)`);
+      ok(loads === 200, `a page request after switching Tor on ended with ${loads}`);
+      await rep.ev(`chrome.runtime.sendMessage({ type: 'setMode', group: 'tor', mode: 'off' })`); await R.again();
+      const off = (await R.row('tor')).replace(/\n+/g, ' / ');
+      ok(off.includes('off · Routed over Tor: no'), `the Tor row after switching off: ${off}`);
+      see(`FOUND: a request to http://127.0.0.1:9050/ with nothing listening failed after ${ms[1]} ms; row with Tor switched on: "${row.split(' / ')[1] || row}"; Chrome's proxy setting stayed "${proxy}" and example.com still loaded; switched off: "${off.split(' / ')[1] || off}"`);
+    }, offline || (torHere && 'something is listening on port 9050 of this computer, so "not running" cannot be shown'));
+
+    await check('R8', 'The report page and the service worker ran without errors', async (ok, see) => {
+      const quiet = (l) => !l.includes('127.0.0.1:9050');   // the port check itself: Chrome prints a red line for a refused connection
+      const [red] = redLines(rep), [swRed] = r.swRed(), mine = red.filter(quiet), bg = swRed.filter(quiet);
+      const asked = rep.events.filter((e) => e.method === 'Network.requestWillBeSent').map((e) => e.params.request.url).filter((u) => !u.startsWith(r.origin));
+      ok(!mine.length, `report page errors: ${brief(mine)}`); ok(!bg.length, `service worker errors: ${brief(bg)}`); ok(!asked.length, `the report page sent requests: ${brief(asked)}`);
+      see(`${mine.length} errors on the report page, ${bg.length} in the service worker (${red.length - mine.length + swRed.length - bg.length} red lines for the refused port check not counted), no request left the report page`);
+    });
+
+    await check('R9', 'How often may the report ask Chrome what it blocked (getMatchedRules), and does a press of "Read again" still get an answer?', async (ok, see) => {
+      const draws = await sw(`let n = 0; try { for (; n < 30; n++) await chrome.declarativeNetRequest.getMatchedRules({}); } catch (e) { return n + ' more answers, then "' + e.message + '"'; } return 'no limit reached in 30 more questions';`);
+      await R.again(); const byScript = (await R.row('blocking')).split('\n')[1] || '';
+      ok(await R.mouse(`[...document.querySelectorAll('button')].find((x) => x.textContent === 'Read again')`), 'no "Read again" button to click'); await sleep(800); await R.drawn();
+      const byMouse = (await R.row('blocking')).split('\n')[1] || '';
+      ok(/Chrome did not say how many it blocked; press "Read again" to ask it/.test(byScript) || /\d+ blocked on this page/.test(byScript), `the row after the limit: "${byScript}"`);
+      ok(/\d+ blocked on this page/.test(byMouse), `after a real click on "Read again" the row says "${byMouse}"`);
+      see(`FOUND: asked over and over from the service worker: ${draws}; the report then drawn again by a script: "${byScript}"; after a real mouse click on "Read again": "${byMouse}"`);
+    }, offline);
+  } finally { await r.close(); }
 }
 main().catch((e) => { console.log(`FAIL: the run itself broke: ${e.stack || e}`); process.exit(1); });

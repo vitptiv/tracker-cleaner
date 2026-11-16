@@ -70,6 +70,13 @@ test('"Copy command" copies the command the button carries', async () => {
   assert.deepEqual(page.copied, ['node tools/inspect.js cookies --site www.example.com']);
   assert.equal(page.note.textContent, 'Copied. Paste it into a terminal opened in the Tracker Cleaner folder.');
 });
+test('Chrome will not let the page copy (it wants a click inside the report first): one sentence that says what to do', async () => {
+  const bg = await load(on()), page = await loadPage(bg);
+  page.noClipboard = true;
+  await page.click('Copy command'); assert.equal(page.note.textContent, 'Could not copy. Click once inside this report, then press the button again.');
+  await page.click('Copy what it holds', 'theme'); assert.equal(page.note.textContent, 'Could not copy. Click once inside this report, then press the button again.');
+  assert.deepEqual(page.copied, []);
+});
 test('"Delete N cookies on this site" leaves what stays, unless the box beside it is ticked', async () => {
   const bg = await load(on()), page = await loadPage(bg);
   await page.click('Delete 2 cookies on this site');

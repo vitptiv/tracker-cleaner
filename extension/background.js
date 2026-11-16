@@ -1,4 +1,4 @@
-// Tracker Cleaner 1.22: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.23: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic, and nothing is deleted before the user has
 // turned cleaning on. Everything is held while paused, and everything destructive while a sign-in is going on.

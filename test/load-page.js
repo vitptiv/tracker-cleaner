@@ -26,7 +26,7 @@ module.exports = async function loadPage(bg, search = '', file = 'report.html') 
     if (!m) throw new Error(`no box "${label}"`);
     await out.on.change({ target: { dataset: { msg: unesc(m[1]) }, checked } }); await bg.settle(); };
   const ctx = vm.createContext({ chrome: bg.chrome, URL, URLSearchParams, console, location: { search },
-    document: { getElementById: (id) => ({ out, note }[id] || null) }, navigator: { clipboard: { writeText: async (t) => { page.copied.push(t); } } } });
+    document: { getElementById: (id) => ({ out, note }[id] || null) }, navigator: { clipboard: { writeText: async (t) => { if (page.noClipboard) throw new Error('Document is not focused.'); page.copied.push(t); } } } });
   for (const [, f] of html.matchAll(/<script src="([^"]+)"/g)) vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx, { filename: f });
   await bg.settle();
   return page;

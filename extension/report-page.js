@@ -14,7 +14,9 @@ async function theTab() {
   try { const t = about ? await chrome.tabs.get(about) : (await chrome.tabs.query({ active: true, currentWindow: true }))[0], u = new URL(t.url);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
     if (`${t.id} ${t.url}` !== storedFor) { stored = null; storedFor = `${t.id} ${t.url}`; }
-    let matched = null;   // Chrome limits how often this may be asked: the report then says so
+    // Chrome answers this 20 times in 10 minutes and then refuses, except when the question follows a press of the user
+    // (seen in a real Chrome, check R9): the report then says so and names the button
+    let matched = null;
     try { matched = (await chrome.declarativeNetRequest.getMatchedRules({ tabId: t.id })).rulesMatchedInfo.map((m) => m.rule.rulesetId); } catch {}
     const c = await send({ type: 'cookies', host: u.hostname }).catch(() => null);
     return { id: t.id, host: u.hostname, matched, ...(c && c.ok ? { cookies: c.cookies } : {}), ...(stored ? { stored } : {}) }; } catch { return null; }
@@ -29,7 +31,7 @@ async function show(msg) {
 }
 const said = (m, r) => !r || r.ok === false ? REFUSED[r && r.why] || 'That did not work.' : m.type === 'approve' ? `Removed ${r.done} of ${r.of}.` : m.type === 'dropSite' ? `Deleted ${r.done} of ${r.of}.`
   : r.restored !== undefined ? `Put back ${r.restored}.` : m.type === 'drop' || m.type === 'always' ? 'Done.' : '';
-const copy = (text, done) => navigator.clipboard.writeText(text).then(() => { note.textContent = done; }, () => { note.textContent = 'Could not copy.'; });
+const copy = (text, done) => navigator.clipboard.writeText(text).then(() => { note.textContent = done; }, () => { note.textContent = 'Could not copy. Click once inside this report, then press the button again.'; });
 out.addEventListener('click', async (e) => { const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset;
   if (d.copy) return copy(d.copy, 'Copied. Paste it into a terminal opened in the Tracker Cleaner folder.');

@@ -1,8 +1,8 @@
-# Tracker Cleaner 1.22: real-browser checklist
+# Tracker Cleaner 1.23: real-browser checklist
 
-About 20 minutes, in Google Chrome. Tick each step. The 281 Node tests run against a stand-in for Chrome;
-`npm run test:browser` (`test/browser/run.js`, 2026-11-12, Chrome 157 headless, fresh profile) ran the real thing:
-24 checks, all passed.
+About 30 minutes, in Google Chrome. Tick each step. The 376 Node tests run against a stand-in for Chrome;
+`npm run test:browser` (`test/browser/run.js`, 2026-11-15, Chrome 157 headless, fresh profile) ran the real thing:
+33 checks, all passed (24 from 1.22, and R1 to R9 for the report of 1.23).
 
 ## Covered by `npm run test:browser`
 
@@ -22,6 +22,19 @@ All of these passed in a real Chrome, so the matching steps below are a second l
 - 1.22: the popup's link opens the page; it shows the removals of the run under today's date, sends nothing on
   opening, and "Clear history" empties it. A web page can neither fetch, frame nor message it. Steps 15, 19.
 - 1.22: "Check how websites see me" sends one request, to check.torproject.org, and the answer was "not Tor". Step 17.
+- 1.23: a real mouse click on the popup's button "Open the report beside the page" opens the report in Chrome's side
+  panel (asked without a click, Chrome refuses). The report follows the tab in front and a tab that goes to another
+  address. Steps 21, 22.
+- 1.23: "Turn on" in the report; "0 blocked on this page" becomes "1 blocked on this page" after a tracker request. Step 23.
+- 1.23: a cookie's value shows cut to 24 characters and whole after "Show all of it"; Copy, Delete, Keep, Always
+  delete (the cookie is deleted again when the page sets it anew, with nothing waiting) and "Delete N cookies on this
+  site" with "1 stays: 1 you chose to keep" work on real cookies. Steps 24, 25.
+- 1.23: local storage, session storage, a database and a cache set by a page are counted only after the press. Step 26.
+- 1.23: with Tor switched on and nothing listening on port 9050 the check fails within a few milliseconds, Chrome's
+  proxy setting is untouched, pages still load, and the row says "Tor is not running on this computer; nothing is
+  routed". Step 28.
+- 1.23: Chrome answers "what did you block" 20 times in 10 minutes and then refuses, except after a real click:
+  the row then says 'Chrome did not say how many it blocked; press "Read again" to ask it', and the press gets the number.
 
 ## Still needs your eyes
 
@@ -34,6 +47,11 @@ All of these passed in a real Chrome, so the matching steps below are a second l
 - **Step 16**: the wording. Whether every line of the page reads as plain English to you.
 - **Step 18**: the "Copy command" buttons (not pressed in the automatic run), and that the command agrees with the page.
 - **Step 20**: the "keeps putting it back" notice with Google's real cookie.
+- **Steps 21 to 27**: the report as you see it, in a window with a real side panel: its width, its wording, and that
+  it keeps up while you browse. The automatic run drove it without looking at it.
+- **Step 27**: the terminal command against your real profile (the automatic tests use a made-up one).
+- **Step 28** with Tor running: needs `sudo apt install tor`. Only "not running" was seen in a real Chrome; "routed"
+  is covered by the stand-in alone.
 
 If a step fails, note its number and what you saw, and copy any red line from the service worker
 console (step 14).
@@ -43,7 +61,7 @@ console (step 14).
 - [ ] **1. Load it.** Open `chrome://extensions`, switch on "Developer mode" (top right). Remove or
   switch off any other Tracker Cleaner already listed: two copies would fight over the same cookies.
   Press "Load unpacked" and choose the `extension/` folder. Pin the icon to the toolbar.
-  Look at: a card "Tracker Cleaner (local) 1.22" with no "Errors" button.
+  Look at: a card "Tracker Cleaner (local) 1.23" with no "Errors" button.
   Failure: Chrome refuses the folder, or shows "Errors" (press it and copy the text; a rule file is the likely cause).
 
 - [ ] **2. Fresh state.** Click the icon.
@@ -159,6 +177,67 @@ console (step 14).
   coming back"; the page's cookie block says the same, and "Removed most often" shows it with its count.
   Set the row back to "Ask first" afterwards.
   Failure: the count of `NID` in "Removed most often" keeps climbing past five within ten minutes.
+
+- [ ] **21. Open the report.** On any web page click the icon and press "Open the report beside the page".
+  Look at: the popup closes and a panel opens at the side of the window, titled "Tracker Cleaner". Its first lines:
+  the "On" box with "Cleaning is on", then "This page: (the site) · Read at (the time)" with a "Read again" button.
+  Failure: nothing opens; or the report opens in a tab of its own (it does that only when Chrome refuses the panel:
+  note it); or "Tracker Cleaner did not answer".
+
+- [ ] **22. It follows you.** With the panel open, switch to another tab, then follow a link to another site.
+  Look at: "This page:" changes to the site in front each time, and the cookies below are that site's.
+  On a page such as `chrome://extensions` it says "This tab is not a web page".
+  Failure: the panel still shows the old site after a second or two.
+
+- [ ] **23. The top line and what waits.** Read the top of the panel, then visit a page with ads and press "Read again".
+  Look at: "Pause 10 min", "Clear the saved copies of pages" and either "Put back N deleted cookies" or "0 cookies
+  deleted in the last 10 minutes, so there is nothing to put back." Under "Waiting for your answer": one line per
+  group with a number, a button that says what it does ("Remove 1 cookie"), "Postpone 1 hour" and "Show what is
+  waiting"; or "Nothing is waiting for your answer." Under "What Tracker Cleaner does for you": each row has a
+  sentence, a state ("on", "asks first", "off") and numbers such as "3 blocked on this page" and "2 deleted on this
+  site today, 5 deleted today on all sites, 0 waiting".
+  Failure: a row without a number where one belongs, the word "pending", a code such as C03, or a sentence you have
+  to read twice. If a row says 'Chrome did not say how many it blocked; press "Read again" to ask it', press it: the
+  number must come.
+
+- [ ] **24. A cookie, cut and whole.** Under "Small files this site has saved to recognise you (cookies)" press
+  "Show the N cookies". Pick one with a long content and press "Show all of it", then "Copy what it holds".
+  Look at: each cookie has its name, its site, "until (a date)" or "until you close Chrome", the first 24 characters
+  of what it holds followed by "…", and a line such as "keeps you signed in, kept" or "has a tracker's name, deleted
+  automatically". After "Show all of it" the whole content is shown; after Copy the note says "Copied what this
+  cookie holds." and pasting gives the whole content.
+  Failure: a whole long content is visible before you ask; or "Could not copy" after a real click.
+
+- [ ] **25. The cookie buttons.** On a site you do not mind being signed out of: press "Delete" on one cookie, "Keep"
+  on one that says "has a tracker's name", "Always delete" on an unimportant one, then reload the web page and press
+  "Read again". Last, read the line beside "Delete N cookies on this site" and press that button.
+  Look at: the deleted cookie is gone and the top line offers "Put back 1 deleted cookie". The kept one says "kept
+  because you chose Keep". The always-deleted one is gone again after the reload, without waiting for an answer, and
+  is listed under "Always deleted on this site (1)" with "Stop always deleting". Beside the big button a line such as
+  "3 stay: 2 keep you signed in, 1 you chose to keep"; after the press you are still signed in and the note says
+  "Deleted N of N." Ticking the box first changes the number on the button to all of them.
+  Failure: you are signed out without having ticked the box; or the always-deleted cookie waits under "Waiting for
+  your answer" instead of going.
+
+- [ ] **26. Other things the page has saved.** At the bottom press "Count what this page has saved", then a "Show the N".
+  Look at: before the press, "Nothing on the page is looked at until you press this." After it, five kinds, each with
+  what it is, where it lives and "N on this page"; "Show the N" lists names with at most 24 characters of content.
+  On `chrome://extensions` or the Chrome Web Store: "This tab is not a web page" or "Chrome does not let extensions
+  look at this page."
+  Failure: numbers appear without the press, or a long content is shown whole.
+
+- [ ] **27. The same in a terminal.** Press "Copy command" beside "See this list in a terminal", paste it into a
+  terminal opened in the `tracker-cleaner` folder and press Enter. Run it once more with ` --values` added.
+  Look at: the same title as in the panel, "N cookies on (the site), read from Chrome's own cookie file", one row per
+  cookie with the same "until ..." and the same words about what it is. With `--values`: "holds: not readable from the
+  file" on every row, because Chrome keeps the content locked on disk. Nothing is changed.
+  Failure: a cookie's content is printed; or the words differ from the panel's for a cookie whose switch you have not changed.
+
+- [ ] **28. The Tor row.** In the popup set "Hiding your address from websites (Tor)" to "Automatic", then press
+  "Read again" in the panel. Set it back to "Off" afterwards.
+  Look at: Tor is not installed here, so the row says "Tor is not running on this computer; nothing is routed" in
+  the popup and in the panel, and websites keep loading. Back on "Off": "Routed over Tor: no".
+  Failure: pages stop loading while the row is on; or the row claims "Routed over Tor: yes".
 
 ## Afterwards
 

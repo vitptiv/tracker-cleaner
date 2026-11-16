@@ -42,9 +42,10 @@ const { buildReport, renderReport } = (() => {
   // counters also give this site's share of today (history.js: d and g), for the site and the sites above and below it.
   const COOKIES_ONLY = ['cookies', 'google', 'allowlist'];
   const counted = (g, s, tab) => {
-    const hits = (ids) => tab && Array.isArray(tab.matched) ? tab.matched.filter((id) => ids.includes(id)).length : null;
-    if (g.id === 'blocking') { const n = hits(['trackers', 'google-paths']); return n === null ? 'Chrome did not say how many it blocked' : `${n} blocked on this page`; }
-    if (g.id === 'params') { const n = hits(['url-params']); return n === null ? 'Chrome did not say how many links it cleaned' : `${n} link${n === 1 ? '' : 's'} cleaned on this page`; }
+    const hits = (ids) => tab && Array.isArray(tab.matched) ? tab.matched.filter((id) => ids.includes(id)).length : null, again = '; press "Read again" to ask it';
+    if ((g.id === 'blocking' || g.id === 'params') && !(tab && tab.host)) return 'this tab is not a web page';
+    if (g.id === 'blocking') { const n = hits(['trackers', 'google-paths']); return n === null ? 'Chrome did not say how many it blocked' + again : `${n} blocked on this page`; }
+    if (g.id === 'params') { const n = hits(['url-params']); return n === null ? 'Chrome did not say how many links it cleaned' + again : `${n} link${n === 1 ? '' : 's'} cleaned on this page`; }
     if (g.id === 'tor' && s.tor) return torSays(s.tor);
     if (!DID[g.id]) return '';   // nothing to count: the sign-in pause, the reports
     const h = s.history || {}, day = dep.day(s.now || 0), today = Number(((h.days || {})[day] || {})[g.id]) || 0, waiting = `${Number(g.pending) || 0} waiting`;

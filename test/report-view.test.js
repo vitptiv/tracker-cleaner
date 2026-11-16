@@ -50,8 +50,12 @@ test('a row with nothing says 0, never an empty cell', () => {
   assert.ok(html.includes('0 blocked on this page')); assert.ok(html.includes('0 deleted on this site today, 0 deleted today on all sites, 0 waiting'));
 });
 test('Chrome did not say what it blocked (it limits how often it may be asked): the row says so', () => {
-  for (const t of [tab({ matched: null }), null]) { const r = buildReport(state(), t);
-    assert.equal(row(r, 'blocking').count, 'Chrome did not say how many it blocked'); assert.equal(row(r, 'params').count, 'Chrome did not say how many links it cleaned'); }
+  // seen in a real Chrome: after 20 questions in 10 minutes it refuses, but not a question that follows a press of the user
+  let r = buildReport(state(), tab({ matched: null }));
+  assert.equal(row(r, 'blocking').count, 'Chrome did not say how many it blocked; press "Read again" to ask it');
+  assert.equal(row(r, 'params').count, 'Chrome did not say how many links it cleaned; press "Read again" to ask it');
+  r = buildReport(state(), null);                                   // nothing to ask about
+  assert.equal(row(r, 'blocking').count, 'this tab is not a web page'); assert.equal(row(r, 'params').count, 'this tab is not a web page');
 });
 test('deleted today on all sites comes from the history, waiting from the queue, each with the word that fits the group', () => {
   const history = { days: { '2026-11-15': { cookies: 4, google: 1, tabs: 2, cache: 1, permissions: 3, wifi: 1 }, '2026-11-14': { cookies: 9, storage: 5 } }, cookies: {} };
