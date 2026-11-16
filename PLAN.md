@@ -480,3 +480,88 @@ folder with a few entry files). No test reads the user's real profile. The inspe
 7. **Page, remaining blocks.** As step 5, for the blocks step 6 decided are worth showing.
 8. **Browser checks.** The page opens from the popup, shows a removal made in the same run under the right day,
    a web page cannot fetch or frame the page, and "Clear history" works.
+
+## Todo for 1.23: the report, modelled on Kitesurf's report bar (not started)
+
+Written 2026-11-15. The user's own browser (`/mnt/d/workspace/kitesurf-browser`, journal page
+`kitesurf-vs-chrome.html`) has a report bar under the page that the user finds far richer than this extension's
+popup. 1.23 brings the extension's report up to it. The repo is now under version control through `./git.sh`
+(dulwich; there is no `git` binary): commit at the end of every step.
+
+What Kitesurf's report bar shows (from the user's screenshot of it on google.com):
+
+1. **Top line:** the name, one on/off switch, "Pause 10 min", the state in a word ("on"), "Undo (0)", "Clear saved
+   copies".
+2. **Waiting line:** "Google identity cookies: 1 waiting: NID on .google.com" with Approve, Postpone, Show.
+3. **"What this browser does for you":** one row per feature: its name, one sentence in plain words, its state
+   ("on", "asks first") and a live count ("3 blocked", "0 stripped", "0 deleted, 1 waiting").
+4. **Cookies in full:** where they are kept and when the list was read, Refresh, Delete all, Hide; "See this list in
+   a terminal" and "Delete it yourself", each a command with Copy; then one row per cookie: site, name, the start of
+   its value, expiry, what it is and why it is kept ("login, kept (name is on the keep list)", "other"), with
+   Delete, Keep, Always delete, Show full, Copy.
+5. **Kinds of stored data:** Cookies, Local storage, Session storage, IndexedDB, Cache: what each is, where it
+   lives, how many on this site and in total, the command to see it, Copy and Show.
+
+What the extension has today against that: 1 and 2 exist in the popup; 3 exists without counts and without the
+sentence; 4 and 5 exist only as collapsed lists on the separate page, with no values, no per-item buttons and no
+"where it lives".
+
+Decisions taken here:
+
+- **Where it shows.** Chrome's side panel (`sidePanel` permission, `report.html`): it stays open beside the page and
+  follows the tab, which is the nearest thing to a bar under the page. The popup keeps the switch, Pause, the
+  waiting lines and a "Open the report" button. To verify in the real browser: that the panel can be opened from the
+  popup button and that it is told when the active tab changes.
+- **Values are shown, never kept.** This reverses the 1.21 rule "never show a value" for the screen only: a value is
+  read live when the report is drawn, cut to 24 characters, shown in full only after "Show full", and never written
+  to storage, the history, the queue or any report. The existing no-value-in-storage tests stay and gain the report.
+- **"Always delete" becomes local.** Today that list comes only from the absent 8088 server. It moves to
+  `chrome.storage.local` beside the allow list, with 8088's list merged in when the server answers.
+- **"Delete it yourself" from a terminal is not offered** for cookies: Chrome's cookie file cannot be changed safely
+  while Chrome runs. The row says so in one sentence instead of giving a command that would not work.
+- **Tor row** (found 2026-11-15: the switch does nothing here, since it waits for 8088 and Tor is not installed):
+  works without 8088; before routing it checks that the Tor port answers and otherwise leaves Chrome alone and
+  says "Tor is not running on this computer; nothing is routed"; the row shows "Routed over Tor: yes, websites see
+  ..." or "No". Needs `sudo apt install tor` by the user to test for real.
+
+### Steps (about 10 minutes each), tests first
+
+Wording rules above apply. Everything the report prints is built by one pure function,
+`buildReport(state, tab)` returning plain data, and one pure `renderReport(report)` returning HTML; tests are on
+both, with the exact sentences.
+
+1. **Feature rows with sentences and counts.** `registry.js` gains one plain sentence per group (Kitesurf's wording
+   as the model: "Pages are stopped from calling the companies that follow you from site to site."). `buildReport`
+   gives each row its state word and count for this tab's site: blocked (matched rules of the two blocking
+   rulesets), stripped (matches of the link rule), deleted today (history), waiting (queue). Tests: each count
+   from a scripted state; a row with nothing shows "0 blocked", not an empty cell; state words are "on",
+   "asks first", "off", "paused", "held while you sign in".
+2. **Cookie rows.** For the tab's site, live from `chrome.cookies.getAll`: site, name, value cut to 24 characters,
+   expiry as a date, and a class with its reason from `core.reason` and the keep list: "login, kept (name is on
+   the keep list)", "tracker, deleted automatically", "Google identity, asks first", "other, kept". Tests: every
+   class; a cookie both kept and on a tracker host says kept and why; hostile names and values are escaped; after
+   building and rendering a report, no value string is anywhere in `storage.local`.
+3. **Cookie buttons.** Delete (goes through the existing drop path, so pause, log and undo apply), Keep (allow
+   list), Always delete (the new local list), Show full, Copy, and "Delete all on this site" with the number on the
+   button. Tests end to end through `load-background.js`: each button's effect; Always delete beats Keep's
+   absence but a later Keep removes it from the always list; Delete all leaves kept sign-ins alone unless the
+   user ticks "also the ones that keep me signed in".
+4. **Kinds of stored data on this page.** Local storage, session storage, IndexedDB, cache storage, service
+   workers: counted in the tab on demand with `chrome.scripting.executeScript` (keys only until "Show"), with "what
+   it is", "where it lives" and the inspector command for each. Tests with the fake: counts and sentences; a page
+   that refuses scripts (chrome://, the web store) gives "Chrome does not let extensions look at this page"; Show
+   lists keys with values cut to 24 characters; nothing read is stored.
+5. **The side panel.** `report.html`, `report-view.js`, thin `report-page.js`; top line (switch, Pause, state word,
+   "Undo (N)", "Clear saved copies"), the waiting lines with "Remove N", Postpone, Show; Refresh with "read at
+   HH:MM:SS"; redraws when the active tab or its address changes. Tests on `renderReport`; pack test covers the
+   new files.
+6. **Inspector parity.** `tools/inspect.js cookies --site <site>` and `storage --site <site>` print the same rows
+   in the same words as the panel, values left out unless `--values` (then cut the same way; note that values on
+   disk are encrypted, so say "not readable from the file" where that is so). The panel's Copy buttons carry
+   exactly these commands. Tests on the fixture profile.
+7. **Tor row.** As decided above. Tests with a fake port check: not running, running, switched off again; the 8088
+   server absent in all three.
+8. **Real-Chrome checks** added to `test/browser/run.js`: the panel opens and follows the tab; counts move when a
+   tracker is blocked; a cookie's value shows cut and in full; the five buttons work on a real cookie; storage
+   kinds are counted on a page that sets some; the Tor row says "not running" here. Then TESTING.md and the
+   journal page get a short 1.23 section.
