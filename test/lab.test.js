@@ -291,3 +291,9 @@ test('lab step 19: completeness, every row has a technique and its checks or a m
   assert.deepEqual(gaps(traces.map((t) => t.id === 'T35' ? { ...t, technique: '' } : t), trip, expect, src), ['T35 has no technique']);
   assert.equal(gaps(traces, trip, expect, src.replace('EXPECT[tr.id].test(r.value)', 'true')).length, 1);
 });
+
+test('lab step 20: the hand-trip sheet in TESTING.md has the same steps as the coded trip', () => {
+  const sheet = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'TESTING.md'), 'utf8'), trip = require('../lab/trip.json');
+  for (const s of trip) assert.ok(sheet.includes(`- [ ] ${s.n}. **${s.title}.** ${s.hand}${s.traces.length ? ` Ticks: ${s.traces.join(' ')}.` : ''}\n`), `step ${s.n}`);
+  assert.equal((sheet.split('## The tracking lab by hand')[1].match(/^- \[ \] \d+\./gm) || []).length, trip.length);
+});

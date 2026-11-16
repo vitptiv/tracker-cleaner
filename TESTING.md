@@ -243,3 +243,23 @@ console (step 14).
 
 To stop: switch the card off at `chrome://extensions`, or untick "On" in the popup. Settings are kept
 in the extension's own storage and go away when you remove it.
+
+## The tracking lab by hand (Phase A, Tracker Cleaner off)
+
+Start the lab with `node lab/server.js` and open a separate lab Chrome profile, never your everyday one, with Tracker Cleaner off.
+Open http://friendface.localhost:8200/lab/check first: it must say "cleaner seems off". The same trip in code:
+`TC_BROWSER_TMP=/mnt/d/tmp node test/lab/trip.js` (add `--rows` to see every captured value).
+
+- [ ] 1. **Read the news, not signed in.** Open http://gazette.localhost:8200/. Open the article "Harbour bridge closes for repairs". Scroll to the end. Ticks: T1 T3 T6 T9 T10 T11 T12 T14 T15 T16 T23 T24 T25 T28 T36.
+- [ ] 2. **Join Friendface.** Open http://friendface.localhost:8200/. Create the account: name Mara Lindqvist, e-mail mara.lindqvist@example.test, password lab-only-1. Press "Allow" when Friendface asks to send notifications. Ticks: T13 T22.
+- [ ] 3. **Follow a link from the feed.** In the feed, click the post "Tidewater Notes: mending a kite". It goes through Hop and arrives with ?ffclid= in the address. Ticks: T2 T4 T29 T30.
+- [ ] 4. **Like and comment on the blog.** Press "Like". Press "Sign in with Friendface" and continue. Write the comment Nice post and send it. Ticks: T8 T31 T32.
+- [ ] 5. **Watch a video and leave.** Open http://loopreel.localhost:8200/ in a new tab. Press play, wait a few seconds, close the tab. (The coded trip makes this tab come from a second, simulated address.)
+- [ ] 6. **Search, almost subscribe, share.** On the Gazette search for kite repair. In the newsletter box type mara.lindqvist@example.test and do not press the button. Open the article again, press "Share on Friendface" and close the window that opens. Ticks: T26 T27 T35.
+- [ ] 7. **Buy a kite line.** Back in the Friendface feed click "Parcel & Pine: kite line, 25 m". Add to basket, check out with mara.lindqvist@example.test, Mara Lindqvist, Nordhavn, 00100, and press Buy. Ticks: T5 T7 T33.
+- [ ] 8. **Close Chrome and start it again.** Close the lab's Chrome completely. Run node lab/outside.js on its profile folder, then start it again on the same profile. Ticks: T17 T18 T19.
+- [ ] 9. **Read the news again.** Open the Gazette article again. The cache tag and the saved file come back, the fingerprint is the same, the tab has a new number.
+- [ ] 10. **Delete the Gazette's ID cookie.** Open http://gazette.localhost:8200/lab/delete-id, then the Gazette's front page. The cookie is back with the same ID.
+- [ ] 11. **The blog again.** Open the Tidewater post again. The frame's storage ID and per-site cookie are the same as before the restart.
+- [ ] 12. **Delete every cookie.** Delete all cookies in Chrome's settings. Open the Gazette, then http://friendface.localhost:8200/what-i-know: Friendface still knows who this is.
+- [ ] Last. http://friendface.localhost:8200/what-i-know says 33 of 36 kinds tracked; T20 and T21 say "not buildable here", T34 says "designed, not built"; "Where you have been" lists the pages of this sheet in order.
