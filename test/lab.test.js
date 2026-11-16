@@ -90,3 +90,26 @@ test('lab step 7: pages from before sign-in end up under the person', async () =
   assert.equal(row(k, 'T2').value, `ff_session=${jar.ff_session} is Mara Lindqvist`); assert.deepEqual(row(k, 'T2').sites, ['loopreel.localhost']);
   assert.equal((await knows(await join(JONAS))).history.length, 0);
 });
+
+const { sha } = require('../lab/store'), { rhythmDistance } = require('../lab/friendface');
+const FRAME = /<iframe[^>]+src="([^"]+)"/, kitSays = (jar, data) => ask('friendface', '/report', { method: 'POST', jar, body: data });
+const post = (path, jar, body) => ask('friendface', path, { method: 'POST', jar, body });
+
+test('lab step 8 (c2): the frame\'s storage ID still names the browser when every cookie is gone', async () => {
+  const jar = {}; await view('gazette', '/', jar);
+  const [, src] = embedded((await ask('tidewater', '/post/mending-a-kite')).text, FRAME);
+  assert.match((await ask('friendface', src, { jar })).text, /localStorage\.getItem\('ff_fsid'\)/);
+  await post('/plugins/frame-report', jar, { fsid: 's-1234abcd', site: 'tidewater.localhost' });
+  const k = await knows(jar), c = row(k, 'T9').captures[0];
+  assert.deepEqual([c.value, c.site, c.via], ['frame key ff_fsid = s-1234abcd', 'tidewater.localhost', 'Friendface frame inside the site']);
+  const fresh = {}; await post('/plugins/frame-report', fresh, { fsid: 's-1234abcd', site: 'tidewater.localhost' });
+  assert.notEqual(fresh.ff_uid, jar.ff_uid); assert.equal((await knows(fresh)).history.length, 1);
+});
+test('lab step 8 (c3): the cache tag comes back in the request and names the browser without cookies or storage', async () => {
+  const jar = {}; await view('gazette', '/', jar);
+  const first = await ask('friendface', '/tag.gif?site=gazette.localhost', { jar }), tag = first.headers.etag;
+  assert.match(tag, /^"t-\w+"$/); assert.match(first.headers['cache-control'], /no-cache/); assert.equal(row(await knows(jar), 'T16').mark, 'not yet seen');
+  const fresh = {}, again = await ask('friendface', '/tag.gif?site=gazette.localhost', { jar: fresh, headers: { 'If-None-Match': tag } });
+  assert.equal(again.status, 304);
+  const k = await knows(fresh); assert.equal(row(k, 'T16').value, `If-None-Match: ${tag}`); assert.deepEqual(row(k, 'T16').sites, ['gazette.localhost']); assert.equal(k.history.length, 1);
+});

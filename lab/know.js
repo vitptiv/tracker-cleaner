@@ -16,6 +16,7 @@ function know(store, g) {
     beforeSignIn: joined === undefined || r.n < joined }));
   return { who: account ? { name: account.name, email: account.email, sure: 'signed in from this browser' } : null,
     tracked: rows.filter((r) => r.mark === 'tracked').length, buildable: rows.filter((r) => r.status === 'built').length, of: rows.length,
+    purchases: [...store.events.values()].filter((e) => g !== null && store.lookup(['event:' + e.event_id]) === g),
     canary: store.canary, rows, history };
 }
 const MARK = { tracked: '&#10003; tracked', 'not yet seen': '&#9744; not yet seen' };

@@ -34,6 +34,8 @@ table{border-collapse:collapse;font-size:14px}td,th{border:1px solid #ccc;paddin
       if (q.method === 'POST') { let raw = ''; for await (const d of q) { raw += d; if (raw.length > 1e5) return c.send(413, 'text/plain', 'too long'); }
         c.raw = raw; try { c.body = raw.startsWith('{') ? JSON.parse(raw) : Object.fromEntries(new URLSearchParams(raw)); } catch { c.body = {}; } }
       if (c.url.pathname === '/favicon.ico') return handlers.icon(c);
+      // lab helper on every site: delete this site's ID cookie and nothing else
+      if (c.url.pathname === '/lab/delete-id') { c.cookie('_ffp=; Path=/; Max-Age=0'); return c.html('Deleted', '<p id="deleted">This site\'s ID cookie _ffp is deleted. Nothing else was touched.</p>'); }
       if (!await handlers[name](c)) c.send(404, 'text/html', lab.page(name, 'Not found', '<p>No such page.</p>'));
     } catch (e) { c.send(500, 'text/plain', String(e.stack || e)); }
   });
