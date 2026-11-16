@@ -26,4 +26,40 @@ test('lab: bound to 127.0.0.1 only, and an unknown name is refused', async () =>
   assert.equal(lab.server.address().address, '127.0.0.1');
   assert.equal((await ask('elsewhere', '/')).status, 403);
 });
-module.exports = { ask, form, PORT, lab: () => lab };
+
+const MARA = { name: 'Mara Lindqvist', email: 'mara.lindqvist@example.test', password: 'lab-only-1' };
+const JONAS = { name: 'Jonas Weller', email: 'jonas.weller@example.test', password: 'lab-only-2' };
+const join = async (who, jar = {}) => { await ask('friendface', '/join', { method: 'POST', body: form(who), jar }); return jar; };
+const knows = async (jar) => (await ask('friendface', '/what-i-know.json', { jar })).json();
+const row = (k, id) => k.rows.find((r) => r.id === id);
+
+test('lab: sign-in sets the session cookie, a wrong password does not, two accounts stay apart', async () => {
+  const mara = await join(MARA), jonas = await join(JONAS);
+  assert.ok(mara.ff_session && jonas.ff_session && mara.ff_session !== jonas.ff_session);
+  assert.match((await ask('friendface', '/', { jar: mara })).text, /Signed in as <b>Mara Lindqvist/);
+  assert.match((await ask('friendface', '/profile', { jar: jonas })).text, /jonas\.weller@example\.test/);
+  const wrong = {}; await ask('friendface', '/login', { method: 'POST', body: form({ email: MARA.email, password: 'nope' }), jar: wrong });
+  assert.equal(wrong.ff_session, undefined);
+  await ask('friendface', '/logout', { jar: mara }); assert.equal(mara.ff_session, undefined);
+  await ask('friendface', '/login', { method: 'POST', body: form(MARA), jar: mara }); assert.ok(mara.ff_session);
+  assert.equal((await knows(mara)).who.name, 'Mara Lindqvist'); assert.equal((await knows(jonas)).who.name, 'Jonas Weller');
+});
+test('lab: the feed links out through Hop, each link with its own click ID', async () => {
+  const feed = (await ask('friendface', '/', { jar: await join(MARA) })).text, ids = [...feed.matchAll(/hop\.localhost:\d+\/r\?c=(c-\w+)&#38;to=/g)].map((m) => m[1]);
+  assert.equal(ids.length, 3); assert.equal(new Set(ids).size, 3); assert.match(feed, /Tidewater Notes: mending a kite/);
+});
+test('lab: "What I know about you" lists all 36 rows, and an empty log shows 0 of 36', async () => {
+  const traces = require('../lab/traces.json'), k = await knows({});
+  assert.equal(traces.length, 36); assert.deepEqual(k.rows.map((r) => r.id), traces.map((t) => t.id));
+  assert.equal(k.tracked, 0); assert.equal(k.of, 36); assert.deepEqual(k.history, []);
+  assert.ok(k.rows.every((r) => r.status === 'built' ? r.mark === 'not yet seen' && r.value === '' : r.mark === r.status && r.reason));
+  const html = (await ask('friendface', '/what-i-know')).text;
+  for (const t of traces) assert.ok(html.includes(`data-row="${t.id}"`), t.id);
+  assert.match(html, /0 of 36 kinds tracked/);
+});
+test('lab: the canary says off when the link tag arrives and on when it was stripped', async () => {
+  const hop = await ask('friendface', '/lab/check'); assert.match(hop.headers.location, /utm_source=canary/);
+  assert.match((await ask('friendface', hop.headers.location)).text, /cleaner seems off/);
+  assert.equal((await knows({})).canary.blockedName.startsWith('skipped'), true);
+  assert.match((await ask('friendface', '/lab/check/result')).text, /cleaner seems on/);
+});

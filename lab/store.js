@@ -28,7 +28,7 @@ function createStore(logFile) {
     const a = { id: rid('a', 3), name, email, pass, hash: sha(email) }; s.accounts.push(a); return a; };
   s.signIn = (email, pass) => { const a = s.accounts.find((x) => x.email === email && x.pass === pass); if (!a) return null;
     const token = rid('s', 8); s.sessions.set(token, a); return token; };
-  s.forget = () => { s.records.length = 0; alias.clear(); parent.clear(); joined.clear(); s.sessions.clear(); s.clicks.clear(); s.codes.clear();
+  s.forget = () => { s.records.length = 0; s.accounts.length = 0; s.canary = null; s.offset = 0; alias.clear(); parent.clear(); joined.clear(); s.sessions.clear(); s.clicks.clear(); s.codes.clear();
     s.pennant.clear(); s.events.clear(); s.saved.clear(); if (logFile) fs.writeFileSync(logFile, ''); };
   return s;
 }
