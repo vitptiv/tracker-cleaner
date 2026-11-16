@@ -1,6 +1,7 @@
 // Popup (tap the Tracker Cleaner icon): the only control surface of 1.21. On / off and pause, what was cleaned on
 // this site with Undo and Allow, and one row per group with its mode, its numbers and, when something waits, a button
-// that says what it does ("Remove 12 cookies") and Postpone. A link at the top opens the "now and history" page (history.html).
+// that says what it does ("Remove 12 cookies") and Postpone. At the top, a button opens the report beside the page
+// (report.html, 1.23) and a link opens the "now and history" page (history.html).
 // It asks background.js for its state, shows it (popup-view.js) and sends the message a control carries; it deletes
 // nothing itself. Works with the 8088 audit server down; when that server answers, its audit view (popup-audit.js)
 // is added at the end, collapsed.
@@ -16,8 +17,14 @@ async function show(msg) {
   for (const id of open) { const d = id && document.getElementById(id); if (d) d.open = true; }
   note.textContent = msg || '';
 }
+// The report (report.html) opens in Chrome's side panel, beside the page. Chrome allows that only straight from a click,
+// so the window and tab are looked up beforehand. If Chrome refuses, the report opens in a tab of its own instead.
+let front = null;
+document.getElementById('report').addEventListener('click', async () => {
+  try { await chrome.sidePanel.open({ windowId: front.windowId }); window.close(); }
+  catch { chrome.tabs.create({ url: `report.html${front ? `?tab=${front.id}` : ''}` }); } });
 async function activeTab() {
-  try { const [t] = await chrome.tabs.query({ active: true, currentWindow: true }), u = new URL(t.url);
+  try { const [t] = await chrome.tabs.query({ active: true, currentWindow: true }); front = t; const u = new URL(t.url);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
     let blocked = null;   // Chrome limits how often this may be asked: then no count is shown
     try { blocked = (await chrome.declarativeNetRequest.getMatchedRules({ tabId: t.id })).rulesMatchedInfo.filter((m) => m.rule.rulesetId !== '_dynamic').length; } catch {}

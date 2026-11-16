@@ -75,15 +75,24 @@ module.exports = function makeChrome(init = {}) {
       // memory only in Chrome; no change events needed here
       session: { get: rec('storage.session.get', (k) => JSON.parse(JSON.stringify(k in state.session ? { [k]: state.session[k] } : {}))),
         set: rec('storage.session.set', (o) => { Object.assign(state.session, JSON.parse(JSON.stringify(o))); }) } },
-    tabs: { query: rec('tabs.query', () => state.tabs.map((t) => ({ ...t }))),
+    // query: only `active` is looked at (the page in front); every tab is in window 1
+    tabs: { query: rec('tabs.query', (q = {}) => state.tabs.filter((t) => q.active === undefined || !!t.active === q.active).map((t) => ({ ...t }))),
+      get: rec('tabs.get', (id) => { const t = state.tabs.find((x) => x.id === id); if (!t) throw new Error(`No tab with id: ${id}.`); return { ...t }; }),
+      getCurrent: rec('tabs.getCurrent', () => undefined),   // as in a side panel or a popup: the page is not a tab
+      create: rec('tabs.create', (t) => ({ id: 1000 + calls.length, ...t })),
       remove: rec('tabs.remove', (ids) => { ids = [].concat(ids); state.tabs = state.tabs.filter((t) => !ids.includes(t.id)); }),
       onCreated: event(), onUpdated: event(), onRemoved: event(), onActivated: event() },
-    windows: { getLastFocused: rec('windows.getLastFocused', () => ({ id: 1 })) },
+    windows: { getLastFocused: rec('windows.getLastFocused', () => ({ id: 1 })), getCurrent: rec('windows.getCurrent', () => ({ id: 1 })) },
+    // init.noPanel: Chrome refuses to open the side panel (it does so when the call does not come straight from a click)
+    sidePanel: { open: rec('sidePanel.open', () => { if (init.noPanel) throw new Error('`sidePanel.open()` may only be called in response to a user gesture.'); }) },
     action: { setBadgeText: rec('action.setBadgeText', (d) => { badge.text = d.text; }), setBadgeBackgroundColor: rec('action.setBadgeBackgroundColor', (d) => { badge.color = d.color; }) },
     declarativeNetRequest: { getEnabledRulesets: rec('declarativeNetRequest.getEnabledRulesets', () => [...state.rulesets]),
       updateEnabledRulesets: rec('declarativeNetRequest.updateEnabledRulesets', (o) => {
         state.rulesets = [...new Set([...state.rulesets, ...(o.enableRulesetIds || [])])].filter((id) => !(o.disableRulesetIds || []).includes(id)); }),
       getDynamicRules: rec('declarativeNetRequest.getDynamicRules', () => JSON.parse(JSON.stringify(state.dynamic))),
+      // init.matched: { <tab id>: [the rule file of each request Chrome stopped or changed on that tab] }; none given = Chrome does not say
+      getMatchedRules: rec('declarativeNetRequest.getMatchedRules', ({ tabId } = {}) => { if (!init.matched) throw new Error('This function may not be called this often.');
+        return { rulesMatchedInfo: (init.matched[tabId] || []).map((rulesetId) => ({ rule: { ruleId: 1, rulesetId }, tabId, timeStamp: 0 })) }; }),
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => {
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
     // any permission name works: chrome.contentSettings.camera.set(...)
@@ -99,7 +108,7 @@ module.exports = function makeChrome(init = {}) {
       getRegisteredContentScripts: rec('scripting.getRegisteredContentScripts', () => state.scripts.map((s) => ({ ...s }))),
       registerContentScripts: rec('scripting.registerContentScripts', (list) => { state.scripts.push(...list); }),
       unregisterContentScripts: rec('scripting.unregisterContentScripts', (f) => { state.scripts = f && f.ids ? state.scripts.filter((s) => !f.ids.includes(s.id)) : []; }) },
-    runtime: { id: ID, getURL: (p) => `chrome-extension://${ID}/${p}`, getManifest: () => ({ version: '0', ...init.manifest }), onInstalled: event(), onStartup: event(), onUpdateAvailable: event(), onMessage: event(),
+    runtime: { sendMessage: (m) => fake.send(m), id: ID, getURL: (p) => `chrome-extension://${ID}/${p}`, getManifest: () => ({ version: '0', ...init.manifest }), onInstalled: event(), onStartup: event(), onUpdateAvailable: event(), onMessage: event(),
       // the native messaging host: init.native(hostName, message) -> answer; none given = no host installed
       sendNativeMessage: rec('runtime.sendNativeMessage', (name, msg) => { if (!fake.native) throw new Error('Specified native messaging host not found.');
         return JSON.parse(JSON.stringify(fake.native(name, msg))); }),

@@ -13,7 +13,8 @@
   "browsingData",
   "contentSettings",
   "scripting",
-  "nativeMessaging"
+  "nativeMessaging",
+  "sidePanel"
  ],
  "host_permissions": [
   "<all_urls>"
@@ -39,6 +40,9 @@
     "path": "rules-params.json"
    }
   ]
+ },
+ "side_panel": {
+  "default_path": "report.html"
  },
  "action": {
   "default_popup": "popup.html",

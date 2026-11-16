@@ -12,7 +12,8 @@
 // Every value goes through esc. A button carries its message for background.js in data-msg, or a command to copy in
 // data-copy. Two things are left to the page: a button with data-act sends its message and then shows ('full') or
 // copies ('copy') the `value` of the reply, keeping it nowhere; and "Delete N cookies on this site" is sent with
-// kept: true when the box beside it (data-also="kept") is ticked.
+// kept: true when the box beside it (data-also="kept") is ticked; that button then gets the label in its data-all
+// (the number of everything), and the one in data-some again when the box is cleared. data-act="refresh" reads again.
 const { buildReport, renderReport } = (() => {
   const dep = typeof module !== 'undefined' ? { lists: require('./lists.js'), makeCore: require('./core.js'), day: require('./history.js').historyDay }
     : { lists: { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE }, makeCore, day: historyDay };
@@ -84,9 +85,27 @@ const { buildReport, renderReport } = (() => {
         ...(st.shown === id && Array.isArray(st.items) ? { items: st.items.map((it) => typeof it.value !== 'string' ? { name: String(it.name) }
           : { name: String(it.name), value: it.value.slice(0, CUT), long: it.long === true || it.value.length > CUT }) } : {}) }; }) };
 
+  // ---- The top line and what waits for an answer, as the popup has them
+  const hms = (t) => new Date(t).toTimeString().slice(0, 8), hhmm = (t) => hms(t).slice(0, 5);
+  const UNDO_MS = 10 * 60e3, UNDO_FULL = 300, LOOPING = 'this site keeps putting it back';   // as in undo.js and loop.js
+  const top = (s) => { const hold = s.hold || {};
+    return { master: s.master, paused: !!hold.paused, undo: (s.undo || []).filter((u) => u.t > (s.now || 0) - UNDO_MS).length,
+      says: typeof s.master !== 'boolean' ? 'Cleaning is off until you turn it on.' : !s.master ? 'Cleaning is off'
+        : hold.paused ? 'Cleaning is paused' + (hold.pauseUntil ? ` until ${hhmm(hold.pauseUntil)}` : '') : hold.guard ? 'Cleaning is on, but held while you sign in' : 'Cleaning is on' }; };
+  // what the button of a group does, and to what: "Remove 12 cookies"
+  const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'] };
+  const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
+    : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (its site keeps putting it back)' : '');
+  const waiting = (s) => (s.groups || []).filter((g) => Number(g.pending) > 0).map((g) => { const n = Number(g.pending), [verb, thing] = DOES[g.id] || ['Remove', 'item'], until = g.postponedUntil;
+    const barred = g.id === 'wifi' && g.canDelete !== 'yes';   // the Wi-Fi helper says this user may not remove networks
+    return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome starts again' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
+      button: barred ? '' : g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
+      note: barred ? 'This user is not allowed to remove saved networks without a password, so nothing can be removed from here.' : g.id === 'wifi' ? 'Removing a saved network cannot be undone here.' : '',
+      items: (g.items || []).map(waitItem) }; });
+
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;
-    return { site: host, tabId: tab && Number.isInteger(tab.id) ? tab.id : null, stored: host ? storedOf(tab.stored) : null,
+    return { top: top(s), waiting: waiting(s), readAt: hms(s.now || 0), full: UNDO_FULL, site: host, tabId: tab && Number.isInteger(tab.id) ? tab.id : null, stored: host ? storedOf(tab.stored) : null,
       features: (s.groups || []).map((g) => ({ id: g.id, title: g.title, says: g.says, state: word(g, s), count: counted(g, s, tab) })),
       cookies: host && Array.isArray(tab.cookies) ? { n: tab.cookies.length, rows: tab.cookies.map((c) => cookieRow(c, s, host)) } : null,
       // what the user chose to always delete on this site, also when the cookie is not there right now
@@ -109,7 +128,8 @@ const { buildReport, renderReport } = (() => {
     // what "Delete all" leaves alone: the cookies that keep the user signed in (a) and those the user pressed Keep on (b),
     // but not one the user put on the always-delete list
     const all = (c) => { const stay = c.rows.filter((x) => x.mine !== 'always'), a = stay.filter((x) => x.signin).length, b = stay.filter((x) => !x.signin && x.mine === 'keep').length, n = a + b;
-      return `<p>${btn(`Delete ${count(c.n - n, 'cookie')} on this site`, { type: 'dropSite', host: r.site }, ' class="go"' + off)}`
+      const some = `Delete ${count(c.n - n, 'cookie')} on this site`, both = n ? ` data-some="${some}" data-all="Delete ${count(c.n, 'cookie')} on this site"` : '';
+      return `<p>${btn(some, { type: 'dropSite', host: r.site }, ' class="go"' + both + off)}`
         + (!n ? '' : ` <span class="m">${n} stay${n === 1 ? 's' : ''}: ${[a ? `${a} keep${a === 1 ? 's' : ''} you signed in` : '', b ? `${b} you chose to keep` : ''].filter(Boolean).join(', ')}</span>`
           + ` <label><input type="checkbox" data-also="kept"> also the ${a && b ? 'ones that keep me signed in and the ones I chose to keep' : a ? `${a} that keep${a === 1 ? 's' : ''} me signed in` : `${b} I chose to keep`}</label>`) + '</p>'
         + (r.stopped ? `<p class="m">Cleaning is ${r.stopped}, so nothing can be deleted from here right now.</p>` : ''); };
@@ -134,7 +154,19 @@ const { buildReport, renderReport } = (() => {
         + (!st ? '<p class="m">This tab is not a web page, so there is nothing saved by it to show.</p>' : st.refused ? '<p>Chrome does not let extensions look at this page.</p>'
           : !st.kinds ? `<p>${look('Count what this page has saved')} <span class="m">Nothing on the page is looked at until you press this.</span></p>`
           : '<p class="m">Read from the page just now. Only names and the start of what is saved are shown here, and none of it is saved anywhere else.</p>' + st.kinds.map(kind).join('')); };
-    return '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored();
+    const topLine = () => { const t = r.top || {};
+      if (typeof t.master !== 'boolean') return `<div class="top"><b>${esc(t.says)}</b> ${btn('Turn on', { type: 'setMaster', on: true })}</div>`;
+      return `<div class="top"><label><input type="checkbox" data-msg="${esc(JSON.stringify({ type: 'setMaster' }))}"${t.master ? ' checked' : ''}> ${t.master ? 'On' : 'Off'}</label> <b>${esc(t.says)}</b><div class="b">`
+        + (!t.master ? '' : t.paused ? btn('Resume', { type: 'resume' }) : btn('Pause 10 min', { type: 'pause', minutes: 10 }))
+        + (t.undo ? btn(`Put back ${t.undo >= r.full ? r.full + '+' : t.undo} deleted cookie${t.undo === 1 ? '' : 's'}`, { type: 'restoreAll' }) : '')
+        + btn('Clear the saved copies of pages', { type: 'drop', kind: 'servers' }, off) + '</div>'
+        + (t.undo ? '' : '<div class="m">0 cookies deleted in the last 10 minutes, so there is nothing to put back.</div>') + '</div>'; };
+    const page = () => `<p class="m">${r.site ? `This page: ${esc(r.site)}` : 'This tab is not a web page'} · Read at ${esc(r.readAt)} <button class="small" data-act="refresh">Read again</button></p>`;
+    const waits = () => '<h2>Waiting for your answer</h2>' + (!(r.waiting || []).length ? '<p class="m">Nothing is waiting for your answer.</p>' : r.waiting.map((w) =>
+      `<div class="c" data-wait="${esc(w.id)}"><div>${esc(w.line)}</div><div class="b">${w.button ? btn(esc(w.button), { type: 'approve', group: w.id }, ' class="go"' + off) : ''}`
+      + `${btn('Postpone 1 hour', { type: 'postpone', group: w.id, minutes: 60 })}</div>` + (w.note ? `<div class="m">${w.note}</div>` : '')
+      + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? ` (the newest ${w.items.length} of ${w.n})` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`).join(''));
+    return topLine() + page() + waits() + '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored();
   };
   return { buildReport, renderReport };
 })();

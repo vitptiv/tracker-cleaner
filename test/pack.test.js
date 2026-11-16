@@ -10,10 +10,12 @@ const needed = { 'manifest.json': 'the manifest itself',
   ...Object.fromEntries(names(bgjs, /importScripts\(([^)]+)\)/g).map((f) => [f, 'background importScripts'])),
   ...Object.fromEntries(names(bgjs, /\b(?:js|css): \[([^\]]+)\]/g).map((f) => [f, 'background content script'])),
   ...Object.fromEntries(names(read('popup.html'), /(?:src|href)="([^"]+)"/g).map((f) => [f, 'popup.html'])),
-  ...Object.fromEntries(names(read('history.html'), /(?:src|href)="([^"]+)"/g).map((f) => [f, 'history.html'])) };
+  ...Object.fromEntries(names(read('history.html'), /(?:src|href)="([^"]+)"/g).map((f) => [f, 'history.html'])),
+  [(manifest.side_panel || {}).default_path]: 'manifest side_panel',
+  ...Object.fromEntries(names(fs.existsSync(path.join(dir, 'report.html')) ? read('report.html') : '', /(?:src|href)="([^"]+)"/g).map((f) => [f, 'report.html'])) };
 
 test('the references were found: manifest, importScripts, content scripts, popup scripts', () => {
-  for (const f of ['background.js', 'popup.html', 'rules.json', 'rules-google.json', 'rules-params.json', 'registry.js', 'queue.js', 'yt-adfree.js', 'yt-adfree.css', 'popup-view.js', 'popup.js', 'history.html', 'history-view.js', 'history-page.js'])
+  for (const f of ['background.js', 'popup.html', 'rules.json', 'rules-google.json', 'rules-params.json', 'registry.js', 'queue.js', 'yt-adfree.js', 'yt-adfree.css', 'popup-view.js', 'popup.js', 'history.html', 'history-view.js', 'history-page.js', 'report.html', 'report-view.js', 'report-page.js'])
     assert.ok(f in needed, f);
   assert.ok(packed.length >= Object.keys(needed).length);
 });

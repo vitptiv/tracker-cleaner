@@ -215,6 +215,7 @@ test('"Delete all" has the number of what will go on the button; beside it, how 
   const all = buttons(html).find((b) => b.msg && b.msg.type === 'dropSite');
   assert.deepEqual([all.label, all.msg, all.disabled], ['Delete 3 cookies on this site', { type: 'dropSite', host: 'www.example.com' }, false]);
   assert.ok(text(html).includes('3 stay: 2 keep you signed in, 1 you chose to keep'));
+  assert.ok(html.includes(' data-some="Delete 3 cookies on this site" data-all="Delete 6 cookies on this site"'));   // the page puts the right number on the button when the box is ticked
   assert.ok(html.includes('<label><input type="checkbox" data-also="kept"> also the ones that keep me signed in and the ones I chose to keep</label>'));
   html = draw(cookies.slice(0, 5));                                  // sign-ins only
   assert.ok(text(html).includes('2 stay: 2 keep you signed in')); assert.ok(html.includes('data-also="kept"> also the 2 that keep me signed in</label>'));
@@ -235,7 +236,7 @@ test('while cleaning is paused or switched off the deleting buttons are greyed o
   for (const [o, why] of [[{ hold: { paused: true } }, 'Cleaning is paused, so nothing can be deleted from here right now.'], [{ master: false }, 'Cleaning is switched off, so nothing can be deleted from here right now.']]) {
     const html = renderReport(buildReport(state(o), tab({ cookies })));
     assert.ok(text(html).includes(why));
-    assert.deepEqual(buttons(html).filter((b) => b.disabled).map((b) => b.label), ['Delete 1 cookie on this site', 'Delete', 'Always delete']);
+    assert.deepEqual(buttons(html).filter((b) => b.disabled).map((b) => b.label), ['Clear the saved copies of pages', 'Delete 1 cookie on this site', 'Delete', 'Always delete']);
   }
   assert.equal(buttons(renderReport(buildReport(state(), tab({ cookies })))).some((b) => b.disabled), false);
 });
@@ -312,4 +313,79 @@ test('a tab that is not a web page has nothing of this to show', () => {
   const r = buildReport(state(), null);
   assert.equal(r.stored, null);
   assert.ok(text(renderReport(r)).includes('This tab is not a web page, so there is nothing saved by it to show.'));
+});
+
+// ---- step 5: the top line, what waits, and when it was read
+const boxes = (html) => [...html.matchAll(/<label><input type="checkbox" data-msg="([^"]*)"( checked)?> ([^<]*)<\/label>/g)].map(([, m, c, label]) => [label, JSON.parse(unesc(m)), !!c]);
+const labels = (html, upTo = '<h2>') => buttons(html.slice(0, html.indexOf(upTo))).map((b) => b.label);
+test('top line, cleaning on: the switch, the state in words, Pause, what can be put back, and clearing the saved copies', () => {
+  const undo = [{ t: NOW - 60e3, site: 'a.test', name: 'x' }, { t: NOW - 9 * 60e3, site: 'a.test', name: 'y' }, { t: NOW - 11 * 60e3, site: 'a.test', name: 'old' }];
+  const r = buildReport(state({ undo }), tab()), html = renderReport(r);
+  assert.deepEqual(r.top, { master: true, says: 'Cleaning is on', paused: false, undo: 2 });
+  assert.deepEqual(boxes(html), [['On', { type: 'setMaster' }, true]]);
+  assert.ok(text(html).trim().startsWith('On Cleaning is on'));
+  const b = buttons(html).slice(0, 3);
+  assert.deepEqual(b.map((x) => [x.label, x.msg, x.disabled]), [['Pause 10 min', { type: 'pause', minutes: 10 }, false], ['Put back 2 deleted cookies', { type: 'restoreAll' }, false],
+    ['Clear the saved copies of pages', { type: 'drop', kind: 'servers' }, false]]);
+});
+test('top line: nothing to put back says so with a number; one cookie; and "300+" when the list is full', () => {
+  const t = (undo) => renderReport(buildReport(state({ undo }), tab()));
+  assert.ok(text(t([])).includes('0 cookies deleted in the last 10 minutes')); assert.equal(labels(t([])).some((l) => l.startsWith('Put back')), false);
+  assert.ok(labels(t([{ t: NOW - 1, site: 'a.test', name: 'x' }])).includes('Put back 1 deleted cookie'));
+  assert.ok(labels(t(Array.from({ length: 300 }, (_, i) => ({ t: NOW - i, site: 'a.test', name: 'x' + i })))).includes('Put back 300+ deleted cookies'));
+});
+test('top line: paused, switched off, held while you sign in, and never turned on', () => {
+  const top = (o) => { const r = buildReport(state(o), tab()), html = renderReport(r); return [r.top.says, labels(html), html]; };
+  let [says, b, html] = top({ hold: { paused: true, pauseUntil: NOW + 10 * 60e3 } });
+  assert.equal(says, 'Cleaning is paused until 14:15'); assert.deepEqual(b, ['Resume', 'Clear the saved copies of pages', 'Read again']);
+  assert.deepEqual(buttons(html)[0].msg, { type: 'resume' });
+  [says, b, html] = top({ master: false });
+  assert.equal(says, 'Cleaning is off'); assert.deepEqual(b, ['Clear the saved copies of pages', 'Read again']); assert.deepEqual(boxes(html), [['Off', { type: 'setMaster' }, false]]);
+  [says, b] = top({ hold: { guard: true } });
+  assert.equal(says, 'Cleaning is on, but held while you sign in'); assert.deepEqual(b, ['Pause 10 min', 'Clear the saved copies of pages', 'Read again']);
+  [says, b, html] = top({ master: undefined });
+  assert.equal(says, 'Cleaning is off until you turn it on.'); assert.deepEqual(b, ['Turn on', 'Read again']);
+  assert.deepEqual(buttons(html)[0].msg, { type: 'setMaster', on: true }); assert.deepEqual(boxes(html), []);
+});
+test('which page the report is about and when it was read, with a button to read again', () => {
+  const html = renderReport(buildReport(state({ now: NOW + 9e3 }), tab()));
+  assert.ok(text(html).includes('This page: www.example.com · Read at 14:05:09'));
+  const b = buttons(html).find((x) => x.label === 'Read again');
+  assert.deepEqual([b.act, b.msg], ['refresh', undefined]);
+  assert.ok(text(renderReport(buildReport(state(), null))).includes('This tab is not a web page · Read at 14:05:00'));
+  assert.doesNotMatch(renderReport(buildReport(state(), tab({ host: '<b>x' }))), /<b>x/);
+});
+test('what waits for an answer: per group the number, a button that says what it does and to how many, Postpone, and the list collapsed', () => {
+  const it = (kind, site, name, why) => ({ cap: 'C03', kind, site, name, why, t: NOW });
+  const many = Array.from({ length: 20 }, (_, i) => it('cookie', 'example.com', '_ga' + i, 'name'));
+  const r = buildReport(state({}, { google: { pending: 1, items: [it('cookie', 'google.com', 'NID', 'google')] }, cookies: { pending: 31, items: many },
+    cache: { pending: 1, items: [it('cache', '*', 'http-cache', 'daily')] }, tabs: { pending: 2, items: [it('tabs', 'news.example', '7'), it('tabs', 'shop.example', '9')] },
+    storage: { pending: 1, items: [it('storage', 'bad.test', 'storage')] }, permissions: { pending: 1, items: [it('permission', 'https://bad.test', 'camera')] },
+    wifi: { pending: 1, helper: 'ok', canDelete: 'yes', items: [it('wifi', 'Cafe', 'uuid-1', 'not used for 30 days or more')] } }), tab());
+  assert.deepEqual(r.waiting.map((w) => [w.id, w.line, w.button]), [
+    ['cookies', "Trackers' cookies: 31 waiting", 'Remove 31 cookies'], ['google', 'Cookies Google uses to recognise you: 1 waiting', 'Remove 1 cookie'],
+    ['storage', 'Data that sites keep (site storage): 1 waiting', 'Empty what 1 site has saved'], ['wifi', 'Remembered Wi-Fi networks: 1 waiting', 'Remove 1 saved network'],
+    ['permissions', 'What sites may do (site permissions): 1 waiting', 'Block 1 permission'], ['cache', 'Saved copies of pages (HTTP cache): 1 waiting', 'Clear the saved copies of pages'],
+    ['tabs', 'Limit how many tabs stay open: 2 waiting', 'Close 2 tabs']]);
+  assert.deepEqual(r.waiting.slice(1).map((w) => w.items), [['NID on google.com'], ['what bad.test has saved'], ['Cafe (not used for 30 days or more)'], ['camera on https://bad.test'], ['the saved copies of pages'], ['news.example', 'shop.example']]);
+  const html = renderReport(r), g = buttons(html).filter((b) => b.msg && b.msg.group === 'google');
+  assert.deepEqual(g.map((b) => [b.label, b.msg]), [['Remove 1 cookie', { type: 'approve', group: 'google' }], ['Postpone 1 hour', { type: 'postpone', group: 'google', minutes: 60 }]]);
+  assert.match(html, /<details id="wait-google"><summary>Show what is waiting<\/summary><div class="c">NID on google.com<\/div><\/details>/);
+  assert.match(html, /<details id="wait-cookies"><summary>Show what is waiting \(the newest 20 of 31\)<\/summary>/);
+  assert.ok(text(html).includes('Removing a saved network cannot be undone here.'));
+  assert.doesNotMatch(html.slice(0, html.indexOf('<h2>What Tracker Cleaner')), /\bC\d\d\b|pending/);
+});
+test('what waits: nothing says so; put off says until when; paused or off greys the button out; a cookie that keeps coming back is marked; hostile text escaped', () => {
+  const it = (name, why) => ({ cap: 'C03', kind: 'cookie', site: '<i>x', name, why, t: NOW });
+  assert.ok(text(renderReport(buildReport(state(), tab()))).includes('Nothing is waiting for your answer.'));
+  const g = (over) => ({ google: { pending: 1, items: [it('<b>NID', 'this site keeps putting it back')], ...over } });
+  let r = buildReport(state({}, g({ postponedUntil: NOW + 3600e3 })), tab());
+  assert.equal(r.waiting[0].line, 'Cookies Google uses to recognise you: 1 waiting, put off until 15:05');
+  assert.equal(buildReport(state({}, g({ postponedUntil: 'restart' })), tab()).waiting[0].line, 'Cookies Google uses to recognise you: 1 waiting, put off until Chrome starts again');
+  assert.deepEqual(r.waiting[0].items, ['<b>NID on <i>x (its site keeps putting it back)']);
+  assert.doesNotMatch(renderReport(r), /<b>NID|<i>x/);
+  for (const o of [{ hold: { paused: true } }, { master: false }]) { const b = buttons(renderReport(buildReport(state(o, g()), tab()))).find((x) => x.label === 'Remove 1 cookie'); assert.equal(b.disabled, true); }
+  // Wi-Fi: this user may not remove saved networks: no button, one sentence
+  r = buildReport(state({}, { wifi: { pending: 1, helper: 'ok', canDelete: 'no', items: [{ kind: 'wifi', site: 'Cafe', name: 'u', why: 'never used' }] } }), tab());
+  assert.equal(r.waiting[0].button, ''); assert.ok(text(renderReport(r)).includes('This user is not allowed to remove saved networks without a password, so nothing can be removed from here.'));
 });

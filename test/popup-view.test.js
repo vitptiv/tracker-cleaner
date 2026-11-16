@@ -119,16 +119,23 @@ test('popup.html loads the three scripts in order; popup.js holds no markup of i
 // The three files are classic scripts sharing one global scope: a name declared twice would stop the popup. Stubs only.
 test('the scripts of popup.html load together, ask for the state and render it; no fetch error reaches the page', async () => {
   const read = (f) => fs.readFileSync(path.join(__dirname, '../extension', f), 'utf8'), sent = [];
-  const out = { innerHTML: '', querySelectorAll: () => [], addEventListener: () => {} }, note = { textContent: '' };
+  const out = { innerHTML: '', querySelectorAll: () => [], addEventListener: () => {} }, note = { textContent: '' }, report = { addEventListener: (type, f) => { report[type] = f; } };
+  const opened = [], made = [], closed = []; let refuse = false;
   const chrome = { runtime: { sendMessage: async (m) => { sent.push(m); return state({ master: undefined }); } },
-    tabs: { query: async () => [{ id: 7, url: 'https://www.example.com/a' }] },
+    tabs: { query: async () => [{ id: 7, windowId: 3, url: 'https://www.example.com/a' }], create: async (t) => { made.push(t); } },
+    sidePanel: { open: async (o) => { if (refuse) throw new Error('may only be called in response to a user gesture'); opened.push(o); } },
     declarativeNetRequest: { getMatchedRules: async () => ({ rulesMatchedInfo: [{ rule: { ruleId: 1, rulesetId: 'trackers' } }, { rule: { ruleId: 1, rulesetId: '_dynamic' } }] }) } };
-  const ctx = vm.createContext({ chrome, URL, document: { getElementById: (id) => (id === 'out' ? out : note) }, fetch: async () => { throw new TypeError('fetch failed'); } });
+  const ctx = vm.createContext({ chrome, URL, window: { close: () => closed.push(1) }, document: { getElementById: (id) => ({ out, report }[id] || note) }, fetch: async () => { throw new TypeError('fetch failed'); } });
   for (const f of ['popup-audit.js', 'history.js', 'popup-view.js', 'popup.js']) vm.runInContext(read(f), ctx, { filename: f });
   for (let i = 0; i < 5; i++) await new Promise(setImmediate);
   assert.deepEqual(sent, [{ type: 'state' }, { type: 'history' }]); assert.equal(note.textContent, '');
   assert.ok(out.innerHTML.includes('Turn on') && out.innerHTML.includes('This site: www.example.com') && out.innerHTML.includes('1 request blocked on this tab'));
   assert.equal(out.innerHTML.includes('id="audit"'), false);
+  // the button "Open the report beside the page": the side panel of this window, and the popup closes
+  await report.click();
+  assert.deepEqual([opened, made, closed.length], [[{ windowId: 3 }], [], 1]);
+  refuse = true; await report.click();                              // Chrome refuses: the report opens in a tab of its own, about this tab
+  assert.deepEqual([opened.length, made, closed.length], [1, [{ url: 'report.html?tab=7' }], 1]);
 });
 
 // ---- 1.22 popup fixes
@@ -198,9 +205,9 @@ test('"Copy command" on the rows the inspector command covers, carrying exactly 
   for (const cmd of Object.values(got)) assert.ok(Object.hasOwn(BLOCKS, cmd.split(' ')[2]), cmd);
   assert.equal(count(html, 'Copy command'), 8);
 });
-test('popup.html: one link at the top opens the page in a tab', () => {
+test('popup.html: one button at the top opens the report beside the page, one link opens the history page in a tab', () => {
   const html = fs.readFileSync(path.join(__dirname, '../extension/popup.html'), 'utf8');
   assert.equal(count(html, '<a '), 1);
-  assert.ok(html.includes('<h1>Tracker Cleaner</h1>\n  <p><a href="history.html" target="_blank">See everything and its history</a></p>'));
+  assert.ok(html.includes('<h1>Tracker Cleaner</h1>\n  <p><button id="report">Open the report beside the page</button></p>\n  <p><a href="history.html" target="_blank">See everything and its history</a></p>'));
   assert.ok(html.indexOf('history.js') > 0 && html.indexOf('history.js') < html.indexOf('popup-view.js'));
 });

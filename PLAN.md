@@ -592,3 +592,16 @@ both, with the exact sentences.
   characters inside the page. `test/chrome-fake.js` gains `scripting.executeScript` and `pages`. No totals across
   sites ("in total" in Kitesurf's bar): an extension cannot count those. Every kind's Copy button carries the same
   `node tools/inspect.js storage --site <host>`, for step 6. Not run in a real Chrome yet (step 8).
+- **Review follow-ups on steps 1 to 4** (6 tests more, 335 in all). A cookie on the user's own always-delete list no
+  longer waits: it goes when it comes back whatever mode its group (C07) is in; only that group set to Off, the main
+  switch, a pause or a sign-in keeps it (`mine`, `mineVerdict` in background.js). The 8088 list still follows C07.
+  "Delete all" leaves sign-in cookies and the ones the user pressed Keep on, says "3 stay: 2 keep you signed in, 1 you
+  chose to keep", and the box (`data-also="kept"`, message field `kept: true`) takes those too. The history's
+  per-cookie counters gained `d` (times removed on the day of `last`) and `g` (group), so the three cookie rows say
+  "N deleted on this site today, N deleted today on all sites, N waiting". Entries from before have no `d`: not counted.
+- **Step 5, the side panel** (19 tests, 354 in all). `report.html` and the thin `report-page.js`; manifest: `sidePanel`
+  and `side_panel.default_path`; the popup's button "Open the report beside the page" (`chrome.sidePanel.open`, and
+  `report.html?tab=<id>` in a tab when Chrome refuses). `renderReport` gained the top line, "Waiting for your answer"
+  and "This page: ... · Read at HH:MM:SS" with "Read again". `test/load-page.js` runs the page script against the real
+  background and the fake. Decided: "Undo (N)" reads "Put back N deleted cookies"; the report is not redrawn when
+  storage changes, only on a press, a tab change or "Read again". Not run in a real Chrome yet (step 8).
