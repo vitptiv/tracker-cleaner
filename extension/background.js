@@ -1,0 +1,472 @@
+// Tracker Cleaner 1.22: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
+// candidates wait in a queue for Approve or Postpone) or is automatic, and nothing is deleted before the user has
+// turned cleaning on. Everything is held while paused, and everything destructive while a sign-in is going on.
+// Login cookies (KEEP_RE) are never touched.
+importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js');
+const REPORT = 'http://127.0.0.1:8088/audit/cleaner';
+// The cookie decisions and their settings (S) live in core.js, where the Node tests can reach them.
+const { S, realHost, reason, firstParty } = makeCore({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE });
+// The gate (registry.js): every action below first asks can(id, cx), which combines the stored settings,
+// the pause and the sign-in guard. Only 'run' acts; what gets 'ask' or 'held' goes to the approval queue.
+// The 8088 server still supplies lists, but cannot switch a capability on.
+// State is in chrome.storage.local because this worker sleeps: master, modes, guardUntil, pauseUntil, pending,
+// cacheClearedAt, log, allow, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
+const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
+async function context() {
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'sitesOff', 'loops']), now = Date.now();
+  const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
+  if (mayRun('C19', set) !== 'run') hold.guard = false;
+  // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
+  // (written at most once a minute; the 1-minute alarm passes here)
+  else if (hold.tab && !(set.guardUntil > now + GUARD_MS - 60e3)) await chrome.storage.local.set({ guardUntil: now + GUARD_MS });
+  return { set, hold, tabs, hosts };
+}
+const verdict = (id, cx) => gate(id, cx.set, cx.hold);
+const can = (id, cx) => verdict(id, cx) === 'run';
+const waits = (v) => v === 'ask' || v === 'held';
+// Sign-in guard (C19): every navigation to a sign-in URL (re)arms it.
+const arm = (url) => { if (isSignIn(url)) chrome.storage.local.set({ guardUntil: Date.now() + GUARD_MS }); };
+chrome.tabs.onCreated.addListener((t) => arm(t.pendingUrl || t.url));
+chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) arm(info.url); });
+// Pause (C18): everything stops until pauseUntil; the 'resume' alarm switches the features back on.
+// The storage listener at the end of this file applies the change.
+async function pause(minutes) {
+  const pauseUntil = Date.now() + (minutes > 0 ? minutes : 10) * 60e3;
+  chrome.alarms.create('resume', { when: pauseUntil }); await chrome.storage.local.set({ pauseUntil });
+  return { pauseUntil };
+}
+async function resume() { await chrome.alarms.clear('resume'); await chrome.storage.local.remove('pauseUntil'); return { pauseUntil: 0 }; }
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'resume') resume(); });
+// which capability deletes this cookie, by core.js's reason
+const CAP_OF = { blacklist: 'C07', allowlist: 'C12', name: 'C03', host: 'C03', google: 'C04' };
+const bare = (domain) => domain.replace(/^\./, ''), under = (h, site) => h === site || h.endsWith('.' + site);
+// `spared`: core.js's reason, minus what is spared: every cookie of a site the user switched off (sitesOff), a cookie the user
+// allowed (the blacklist still wins over that), and a cookie that is only there because of its tracker host while
+// a tab is open on that tracker's own site.
+const spared = (c, cx, noBlack) => {
+  const r = reason(c, noBlack);
+  if (!r || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s))) return null;
+  if (r !== 'blacklist' && (cx.set.allow || []).some((a) => a.site === bare(c.domain) && a.name === c.name)) return null;
+  return r === 'host' && firstParty(c, cx.hosts) ? null : r;
+};
+// [reason, verdict] for a cookie. A blacklisted cookie whose capability only asks is still deleted when
+// another rule that runs wants it gone (a tracker name, allow-list mode); otherwise it waits in the queue.
+// Loop breaker (loop.js): a cookie that would be removed, but that its site has put back LOOP_N times in a row, is not
+// removed again: it waits in the queue, with LOOP_WHY as the third answer, the reason shown to the user.
+const loopKey = (c) => `${bare(c.domain)} ${c.name}`;
+const judge = (c, cx) => {
+  const r = spared(c, cx), v = r && verdict(CAP_OF[r], cx), r2 = r === 'blacklist' && v !== 'run' && spared(c, cx, true);
+  const [why, did] = r2 && can(CAP_OF[r2], cx) ? [r2, 'run'] : [r, v];
+  return did === 'run' && loopStuck(cx.set.loops, loopKey(c), Date.now()) ? [why, 'ask', LOOP_WHY] : [why, did];
+};
+
+// ---- Approval queue (C20, queue.js): candidates the gate answered 'ask' or 'held' wait in storage under `pending`.
+// Every change goes through withQueue, one after the other: the queue is read, changed and written back, and cookie
+// events come in bursts, so two handlers at once would overwrite each other's additions. fn(pending) changes
+// `pending` in place and returns whether it did. The action log (`log`, C21) is written through the same chain.
+let chain = Promise.resolve();
+const serial = (fn) => (chain = chain.then(fn).catch(() => {}));
+const withQueue = (fn) => serial(async () => {
+  const { pending = {} } = await chrome.storage.local.get('pending');
+  if (fn(pending)) await chrome.storage.local.set({ pending }); });
+// did: 'removed', or left out for items that wait: each then says itself whether it is 'queued' or 'held'
+// What was removed is also counted in the private history (history.js): numbers per day and per cookie, nothing else.
+const logged = (items, did) => items.length ? serial(async () => {
+  const { log = [], history } = await chrome.storage.local.get(['log', 'history']), now = Date.now();
+  const gone = items.filter((it) => (did || it.did) === 'removed').map((it) => ({ group: cap(it.cap).group, kind: it.kind, site: it.site, name: it.name }));
+  await chrome.storage.local.set({ log: logAdd(log, items, did, now), ...(gone.length ? { history: historyAdd(history, gone, now) } : {}) }); }) : chain;
+const waitsAs = (v) => v === 'held' ? 'held' : 'queued';
+// Adds what is not queued yet and logs just that, so an item waiting through many sweeps is logged once.
+// keep: first forget the queued items it rejects.
+async function queueUp(items, keep) {
+  const fresh = [];
+  await withQueue((p) => { const forgot = !!keep && queueKeep(p, keep);
+    for (const it of items) if (queueAdd(p, cap(it.cap).group, { ...it, t: Date.now() })) fresh.push(it);
+    return forgot || fresh.length > 0; });
+  await logged(fresh);
+}
+const cookieItem = (c, r, v, why) => ({ cap: CAP_OF[r], kind: 'cookie', site: bare(c.domain), name: c.name, why: why || r, did: waitsAs(v) });
+async function badge() {
+  const s = await chrome.storage.local.get(['pending', 'pauseUntil']), now = Date.now();
+  try { await chrome.action.setBadgeText({ text: queueBadge(s.pending, s.pauseUntil > now, now) }); } catch {}
+}
+// One queued item, carried out now. A cookie or tab that has gone or changed meanwhile is skipped.
+async function carry(it, cookies, tabs, cx) {
+  if (it.kind === 'cookie') { let n = 0;
+    for (const c of cookies) if (c.name === it.name && bare(c.domain) === it.site && CAP_OF[spared(c, cx)] === it.cap && await remove(c, it.cap !== 'C07')) n++;
+    return n > 0; }
+  if (it.kind === 'tabs') { const t = tabs.find((x) => String(x.id) === it.name);
+    // approval is allowed during the sign-in guard, so it must not close a sign-in page itself
+    if (!t || tabHost(t) !== it.site || isSignIn(t.url || t.pendingUrl)) return false;
+    await chrome.tabs.remove(t.id); return true; }
+  if (it.kind === 'storage') await dropStorage(it.site);
+  else if (it.kind === 'permission') await blockPermission(it.site, it.name);
+  else if (it.kind === 'cache') await clearCache();
+  else return false;
+  return true;
+}
+// Approve: exactly what is queued for this group, then the group is empty. Refused while paused; allowed during
+// the sign-in guard, because the user asked for it.
+async function approve(group) {
+  await ready;
+  const cx = await context();
+  if (cx.hold.paused) return { ok: false, why: 'paused' };
+  if (cx.set.master === false) return { ok: false, why: 'off' };
+  let items = [];
+  await withQueue((p) => { items = (p[group] || { items: [] }).items; delete p[group]; return items.length > 0; });
+  const cookies = items.some((it) => it.kind === 'cookie') ? await allCookies() : [], tabs = await chrome.tabs.query({});
+  const done = [];
+  for (const it of items) if (mayRun(it.cap, cx.set) !== 'no' && await carry(it, cookies, tabs, cx).catch(() => false)) done.push(it);
+  await logged(done, 'removed');
+  const nets = mayRun('C24', cx.set) !== 'no' ? items.filter((it) => it.kind === 'wifi') : [];
+  return { ok: true, done: done.length + (nets.length ? await wifiRemove(nets) : 0), of: items.length };
+}
+async function postpone(group, minutes) {
+  if (!GROUPS.some((g) => g.id === group)) return { ok: false };
+  const postponedUntil = minutes === 'restart' ? 'restart' : Date.now() + (minutes > 0 ? minutes : 60) * 60e3;
+  await withQueue((p) => queuePostpone(p, group, postponedUntil));
+  return { ok: true, postponedUntil };
+}
+chrome.runtime.onStartup.addListener(() => withQueue(queueRestart));
+
+// ---- The popup: chrome.runtime.sendMessage({ type, ... }) -> reply.
+async function state() {
+  await ready;
+  const { set, hold } = await context(), modes = set.modes || {}, pending = set.pending || {};
+  const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
+  const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
+  return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
+    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], sitesOff: set.sitesOff || [],
+    server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
+    undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
+    // one row per group that has an action capability; it shows the mode of its first one, setMode keeps them all the same.
+    // ask: false = nothing destructive in the group, so 'ask' would only mean off: the popup offers On and Off
+    groups: GROUPS.filter((g) => g.caps.length).map((g) => ({ id: g.id, title: g.title, ask: g.caps.some((id) => cap(id).destructive), mode: modes[g.caps[0]] || cap(g.caps[0]).mode, ...queueView(pending[g.id]), looping: looping(pending[g.id]),
+      // the cache: when it is next offered or cleared. Its size is not here: no Chrome API tells an extension (tools/inspect.js does)
+      ...(g.id === 'cache' ? { nextAt: (set.cacheClearedAt || 0) + CACHE_MS } : {}), ...(g.id === 'wifi' ? { noAuto: true, ...wifi } : {}) })) };
+}
+async function setMode(group, mode) {
+  const g = GROUPS.find((x) => x.id === group);
+  if (!g || !['auto', 'ask', 'off'].includes(mode)) return { ok: false };
+  const modes = { ...(await chrome.storage.local.get('modes')).modes, ...Object.fromEntries(g.caps.map((id) => [id, mode])) };
+  await chrome.storage.local.set({ modes });
+  await sweep('settings');
+  return { ok: true, modes };
+}
+// A changed setting (master, mode, exception) is followed by a sweep before the reply, so the queue, and with it
+// the counts the popup then asks for, are those of the new setting.
+async function setMaster(on) { await chrome.storage.local.set({ master: !!on }); await sweep('settings'); return { master: !!on }; }
+// The user's exceptions (see `spared`).
+const isHost = (h) => typeof h === 'string' && /^[a-z0-9._-]+$/i.test(h);
+// allow: [{ site, name }], site as the action log and the queue give it (the cookie's domain without the leading dot)
+async function allowSet(site, name, on) {
+  const list = ((await chrome.storage.local.get('allow')).allow || []).filter((a) => !(a.site === site && a.name === name));
+  if (on) list.push({ site, name });
+  await chrome.storage.local.set({ allow: list });
+  return list;
+}
+async function allow(site, name, on) {
+  if (!isHost(site) || typeof name !== 'string' || !name) return { ok: false };
+  const list = await allowSet(site, name, on);
+  await sweep('settings');
+  return { ok: true, allow: list };
+}
+// sitesOff: [host]. Besides the cookies, pages of that site get all their requests through: two dynamic rules per
+// host, above the block rules (priority 1). allowAllRequests covers every frame of a page loaded from then on; Chrome
+// does not apply it to a page that is already open, so `allow` lets through what a page of that site requests itself
+// (no resourceTypes = everything but main_frame: a link from there to another site is still stripped of parameters).
+// These are the only dynamic rules, so they are simply rewritten.
+async function siteOff(host, on) {
+  if (!isHost(host)) return { ok: false };
+  host = host.toLowerCase();
+  const list = ((await chrome.storage.local.get('sitesOff')).sitesOff || []).filter((h) => h !== host);
+  if (on) list.push(host);
+  await chrome.storage.local.set({ sitesOff: list });
+  try { const old = await chrome.declarativeNetRequest.getDynamicRules();
+    await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id), addRules: list.flatMap((h, i) => [
+      { id: 2 * i + 1, priority: 2, action: { type: 'allowAllRequests' }, condition: { requestDomains: [h], resourceTypes: ['main_frame', 'sub_frame'] } },
+      { id: 2 * i + 2, priority: 2, action: { type: 'allow' }, condition: { initiatorDomains: [h] } }]) }); } catch {}
+  await sweep('settings');
+  return { ok: true, sitesOff: list };
+}
+const MESSAGES = { state, pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group), postpone: (m) => postpone(m.group, m.minutes),
+  setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
+  revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
+  restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
+  restoreAll: () => restore(() => true), drop,
+  // the private history, for the extension's own page; "Clear history" empties it
+  history: async () => ({ ok: true, ...historyTrim((await chrome.storage.local.get('history')).history, Date.now()) }),
+  clearHistory: async () => { await serial(() => chrome.storage.local.remove('history')); return { ok: true }; } };
+
+// ---- Drop (the audit view's buttons, popup-audit.js): one item now, because the user said so. Through here so
+// that pause and the master switch hold it back, it is in the action log, and a cookie can be undone.
+async function drop(m) {
+  const str = (...xs) => xs.every((x) => typeof x === 'string' && x), cx = await context();
+  if (cx.hold.paused) return { ok: false, why: 'paused', error: 'cleaning is paused' };
+  if (cx.set.master === false) return { ok: false, why: 'off', error: 'cleaning is switched off' };
+  try {
+    if (m.kind === 'cookie' && str(m.site, m.name)) { const site = bare(m.site), mine = (c) => bare(c.domain) === site && c.name === m.name;
+      let n = 0; for (const c of (await allCookies()).filter(mine)) if (await remove(c)) n++;
+      if (n) await logged([{ cap: 'C10', kind: 'cookie', site, name: m.name }], 'removed');
+      return { ok: true, verified: !(await allCookies()).some(mine) }; }
+    if (m.kind === 'storage' && str(m.site)) { await dropStorage(m.site); await logged([{ cap: 'C06', kind: 'storage', site: m.site, name: 'storage' }], 'removed'); }
+    else if (m.kind === 'permission' && str(m.site, m.perm)) { await blockPermission(m.site, m.perm); await logged([{ cap: 'C09', kind: 'permission', site: m.site, name: m.perm }], 'removed'); }
+    else if (m.kind === 'servers') { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); }
+    else return { ok: false, error: 'unknown item' };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: String(e.message || e) }; }
+}
+
+// ---- Undo (C22, undo.js): every cookie this worker removes waits 10 minutes in chrome.storage.session, whole.
+const undoBuffer = async () => { try { return undoLive((await chrome.storage.session.get('undo')).undo, Date.now()); } catch { return []; } };
+const undoWrite = (fn) => serial(async () => {
+  const { undo = [] } = await chrome.storage.session.get('undo'), next = fn(undo);
+  if (next.length !== undo.length || next.some((e, i) => e !== undo[i])) await chrome.storage.session.set({ undo: next }); });
+const purgeUndo = () => undoWrite((undo) => undoLive(undo, Date.now()));
+// Puts back the kept cookies `pick` accepts, as they were. Each is allowed first, or the cleaner would take it
+// again the moment it is set; the popup lists that under "Your exceptions", where it can be reverted.
+async function restore(pick) {
+  let take = [];
+  await undoWrite((undo) => { const live = undoLive(undo, Date.now()); take = live.filter((e) => pick(e.c)); return live.filter((e) => !pick(e.c)); });
+  let restored = 0;
+  for (const { c } of take) { const d = cookieDetails(c, Date.now());
+    if (!d) continue;
+    await allowSet(bare(c.domain), c.name, true);
+    try { if (await chrome.cookies.set(d)) restored++; } catch {} }
+  return { ok: true, restored };
+}
+// Only the extension's own pages are answered (the popup, a page of ours open in a tab): not a content script, whose
+// sender carries the web page's address, and not another extension. Nobody else can read the history or change a switch.
+const ownPage = (from) => !!from && from.id === chrome.runtime.id && String(from.url || '').startsWith(chrome.runtime.getURL(''));
+chrome.runtime.onMessage.addListener((m, from, reply) => {
+  if (!ownPage(from) || !m || !Object.hasOwn(MESSAGES, m.type)) return false;
+  MESSAGES[m.type](m).then(reply, () => reply({ ok: false }));
+  return true;   // the reply comes later
+});
+// Switches on 127.0.0.1:8088/tracker-cleaner (sent in limits.json). ON false = the whole extension does nothing.
+let ON = true, BLOCK = true, YT = true, DROPS = true, SERVER = false;
+const STATE = () => ({ on: ON, cookies: S.CLEAN, blocking: BLOCK, yt: YT, drops: DROPS, v: chrome.runtime.getManifest().version });
+async function refreshBlacklist() {
+  const cx = await context(); let again = false;
+  try { const l = await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json();
+    // a list counts only while its capability runs; otherwise the normal rules judge the cookie.
+    // The blacklist also counts while C07 asks or is held, so its cookies can be queued (see judge); allow-list
+    // mode does not: asking about every cookie of every site would only fill the queue.
+    const next = verdict('C07', cx) !== 'no' && Array.isArray(l.cookieBlacklist) ? l.cookieBlacklist : [];
+    const grew = next.some((b) => !S.BLACK.some((x) => x.h === b.h && x.n === b.n)); S.BLACK = next;
+    const mode = can('C12', cx) && l.cookieMode === 'allowlist' && Array.isArray(l.cookieAllow) && l.cookieAllow.length ? 'allowlist' : 'normal';   // never delete everything by mistake
+    const changed = mode !== S.MODE || JSON.stringify(l.cookieAllow || []) !== JSON.stringify(S.ALLOW);
+    const clean = l.cookieClean !== false, turnedOn = clean && !S.CLEAN; S.CLEAN = clean;
+    ON = l.enabled !== false; BLOCK = ON && l.blocking !== false; YT = ON && l.ytAds !== false; DROPS = ON && l.drops !== false;
+    S.MODE = mode; S.ALLOW = l.cookieAllow || []; again = grew || changed || turnedOn; SERVER = true; } catch { SERVER = false; }
+  await applyFeatures();   // also with the server down: the stored settings decide
+  return again;
+}
+
+// Tracker blocking (rules.json) and the YouTube ad remover follow their switches.
+const YT_JS = { id: 'yt-adfree', matches: ['*://*.youtube.com/*'], js: ['yt-adfree.js'], runAt: 'document_start', world: 'MAIN', allFrames: true };
+const YT_CSS = { id: 'yt-adfree-css', matches: ['*://*.youtube.com/*'], css: ['yt-adfree.css'], runAt: 'document_start', allFrames: true };
+async function applyFeatures() {
+  const cx = await context(), yt = YT && can('C05', cx);
+  // url-params (C23) is not request blocking: the server's blocking switch does not reach it
+  const want = { trackers: BLOCK && can('C01', cx), 'google-paths': BLOCK && can('C02', cx), 'url-params': can('C23', cx) };
+  try { const on = await chrome.declarativeNetRequest.getEnabledRulesets(), ids = Object.keys(want);
+    const enableRulesetIds = ids.filter((id) => want[id] && !on.includes(id)), disableRulesetIds = ids.filter((id) => !want[id] && on.includes(id));
+    if (enableRulesetIds.length || disableRulesetIds.length) await chrome.declarativeNetRequest.updateEnabledRulesets({ enableRulesetIds, disableRulesetIds }); } catch {}
+  try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
+    if (yt && !have.includes(YT_JS.id)) await chrome.scripting.registerContentScripts([YT_JS, YT_CSS].filter((x) => !have.includes(x.id)));
+    if (!yt && have.length) await chrome.scripting.unregisterContentScripts({ ids: have.filter((id) => id.startsWith('yt-adfree')) }); } catch {}
+}
+
+// undo false: a blacklisted cookie is not kept for Undo, restoring it would only see it removed again
+async function remove(c, undo = true) {
+  const url = (c.secure ? 'https://' : 'http://') + c.domain.replace(/^\./, '') + c.path;
+  const d = { url, name: c.name, storeId: c.storeId }; if (c.partitionKey) d.partitionKey = c.partitionKey;
+  try { if (!(await chrome.cookies.remove(d))) return false; } catch { return false; }
+  if (undo) await undoWrite((buf) => undoKeep(buf, c, Date.now()));
+  await serial(async () => { const { loops } = await chrome.storage.local.get('loops'); await chrome.storage.local.set({ loops: loopNote(loops, loopKey(c), Date.now()) }); });
+  return true;
+}
+
+async function allCookies() { try { return await chrome.cookies.getAll({ partitionKey: {} }); } catch { return chrome.cookies.getAll({}); } }
+
+// The sweep acts where the gate says 'run' and collects in `wait` what got 'ask' or 'held'. Afterwards the queue
+// holds exactly what waits now: a held item whose hold has ended was carried out above, a cookie that has gone
+// or a group since switched off is forgotten.
+// One sweep at a time. A request while one runs waits for it and then runs one more, shared by every request
+// that came in meanwhile: the caller's change (a setting, a new blacklist) is then certainly seen.
+let sweeping = null, sweepNext = null;
+function sweep(cause) {
+  if (!sweeping) return (sweeping = sweepOnce(cause).catch(() => {}).then(() => { sweeping = null; }));
+  return sweepNext || (sweepNext = sweeping.then(() => { sweepNext = null; return sweep(cause); }));
+}
+async function sweepOnce(cause) {
+  await refreshBlacklist(); await purgeUndo();
+  const cx = await context(), all = await allCookies(), removed = [], gone = [], wait = [];
+  for (const c of all) { const [r, v, why] = judge(c, cx);
+    if (v === 'run') { if (await remove(c, r !== 'blacklist')) { removed.push(`${realHost(c.domain)} ${c.name}`); gone.push(cookieItem(c, r)); } }
+    else if (waits(v)) wait.push(cookieItem(c, r, v, why)); }
+  await logged(gone, 'removed');
+  const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
+  if (can('C15', cx)) selfUpdate();
+  const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
+  await wifiSweep(cx, wait);
+  const now = new Set(wait.map(queueKey));
+  await queueUp(wait, (it) => now.has(queueKey(it)));
+  await report({ reason: cause, scanned: all.length, removed, kept, ...rest });
+}
+
+// ---- Saved Wi-Fi networks (C24). Chrome cannot see them: a local program (wifi-helper/, started by Chrome through
+// native messaging) lists the stale ones and removes those it is sent. Never automatic (noAuto in registry.js), so
+// the gate only ever answers 'ask' or 'no' here. No helper, or an error from it, is null: C24 then simply has nothing.
+const WIFI_HOST = 'com.tracker_cleaner.wifi';
+const wifiHelper = async (msg) => { try { const r = await chrome.runtime.sendNativeMessage(WIFI_HOST, msg); return r && r.ok === true ? r : null; } catch { return null; } };
+async function wifiSweep(cx, wait) {
+  if (verdict('C24', cx) === 'no') return chrome.storage.local.remove('wifi');
+  // paused: the helper is not asked; what is queued stays queued
+  if (cx.hold.paused) return wait.push(...((cx.set.pending || {}).wifi || { items: [] }).items);
+  const r = await wifiHelper({ type: 'list' }), found = r && Array.isArray(r.candidates) ? r.candidates : [];
+  await chrome.storage.local.set({ wifi: r ? { helper: 'ok', canDelete: String(r.canDelete) } : { helper: 'missing' } });
+  // site = the network's name, name = its UUID (what the helper deletes by), why = the helper's reason
+  wait.push(...found.filter((c) => c && typeof c.uuid === 'string' && c.uuid).map((c) => ({ cap: 'C24', kind: 'wifi', site: String(c.name), name: c.uuid, why: String(c.reason), did: 'queued' })));
+}
+// Approve: the queued UUIDs and nothing else go to the helper, which reads the list again and refuses what is in use
+// or recently used by now. Every network is logged with what happened to it. Not kept for Undo: only cookies are.
+async function wifiRemove(items) {
+  const r = await wifiHelper({ type: 'remove', uuids: items.map((it) => it.name) }) || {};
+  const of = (list, it) => (Array.isArray(list) ? list : []).find((x) => x && x.uuid === it.name);
+  const did = (it) => of(r.removed, it) ? 'removed' : 'kept: ' + ((of(r.refused, it) || {}).reason || (of(r.failed, it) || {}).error || 'the helper did not answer');
+  const results = items.map((it) => ({ ...it, did: did(it) }));
+  await logged(results);
+  return results.filter((x) => x.did === 'removed').length;
+}
+
+// ---- Self-update: Chrome's own check runs only every few hours; ask at every sweep, reload when a new version is ready.
+function selfUpdate() { try { chrome.runtime.requestUpdateCheck(() => {}); } catch {} }
+try { chrome.runtime.onUpdateAvailable.addListener(async () => { const cx = await context(); if (can('C15', cx) && !cx.hold.guard) chrome.runtime.reload(); }); } catch {}
+
+// ---- Permanent drops (made permanent in the popup → settings → limits.json): site storage dropped and
+// site permissions blocked at every sweep. Cookies use the cookie blacklist (cookieBlacklist) above.
+const dropStorage = (site) => chrome.browsingData.remove({ origins: [`https://${site}`, `http://${site}`] },
+  { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true });
+const blockPermission = (site, perm) => chrome.contentSettings[perm].set({ primaryPattern: `${site}/*`, setting: 'block' });
+async function applyPermanentDrops(cx, wait) {
+  const storage = verdict('C07', cx), perms = verdict('C09', cx);
+  if (!DROPS || (storage === 'no' && perms === 'no')) return {};
+  let l; try { l = await (await fetch(LIMITS, { cache: 'no-store' })).json(); } catch { return {}; }
+  const done = [];
+  for (const site of storage !== 'no' && Array.isArray(l.storageBlacklist) ? l.storageBlacklist : []) {
+    const it = { cap: 'C07', kind: 'storage', site, name: 'storage', why: 'permanent drop', did: waitsAs(storage) };
+    if (waits(storage)) wait.push(it);
+    else try { await dropStorage(site); done.push(it); } catch {} }
+  for (const p of perms !== 'no' && Array.isArray(l.permissionBlacklist) ? l.permissionBlacklist : []) {
+    const it = { cap: 'C09', kind: 'permission', site: p.site, name: p.perm, why: 'permanent drop', did: waitsAs(perms) };
+    if (waits(perms)) wait.push(it);
+    else try { await blockPermission(p.site, p.perm); done.push(it); } catch {} }
+  await logged(done, 'removed');
+  return done.length ? { permanentDrops: done.length } : {};
+}
+
+// ---- Clear the HTTP cache (C11). That also empties the list of servers Chrome remembers (Network Persistent
+// State); cookies and logins are untouched. Local since 1.21, no 8088 server involved: offered (ask) or done
+// (auto) at most once in 24 hours, counted from cacheClearedAt in storage.
+const CACHE_MS = 24 * 3600e3;
+const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
+async function forgetServers(cx, wait) {
+  const v = verdict('C11', cx);
+  if (v === 'no' || cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};
+  const it = { cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', why: 'daily', did: waitsAs(v) };
+  if (waits(v)) { wait.push(it); return {}; }
+  try { await clearCache(); await logged([it], 'removed'); return { serversForgotten: true }; }
+  catch (e) { return { serversForgotten: false, serversError: String(e) }; }
+}
+
+let pending = [], timer = null;     // live removals are batched into one report
+// the service worker may just have woken up: read the settings once before deleting anything
+let ready = refreshBlacklist();
+chrome.cookies.onChanged.addListener(async ({ removed, cookie }) => {
+  if (removed) return;
+  await ready;
+  const cx = await context(), [r, v, why] = judge(cookie, cx);
+  if (!r || v === 'no') return;
+  // which page set it is not known: the tab the user is looking at is the best guess (the popup says so)
+  const focused = (await chrome.windows.getLastFocused().catch(() => null))?.id, tab = cx.tabs.find((t) => t.active && t.windowId === focused);
+  const item = { ...cookieItem(cookie, r, v, why), page: tab ? hostOf(tab.url || tab.pendingUrl) : '' };
+  if (waits(v)) return queueUp([item]);
+  if (v === 'run' && await remove(cookie, r !== 'blacklist')) {
+    logged([item], 'removed');
+    pending.push(`${realHost(cookie.domain)} ${cookie.name}`);
+    clearTimeout(timer); timer = setTimeout(() => { const r = pending; pending = []; report({ reason: 'live', removed: r }); }, 5000);
+  }
+});
+
+async function report(body) {
+  if (!can('C15', await context())) return;
+  try { await fetch(REPORT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: Date.now(), state: STATE(), ...body }) }); } catch {}
+}
+
+chrome.alarms.create('sweep', { periodInMinutes: 15 });
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); });
+chrome.runtime.onInstalled.addListener(async () => {
+  // a fresh install has cleared nothing yet: count the 24 hours of C11 from now, so the first sweep does not offer it
+  if (!('cacheClearedAt' in await chrome.storage.local.get('cacheClearedAt'))) await chrome.storage.local.set({ cacheClearedAt: Date.now() });
+  return sweep('installed');
+});
+chrome.runtime.onStartup.addListener(() => sweep('chrome-start'));
+
+// ---- Tab limit (settings on 127.0.0.1:8088/settings → /audit/limits.json): at each sweep keep only
+// chromeTabs tabs and close the rest. First ONE tab for each preferred site (e.g. one Spotify, one
+// YouTube), then the most active other tabs. Within a group the best tab wins: playing audio, then the
+// focused tab, then most recently used. chromeTabs 0 = off. If the audit server is down, nothing is closed.
+const LIMITS = 'http://127.0.0.1:8088/audit/limits.json';
+async function tabLimit() {
+  try { const l = await (await fetch(LIMITS, { cache: 'no-store' })).json();
+    return Number.isInteger(l.chromeTabs) && l.chromeTabs > 0 ? { n: l.chromeTabs, prefer: Array.isArray(l.preferSites) ? l.preferSites : [] } : null; }
+  catch { return null; }
+}
+const tabHost = (t) => { try { return new URL(t.url || t.pendingUrl).host || t.url; } catch { return '?'; } };
+async function enforceTabs(cx, wait) {
+  const tabs = await chrome.tabs.query({ windowType: 'normal' }), v = verdict('C13', cx), host = tabHost;
+  const limit = v !== 'no' ? await tabLimit() : null;
+  if (limit === null) return { tabs: tabs.length };
+  const focused = (await chrome.windows.getLastFocused().catch(() => null))?.id;
+  const score = (t) => (t.audible ? 4e15 : 0) + (t.active && t.windowId === focused ? 2e15 : 0) + (t.lastAccessed || 0);
+  const ranked = tabs.sort((a, b) => score(b) - score(a));
+  const keep = [];
+  for (const site of limit.prefer) { const t = ranked.find((x) => host(x) === site && !keep.includes(x)); if (t && keep.length < limit.n) keep.push(t); }
+  for (const t of ranked) { if (keep.length >= limit.n) break; if (!keep.includes(t) && !limit.prefer.includes(host(t))) keep.push(t); }
+  const close = ranked.filter((t) => !keep.includes(t));
+  // queued by tab id: the sweep replaces these items each time, so a tab the user went back to drops out
+  const items = close.map((t) => ({ cap: 'C13', kind: 'tabs', site: host(t), name: String(t.id), why: 'tab limit', did: waitsAs(v) }));
+  if (waits(v)) { wait.push(...items); return { tabs: tabs.length }; }
+  if (close.length) { await chrome.tabs.remove(close.map((t) => t.id)).catch(() => {}); await logged(items, 'removed'); }
+  return { tabs: (await chrome.tabs.query({ windowType: 'normal' })).length, closedTabs: close.map(host), keptTabs: keep.map(host) };
+}
+
+// ---- Private browsing via Tor (settings → privacy.torChrome): Chrome's traffic goes through the local
+// Tor service (socks5 127.0.0.1:9050). Local pages stay direct. Checked every minute; changes reported.
+let proxyMode = null;
+async function applyProxy() {
+  const cx = await context();
+  if (cx.hold.guard && !cx.hold.paused) return;   // a sign-in is going on: do not change the network path under it
+  let want = 'direct';   // not allowed (off, ask, master off, paused): take our proxy setting away, also with the server down
+  if (can('C14', cx)) try { want = (await (await fetch(LIMITS, { cache: 'no-store' })).json()).torChrome ? 'tor' : 'direct'; } catch { return; }   // server down: leave as is
+  if (want === proxyMode) return;
+  if (want === 'tor') await chrome.proxy.settings.set({ scope: 'regular', value: { mode: 'fixed_servers', rules: {
+    singleProxy: { scheme: 'socks5', host: '127.0.0.1', port: 9050 }, bypassList: ['127.0.0.1', 'localhost', '*.localhost', '[::1]'] } } });
+  else await chrome.proxy.settings.clear({ scope: 'regular' });
+  proxyMode = want;
+  await report({ reason: 'proxy', removed: [], mode: want });
+}
+chrome.alarms.create('proxy', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener(async (a) => { if (a.name === 'proxy') { badge(); purgeUndo(); applyProxy(); if (await refreshBlacklist()) sweep('blacklist'); } });
+chrome.runtime.onStartup.addListener(applyProxy);
+chrome.runtime.onInstalled.addListener(applyProxy);
+
+// A changed switch takes effect at once for what would otherwise wait: blocking, YouTube scripts, Tor.
+chrome.storage.onChanged.addListener((ch) => {
+  if (ch.master || ch.modes || ch.pauseUntil) { applyFeatures(); applyProxy(); }
+  if (ch.pending || ch.pauseUntil || ch.guardUntil) badge();
+});
+badge();

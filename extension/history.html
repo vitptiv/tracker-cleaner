@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>Tracker Cleaner: see everything and its history</title>
+<style>
+  :root { --bg:#fff; --text:#15181d; --muted:#6b717a; --line:#dfe2e6; --bad:#c9372c; color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d0f12; --text:#e6e8eb; --muted:#8a8f98; --line:#262a30; --bad:#ff6b5e; color-scheme:dark; } }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:16px; } h1 { font-size:20px; margin:0 0 8px; } h2 { font-size:16px; margin:0 0 6px; }
+  p { margin:6px 0; } .m { color:var(--muted); font-size:13px; } .bad { color:var(--bad); }
+  section { border-top:1px solid var(--line); padding:14px 0; } .c { padding:2px 0 2px 14px; font-size:13px; word-break:break-word; }
+  button { font:inherit; font-size:13px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--text); padding:3px 10px; cursor:pointer; }
+  button:disabled { opacity:.5; } code { font-size:13px; word-break:break-word; } summary { cursor:pointer; padding:2px 0; }
+  #note { position:sticky; top:0; background:var(--bg); min-height:18px; }
+</style></head>
+<body><main>
+  <h1>Tracker Cleaner: see everything and its history</h1>
+  <p id="note" class="m"></p>
+  <div id="out"><p class="m">Loading…</p></div>
+</main><script src="lists.js"></script><script src="core.js"></script><script src="history.js"></script><script src="history-view.js"></script><script src="history-page.js"></script></body></html>

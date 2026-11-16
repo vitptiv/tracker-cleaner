@@ -1,0 +1,6 @@
+/* Hide YouTube ad boxes that still come through (banners, promoted videos, in-feed ads). */
+ytd-ad-slot-renderer, ytd-in-feed-ad-layout-renderer, ytd-promoted-sparkles-web-renderer, ytd-promoted-video-renderer,
+ytd-display-ad-renderer, ytd-companion-slot-renderer, ytd-action-companion-ad-renderer, ytd-banner-promo-renderer,
+ytd-statement-banner-renderer, ytd-video-masthead-ad-v3-renderer, ytd-player-legacy-desktop-watch-ads-renderer,
+#masthead-ad, #player-ads, .ytp-ad-overlay-container, .ytp-ad-message-container, ytm-promoted-sparkles-web-renderer,
+ytm-companion-ad-renderer, ad-slot-renderer, ytd-rich-item-renderer:has(> #content > ytd-ad-slot-renderer) { display: none !important; }

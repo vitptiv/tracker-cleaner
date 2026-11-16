@@ -1,0 +1,48 @@
+{
+ "manifest_version": 3,
+ "name": "Tracker Cleaner (local)",
+ "version": "1.22",
+ "description": "Blocks trackers and cleans tracking cookies, but asks before it deletes: Approve or Postpone per group. Never disturbs a sign-in.",
+ "permissions": [
+  "cookies",
+  "storage",
+  "alarms",
+  "declarativeNetRequest",
+  "declarativeNetRequestFeedback",
+  "proxy",
+  "browsingData",
+  "contentSettings",
+  "scripting",
+  "nativeMessaging"
+ ],
+ "host_permissions": [
+  "<all_urls>"
+ ],
+ "background": {
+  "service_worker": "background.js"
+ },
+ "declarative_net_request": {
+  "rule_resources": [
+   {
+    "id": "trackers",
+    "enabled": true,
+    "path": "rules.json"
+   },
+   {
+    "id": "google-paths",
+    "enabled": true,
+    "path": "rules-google.json"
+   },
+   {
+    "id": "url-params",
+    "enabled": true,
+    "path": "rules-params.json"
+   }
+  ]
+ },
+ "action": {
+  "default_popup": "popup.html",
+  "default_title": "Tracker Cleaner"
+ },
+ "update_url": "http://127.0.0.1:8088/cleaner/update.xml"
+}

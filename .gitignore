@@ -1,0 +1,6 @@
+node_modules/
+extension/dist/
+test/fixtures/profile/
+test/fixtures/profile-page/
+*.crx
+*.pem

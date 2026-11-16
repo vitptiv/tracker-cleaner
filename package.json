@@ -1,0 +1,8 @@
+{
+ "name": "tracker-cleaner",
+ "private": true,
+ "scripts": {
+  "test": "node --test \"test/*.test.js\"",
+  "test:browser": "node test/browser/run.js"
+ }
+}

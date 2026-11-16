@@ -1,0 +1,35 @@
+{
+ "manifest_version": 3,
+ "name": "Tracker Cleaner (local)",
+ "version": "1.20",
+ "description": "Blocks trackers and ads (incl. YouTube ads), deletes tracking cookies (instantly and every 15 min), keeps logins (Spotify, Google/YouTube). Empties the list of servers Chrome remembers. Its popup shows everything chrome-baddies finds (cookies, site storage, permissions, remembered servers, extensions, policies).; drop anything now from the popup, make drops permanent. Reports to 127.0.0.1:8088/audit.",
+ "permissions": [
+  "cookies",
+  "alarms",
+  "declarativeNetRequest",
+  "proxy",
+  "browsingData",
+  "contentSettings",
+  "scripting"
+ ],
+ "host_permissions": [
+  "<all_urls>"
+ ],
+ "background": {
+  "service_worker": "background.js"
+ },
+ "declarative_net_request": {
+  "rule_resources": [
+   {
+    "id": "trackers",
+    "enabled": true,
+    "path": "rules.json"
+   }
+  ]
+ },
+ "action": {
+  "default_popup": "popup.html",
+  "default_title": "Suspicious cookies (chrome-baddies)"
+ },
+ "update_url": "http://127.0.0.1:8088/cleaner/update.xml"
+}

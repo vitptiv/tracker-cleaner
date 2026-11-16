@@ -1,0 +1,380 @@
+[
+ {
+  "id": 100,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/pagead/",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 101,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/api/stats/ads",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 102,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/ptracking",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 103,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/get_midroll_",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 104,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/youtubei/v1/log_event",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 105,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/generate_204",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 106,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||youtube.com/pcs/activeview",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 107,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||google.com/pagead/",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 108,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||google.com/ads/",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 109,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||google.com/adsense/",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 110,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||googleapis.com/ads",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 111,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||play.google.com/log",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 112,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||google.com/gen_204",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ },
+ {
+  "id": 113,
+  "priority": 1,
+  "action": {
+   "type": "block"
+  },
+  "condition": {
+   "urlFilter": "||googlevideo.com/initplayback?*oad=",
+   "resourceTypes": [
+    "script",
+    "xmlhttprequest",
+    "image",
+    "ping",
+    "sub_frame",
+    "media",
+    "other"
+   ],
+   "excludedInitiatorDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ],
+   "excludedRequestDomains": [
+    "accounts.google.com",
+    "accounts.youtube.com"
+   ]
+  }
+ }
+]
