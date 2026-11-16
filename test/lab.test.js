@@ -156,3 +156,16 @@ test('lab step 11 (c10): the probe finds the listener the lab opened and misses 
   const jar = {}; await kitSays(jar, { kind: 'page', site: 'gazette.localhost', url: 'u', probe: [[PORT + 1, 'open'], [PORT + 2, 'closed']] });
   assert.equal(row(await knows(jar), 'T36').value, `open: ${PORT + 1}; closed: ${PORT + 2}`);
 });
+
+test('lab step 12 (c11): the shop\'s server reports the purchase; reported twice it is counted once; it names the account without any Friendface cookie', async () => {
+  await join(MARA); const shop = { _ffp: 'ffp.1.5.77' }, ff = {};
+  const done = await ask('parcelpine', '/checkout', { method: 'POST', jar: shop, body: form({ email: MARA.email, name: MARA.name, city: 'Nordhavn', postcode: '00100' }) });
+  const order = new URL(done.headers.location, 'http://x').searchParams.get('order'), thanks = (await ask('parcelpine', done.headers.location, { jar: shop })).text;
+  const eid = thanks.match(/event_id: "(e-\w+)"/)[1];
+  await kitSays(ff, { kind: 'page', site: 'parcelpine.localhost', url: 'thanks', ffp: shop._ffp });
+  let k = await knows(ff); assert.equal(k.who.name, 'Mara Lindqvist'); assert.deepEqual(k.purchases.map((p) => p.sources), [['server']]);
+  assert.equal(row(k, 'T33').value, `Purchase 49 EUR, order ${order}, event ${eid}`); assert.match(row(k, 'T27').captures[0].via, /shop's server/);
+  await kitSays(ff, { kind: 'event', site: 'parcelpine.localhost', name: 'Purchase', params: { value: 49, currency: 'EUR', event_id: eid }, ffp: shop._ffp });
+  k = await knows(ff); assert.equal(k.purchases.length, 1); assert.deepEqual(k.purchases[0].sources, ['server', 'browser']);
+  assert.equal((await ask('friendface', '/s2s/event', { method: 'POST', body: { event: 'Purchase', event_id: 'e-x' } })).status, 403);
+});
