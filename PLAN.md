@@ -636,14 +636,12 @@ Design, the 20 techniques, the table of traces, the trip and the steps with ETAs
 after the source sweep on `tracking-ways.html` (data: `server/data/tracking-sources.json`, `tracking-ways.json`).
 Nothing is built, nothing downloaded.
 
-**What it is.** Pretend sites on 127.0.0.1 and a pretend social network, Friendface, that follows a signed-in,
-made-up person across them; "What I know about you" shows everything collected as a checklist, one row per kind
-of trace with the captured identifier. Made-up names only, never deployed. Proposed home: `lab/`, tests in
-`test/lab*.test.js` and `test/browser/`.
+**What it is.** Pretend sites on 127.0.0.1 and a pretend network, Friendface, that follows a made-up signed-in
+person; "What I know about you" is a checklist, one row per kind of trace with the captured identifier. Never
+deployed. Proposed home: `lab/`, tests in `test/lab*.test.js` and `test/browser/`.
 
-**The rule.** Phase A runs with the extension OFF and is complete only when every row is created, read back,
-stored and shown, by hand and in the coded real-Chrome trip (or accepted by the user as "cannot be created
-here"). Phase B, extension ON, does not start before that.
+**The rule.** Phase A (extension OFF) is complete only when every row is created, read back, stored and shown, by
+hand and in the coded real-Chrome trip, or accepted by the user as "cannot be created here". Phase B (ON) waits.
 
 **What changed.** Steps 7-12 build the orthogonal set, one way per class c1-c11 (different class = a defence
 that stops one leaves the other working); 13-15 the rest of the 20 techniques. New ways: simulated addresses
@@ -655,18 +653,16 @@ A named chunk is a starting point only if its licence and contents check out; ET
 1. Ground rules: `*.localhost` names and cookies (12).  2. Ground rules: the hard kinds, plus 127.0.0.x, push
    subscription, loopback request (14).  3. Server skeleton (8).  4. Sign-in, profile, feed (8).
 5. "What I know about you" and the 36 rows as one data file (6).  6. The canary (5).
-7. c1 + c6: third-party cookie on an image, page address, request details, simulated addresses (8).
-   Chunk: cure53/HTTPLeaks `leak.html` (checklist only).
-8. c2 + c3: storage ID in a third-party frame, cache tag (6, was 9). Chunks: privacytests
-   `static/supercookies*`, `live/caching.js`.
+7. c1 + c6: third-party cookie on an image, request details, simulated addresses (8). Chunk: HTTPLeaks `leak.html`.
+8. c2 + c3: frame storage ID, cache tag (6, was 9). Chunks: privacytests `static/supercookies*`, `live/caching.js`.
 9. c4 + c5: click ID on links, canvas/graphics/audio fingerprint (6, was 8). Chunks: brave/adblock-lists
    `clean-urls.json`; fingerprintjs `src/sources/canvas.ts, audio.ts`.
 10. c7 + c9: typed e-mail capture, typing and mouse rhythm (8). No chunk.
 11. c8 + c10: push subscription endpoint with the permission, loopback probing (9, was 12). Chunk:
     duckduckgo/privacy-test-pages `local-port-scan/`.
 12. c11: server-to-server report, joining to the account (5, was 6). Chunk: matomo-nodejs-tracker `index.js`.
-13. Rest, links and scripts: kit, site cookie, events, beacons, redirector, share links (10, was 12). Chunks:
-    privacy-test-pages `bounce-tracking/`, brave `debounce.json`.
+13. Rest: kit, site cookie, events, beacons, redirector, share links (10, was 12). Chunks: privacy-test-pages
+    `bounce-tracking/`, brave `debounce.json`.
 14. Rest, frames and names: like frame, "Sign in with", cookie syncing, disguised subdomain (14). No chunk.
 15. Rest, stores and caches: respawning, storage totals, icon, forced-HTTPS, compiled copy, font traits (9, was
     12). Chunks: privacytests `static/hsts.js`, jonasstrehle/supercookie `server/main.js`, fingerprintjs `fonts.ts`.
@@ -676,6 +672,4 @@ A named chunk is a starting point only if its licence and contents check out; ET
 **Phase B steps (about 36 min + 10 min review), only after step 21.** 22. The extension recognises the lab
 (test-only entries `pack.sh` leaves out).  23. Switch on, rerun the trip.  24. Scoreboard, 36 rows by off / on.
 25. The same by hand.  26. Gaps become extension todos here.
-
-Expectation, to be tested: redirector, cache tag and disguised subdomain show up as gaps; the server-side
-report cannot be stopped from the browser.
+Expectation, to be tested: redirector, cache tag and disguised subdomain are gaps; the server report is unstoppable.
