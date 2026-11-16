@@ -644,6 +644,13 @@ only, never deployed. Proposed home: `lab/` in this repo, tests in `test/lab*.te
 created, read back, stored and shown, by hand and in the coded real-Chrome trip (or accepted by the user as
 "cannot be created here", with the evidence). Phase B, extension ON, does not start before that.
 
+**The checklist of marks (owner's requirement, 2026-11-15).** "What I know about you" is a checklist: one row per
+kind of tracking the lab can do, each with its type, a mark ("not yet seen" or "tracked") and the actual
+identifiers and unique values captured (cookie ID, storage key and value, cache tag, click ID, fingerprint code
+...), plus when and on which site. The build is test-driven against it: the lab is done only when, after the
+coded end-to-end trip, every row is "tracked" with a real captured value; each step below ticks its own rows.
+Classes of tracking against transports, and what the extension covers: `/mnt/d/journal/server/data/tracking-ways.json`.
+
 **Phase A steps (about 150 min of building + 15 min review), tests first.**
 
 1. Ground rules in a real Chrome: `*.localhost` names, separate sites, cookies between them; else `.test` names
