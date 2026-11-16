@@ -119,8 +119,8 @@ test('state message: settings, hold state, and per group its mode, pending count
   assert.deepEqual(s.hold, { paused: true, guard: false, tab: false, pauseUntil: bg.now + 3 * MIN, guardUntil: 0 });
   assert.deepEqual(s.groups.map((g) => g.id), GROUPS.map((g) => g.id));
   // the Wi-Fi row also says it is never automatic and what its helper answered (none installed here)
-  for (const g of s.groups) assert.deepEqual(Object.keys(g).sort(), g.id === 'wifi' ? ['ask', 'helper', 'id', 'items', 'looping', 'mode', 'noAuto', 'pending', 'postponedUntil', 'title']
-    : ['ask', 'id', 'items', 'looping', 'mode', ...(g.id === 'cache' ? ['nextAt'] : []), 'pending', 'postponedUntil', 'title'], g.id);
+  for (const g of s.groups) assert.deepEqual(Object.keys(g).sort(), g.id === 'wifi' ? ['ask', 'helper', 'id', 'items', 'looping', 'mode', 'noAuto', 'pending', 'postponedUntil', 'says', 'title']
+    : ['ask', 'id', 'items', 'looping', 'mode', ...(g.id === 'cache' ? ['nextAt'] : []), 'pending', 'postponedUntil', 'says', 'title'], g.id);
   const c = s.groups.find((g) => g.id === 'cookies');
   assert.equal(c.mode, 'ask'); assert.equal(c.pending, 25); assert.equal(c.items.length, 20);
   assert.deepEqual(Object.keys(c.items[0]).sort(), ['cap', 'kind', 'name', 'site', 't', 'why']);

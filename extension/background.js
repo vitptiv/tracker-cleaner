@@ -142,7 +142,7 @@ async function state() {
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
     // one row per group that has an action capability; it shows the mode of its first one, setMode keeps them all the same.
     // ask: false = nothing destructive in the group, so 'ask' would only mean off: the popup offers On and Off
-    groups: GROUPS.filter((g) => g.caps.length).map((g) => ({ id: g.id, title: g.title, ask: g.caps.some((id) => cap(id).destructive), mode: modes[g.caps[0]] || cap(g.caps[0]).mode, ...queueView(pending[g.id]), looping: looping(pending[g.id]),
+    groups: GROUPS.filter((g) => g.caps.length).map((g) => ({ id: g.id, title: g.title, says: g.says, ask: g.caps.some((id) => cap(id).destructive), mode: modes[g.caps[0]] || cap(g.caps[0]).mode, ...queueView(pending[g.id]), looping: looping(pending[g.id]),
       // the cache: when it is next offered or cleared. Its size is not here: no Chrome API tells an extension (tools/inspect.js does)
       ...(g.id === 'cache' ? { nextAt: (set.cacheClearedAt || 0) + CACHE_MS } : {}), ...(g.id === 'wifi' ? { noAuto: true, ...wifi } : {}) })) };
 }

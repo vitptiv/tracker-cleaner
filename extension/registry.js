@@ -45,11 +45,21 @@ const gate = (id, settings, hold) => {
   const r = mayRun(id, settings);
   return r === 'run' && hold && (hold.paused || (hold.guard && cap(id).destructive)) ? 'held' : r;
 };
-// One popup row per group, in the usability order of PLAN.md. 'control' capabilities have no mode and no row.
-const GROUPS = [['signin', 'Pause cleaning while you sign in'], ['blocking', 'Ads and trackers blocked as pages load'], ['cookies', "Trackers' cookies"],
-  ['google', 'Cookies Google uses to recognise you'], ['params', 'Tracking tags removed from links'], ['storage', 'Data that sites keep (site storage)'],
-  ['wifi', 'Remembered Wi-Fi networks'], ['permissions', 'What sites may do (site permissions)'], ['cache', 'Saved copies of pages (HTTP cache)'],
-  ['allowlist', 'Keep only the cookies you list'], ['tabs', 'Limit how many tabs stay open'], ['tor', 'Hiding your address from websites (Tor)'],
-  ['server', 'Reports to a server on this computer']]
-  .map(([id, title]) => ({ id, title, caps: CAPS.filter((c) => c.group === id && c.mode !== null).map((c) => c.id) }));
+// One row per group, in the usability order of PLAN.md. 'control' capabilities have no mode and no row.
+// says: what the group does for you, in one sentence anyone can read (the report shows it under the title).
+const GROUPS = [
+  ['signin', 'Pause cleaning while you sign in', 'While you sign in somewhere, and for five minutes after, nothing is cleaned so the sign-in cannot break.'],
+  ['blocking', 'Ads and trackers blocked as pages load', 'Pages are stopped from calling the companies that follow you from site to site, and YouTube plays without its ads.'],
+  ['cookies', "Trackers' cookies", 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.'],
+  ['google', 'Cookies Google uses to recognise you', 'Small files that Google and YouTube save to recognise you when you are not signed in are deleted, while the ones that keep you signed in stay.'],
+  ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
+  ['storage', 'Data that sites keep (site storage)', 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.'],
+  ['wifi', 'Remembered Wi-Fi networks', 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.'],
+  ['permissions', 'What sites may do (site permissions)', 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.'],
+  ['cache', 'Saved copies of pages (HTTP cache)', 'The copies of pages that Chrome saves to load them faster are thrown away once a day.'],
+  ['allowlist', 'Keep only the cookies you list', 'Every small file that sites save to recognise you is deleted, except the ones on your own list.'],
+  ['tabs', 'Limit how many tabs stay open', 'When more tabs are open than the number you set, the ones you used least are closed.'],
+  ['tor', 'Hiding your address from websites (Tor)', 'Chrome reaches websites through the Tor network, so they cannot see where you are.'],
+  ['server', 'Reports to a server on this computer', 'A summary of what was cleaned is sent to a program on this computer, and nowhere else.']]
+  .map(([id, title, says]) => ({ id, title, says, caps: CAPS.filter((c) => c.group === id && c.mode !== null).map((c) => c.id) }));
 if (typeof module !== 'undefined') module.exports = { CAPS, GROUPS, cap, mayRun, gate };
