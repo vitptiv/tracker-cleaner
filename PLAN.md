@@ -694,3 +694,7 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   setting (seen on 3 sites, one question waiting). In A it waits for the answer; in B0 it is held by the sign-in
   guard to the end of the 70-second trip (see R3); in C "approve all" stopped it. Not learned: Parcel & Pine's
   disguised subdomain (same site as the shop) and Hop (never asked for by a page, only passed through, see R5).
+- R2 cache (C11): setting the row to Automatic or "Ask first" clears or offers at once instead of a day after install,
+  and the popup row has "Clean now". A 35/0, B0 35/0, B 10/25, C 8/27. Seen in B0: cleared once when switched on,
+  before the trip; the copies saved during the trip then live until the next daily clearing, so the five cache rows
+  stay tracked unless "Clean now" is pressed (C does that).

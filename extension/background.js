@@ -158,8 +158,9 @@ async function state() {
 async function setMode(group, mode) {
   const g = GROUPS.find((x) => x.id === group);
   if (!g || !['auto', 'ask', 'off'].includes(mode)) return { ok: false };
-  const modes = { ...(await chrome.storage.local.get('modes')).modes, ...Object.fromEntries(g.caps.map((id) => [id, mode])) };
-  await chrome.storage.local.set({ modes });
+  const old = (await chrome.storage.local.get('modes')).modes || {}, modes = { ...old, ...Object.fromEntries(g.caps.map((id) => [id, mode])) };
+  // the saved copies of pages, turned on by the user: the day's wait starts over, so the sweep below clears (or offers) them now
+  await chrome.storage.local.set({ modes, ...(group === 'cache' && mode !== 'off' && old.C11 !== mode ? { cacheClearedAt: 0 } : {}) });
   if (group === 'tor') await applyProxy();   // before the reply, so the row that is drawn next is true
   await sweep('settings');
   return { ok: true, modes };

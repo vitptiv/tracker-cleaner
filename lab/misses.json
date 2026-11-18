@@ -153,8 +153,8 @@
    "rows": {
     "T1": {
      "status": "tracked",
-     "records": 29,
-     "linked": 29,
+     "records": 28,
+     "linked": 28,
      "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
@@ -254,21 +254,21 @@
      "records": 13,
      "linked": 13,
      "lastStep": 12,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T16": {
      "status": "tracked",
      "records": 13,
      "linked": 13,
      "lastStep": 12,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T17": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T18": {
      "status": "tracked",
@@ -289,7 +289,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
@@ -297,7 +297,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -427,7 +427,7 @@
     "master": true,
     "guardHeldAtEnd": true,
     "stopped": [],
-    "removed": 0,
+    "removed": 1,
     "waiting": {
      "unknown": 1
     },
@@ -521,8 +521,8 @@
     },
     "T13": {
      "status": "tracked",
-     "records": 3,
-     "linked": 3,
+     "records": 2,
+     "linked": 2,
      "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
@@ -538,21 +538,21 @@
      "records": 13,
      "linked": 13,
      "lastStep": 12,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+     "cause": "re-created after cleaning (new ID)"
     },
     "T16": {
      "status": "tracked",
      "records": 13,
      "linked": 13,
      "lastStep": 12,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+     "cause": "re-created after cleaning (new ID)"
     },
     "T17": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+     "cause": "re-created after cleaning (new ID)"
     },
     "T18": {
      "status": "tracked",
@@ -573,7 +573,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
@@ -581,7 +581,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -711,7 +711,7 @@
     "master": true,
     "guardHeldAtEnd": true,
     "stopped": [],
-    "removed": 6,
+    "removed": 7,
     "waiting": {
      "unknown": 1,
      "storage": 2
@@ -1039,7 +1039,7 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "removed": 19,
+    "removed": 20,
     "waiting": {
      "storage": 1
     },

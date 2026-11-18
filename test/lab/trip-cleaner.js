@@ -112,7 +112,7 @@ async function run(name, cert, flags) {
       else if (!caps.length) row.cause = `no capability covers it${WHY_NONE[id] ? ` (${WHY_NONE[id]})` : ''}`;
       else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list' + (out.extension.stopped.length ? `; learned and stopped later (${out.extension.stopped.join(', ')}), last arrived in step ${row.lastStep}` : '');
       else if (!fired.length && !blockSeen) { const g = ext.groups.find((x) => x.pending && x.items && x.items.some((it) => it.name === COOKIE[id]));
-        row.cause = `capability exists but did not fire${caps.includes('C11') ? ' (cache: once a day, first time 24 h after install)' : out.extension.guardHeldAtEnd && (COOKIE[id] || KIND[id]) ? ' (held: sign-in guard, 5 minutes after any /login or /oauth address)' : g ? ' (waits for approval)' : ''}`; }
+        row.cause = `capability exists but did not fire${caps.includes('C11') ? ' (cache: cleared when it is switched on or "Clean now" is pressed, then once a day; this copy was saved after that)' : out.extension.guardHeldAtEnd && (COOKIE[id] || KIND[id]) ? ' (held: sign-in guard, 5 minutes after any /login or /oauth address)' : g ? ' (waits for approval)' : ''}`; }
       else if (!fired.length && blockSeen) row.cause = 'capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)';
       else { const back = all.filter((r) => r.t > last && linked.has(r)), sameId = back.some((r) => all.some((x) => x.t <= last && x.value === r.value)), via = (back.find((r) => /put back from/.test(r.via)) || {}).via;
         row.cause = !back.length ? 'fired too late (ID already sent)'

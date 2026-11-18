@@ -71,6 +71,7 @@ const renderPopup = (state, tab) => {
       + (cmd ? `<div class="m h"><span>${line}</span><button class="small" data-copy="node tools/inspect.js ${cmd}">Copy command</button></div>` : `<div class="m">${line}</div>`) + (hint ? `<div class="m">${hint}</div>` : '')
       + (!k ? '' : `<div class="m">${k} of these ${k === 1 ? 'is no longer removed automatically: its site keeps putting it back, so it waits for you.'
         : 'are no longer removed automatically: their sites keep putting them back, so they wait for you.'}</div>`)
+      + (g.id === 'cache' && mode !== 'off' && !n ? `<div class="b">${btn('Clean now', { type: 'drop', kind: 'servers' }, '', stopped)}</div>` : '')
       + (!n ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
         + `${btn('Until restart', { type: 'postpone', group: g.id, minutes: 'restart' }, 'small')}</div>`
         + (wifi && approve ? '<div class="m">This cannot be undone here</div>' : '')   // the undo buffer holds cookies only
