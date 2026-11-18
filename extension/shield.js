@@ -1,8 +1,8 @@
 // Page shield (S7; reworked in H3 and J5). EXPERIMENTAL, and off unless the user switches its row on. Some pages recognise
 // a browser without any cookie, by measuring it: how it draws a picture, what a sound comes out as, what its graphics
-// chip is called, how much it has saved. This script runs inside a page, in the page's own world, before the page's
+// chip is called. This script runs inside a page, in the page's own world, before the page's
 // own code, and makes those answers a little different: a few dots of a picture read back change by one step, a few
-// sound values by a millionth, the chip gets a general name, the saved amount is rounded. It asks nothing of the
+// sound values by a millionth, the chip gets a general name. It asks nothing of the
 // network or of the extension, saves nothing, takes no message and reads nothing of the page.
 // The page is treated as hostile. Every tool used below is taken hold of in the first lines, before any page code can
 // replace it, and only those copies are used afterwards. The key that decides the changes is 128 random bits made
@@ -10,7 +10,7 @@
 // AND on what was drawn. Replaced functions answer like Chrome's own (name, length, "native code", no prototype).
 // It makes recognising harder, not impossible: see PLAN.md (J5) for what a determined page can still do.
 (() => {
-  const imul = Math.imul, mmax = Math.max, mround = Math.round, mfloor = Math.floor, Num = Number, apply = Reflect.apply, define = Object.defineProperty, describe = Object.getOwnPropertyDescriptor;
+  const imul = Math.imul, mmax = Math.max, apply = Reflect.apply, define = Object.defineProperty, describe = Object.getOwnPropertyDescriptor;
   const fmix = (h) => { h ^= h >>> 16; h = imul(h, 0x85ebca6b); h ^= h >>> 13; h = imul(h, 0xc2b2ae35); return (h ^ h >>> 16) >>> 0; };
   const prf = (k, d, i) => fmix(k[0] ^ fmix(k[1] ^ fmix(k[2] ^ fmix(k[3] ^ fmix(d ^ imul(i + 1, 0x9e3779b1))))));
   // n values of a, as the caller measured them; a short digest of the content: at most 65536 of them, evenly spread
@@ -19,8 +19,7 @@
     for (let i = 0; n && i < 32; i++) { const h = prf(key, d, i); data[(h % n) * 4 + (h >>> 30) % 3] ^= 1; } return data; };   // never the fourth value of a dot (how see-through it is)
   const blurFloats = (a, key, len = a.length) => { const d = digest(a, len, 1e6);
     for (let i = 0; len && i < 16; i++) { const h = prf(key, d, i); a[h % len] += ((h >>> 8) % 201 - 100) * 1e-7; } return a; };
-  const GB = 2 ** 30, roundEstimate = (e) => ({ quota: mmax(10, mround((Num(e && e.quota) || 0) / GB / 10) * 10) * GB, usage: mfloor((Num(e && e.usage) || 0) / GB) * GB });
-  if (typeof module !== 'undefined' && typeof window === 'undefined') { module.exports = { blurPixels, blurFloats, roundEstimate }; return; }
+  if (typeof module !== 'undefined' && typeof window === 'undefined') { module.exports = { blurPixels, blurFloats }; return; }
   const W = window, doc = document, key = apply(crypto.getRandomValues, crypto, [new Uint32Array(4)]);
   const TA = Object.getPrototypeOf(Uint8Array.prototype), lenOf = describe(TA, 'length').get, kindOf = describe(TA, Symbol.toStringTag).get;
   const real = new WeakMap(), rget = WeakMap.prototype.get, rset = WeakMap.prototype.set;   // replaced function -> Chrome's own, for toString
@@ -51,6 +50,4 @@
   wrap(AB, 'getChannelData', (orig, self, args) => { const f = apply(orig, self, args); if (!apply(had, done, [f])) { apply(add, done, [f]); floats(f); } return f; });
   wrap(AB, 'copyFromChannel', (orig, self, args) => { const r = apply(orig, self, args); floats(args[0]); return r; });
   wrap(W.AnalyserNode && AnalyserNode.prototype, 'getFloatFrequencyData', (orig, self, args) => { const r = apply(orig, self, args); floats(args[0]); return r; });
-  const then = Promise.prototype.then;
-  wrap(W.StorageManager && StorageManager.prototype, 'estimate', (orig, self, args) => apply(then, apply(orig, self, args), [roundEstimate]));
 })();

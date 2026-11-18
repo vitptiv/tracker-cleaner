@@ -1,6 +1,6 @@
 // S7: the page shield (shield.js in the page's own world, shield-seed.js beside it) and how background.js sets it up.
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), load = require('./load-background.js');
-const { blurPixels, blurFloats, roundEstimate } = require('../extension/shield.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
+const { blurPixels, blurFloats } = require('../extension/shield.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
 const src = (f) => fs.readFileSync(path.join(__dirname, '../extension', f), 'utf8');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const picture = () => Uint8ClampedArray.from({ length: 4 * 300 * 150 }, (_, i) => (i * 7) % 256);
@@ -31,11 +31,10 @@ test('sound values: the same per key, different across keys, each moved by at mo
   assert.ok(a.some((v, i) => v !== w[i])); assert.ok(a.every((v, i) => Math.abs(v - w[i]) <= 1.1e-5));
   assert.equal(blurFloats(new Float32Array(0), KEY).length, 0);
 });
-test('how much is saved: the room is rounded to 10 GB, the used amount down to whole GB, so a few bytes more or less tell nothing', () => {
-  const GB = 2 ** 30;
-  assert.deepEqual(roundEstimate({ quota: 296630877388, usage: 123456 }), { quota: 280 * GB, usage: 0 });
-  assert.deepEqual(roundEstimate({ quota: 296630877388, usage: 123457 }), roundEstimate({ quota: 296630877000, usage: 999 }));
-  assert.deepEqual(roundEstimate({ quota: 5, usage: 3.5 * GB }), { quota: 10 * GB, usage: 3 * GB }); assert.deepEqual(roundEstimate(undefined), { quota: 10 * GB, usage: 0 });
+test('L7: the saved amount is no longer touched: every way of rounding the answer hands the real one to a page that has replaced the promise\'s constructor', () => {
+  const code = src('shield.js').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  for (const gone of [/estimate/, /StorageManager/, /Promise/, /roundEstimate/]) assert.equal(gone.test(code), false, String(gone));
+  assert.equal('roundEstimate' in require('../extension/shield.js'), false);
 });
 test('J5: shield.js is small and closed: under 80 lines, no network, no storage, no message or event in or out, nothing of the extension, nothing left on the page to call', () => {
   const s = src('shield.js'), code = s.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
