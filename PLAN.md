@@ -1227,3 +1227,9 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   recorded first-party (F5) before the jump. background.js `noteRedirect` listens on `onBeforeRedirect` only, so it
   never fires; `skip.js` and the bounce question never engage; there is no `ping` attribute for `no-ping.js`. The
   from->to redirect log still fills (F4). Tested in `test/ff2-handoff.test.js`.
+- F2-5 unshielded fingerprint join key (`lab/ff2-fp.js`, `window.ff2fp`): the stable `code` is hashed from installed
+  fonts (text metrics), matchMedia + screen, and WebGL MAX_TEXTURE_SIZE/extension count -- surfaces shield.js never
+  wraps -- so it is stable even with the shield (C32) switched on. The shielded WebGL readPixels hash is captured
+  separately as `readpx`, which the shield DOES perturb per site when C32 is on; that is reported as a cleaner win.
+  The collector records the code (F6) and joins every site reporting the same one. Tested in `test/ff2-fp.test.js`;
+  the cross-site, shield-on stability is proven in the browser by `test/lab/ff2-trip.js` (F2-7).
