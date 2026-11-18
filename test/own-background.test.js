@@ -45,6 +45,6 @@ test('"Let it through again" gives the notifications back for that host; the blo
   const before = blocked(bg).length;
   assert.deepEqual((await bg.send({ type: 'unstop', site: 'trk.example' })).stopped, ['other.example']); await bg.settle();
   assert.equal(bg.called('contentSettings.clear').length, 0);   // 1.25, L5: that one host's setting is put back to "ask"; nobody else's block is touched
-  assert.deepEqual(blocked(bg).slice(before).map((b) => b.primaryPattern), []); assert.ok(bg.called('contentSettings.set').some((c) => c.args[0].primaryPattern === '*://*.trk.example/*' && c.args[0].setting === 'ask'));
+  assert.deepEqual(blocked(bg).slice(before).filter((b) => b.setting === 'block').map((b) => b.primaryPattern), []); assert.ok(bg.called('contentSettings.set').some((c) => c.args[0].primaryPattern === '*://*.trk.example/*' && c.args[0].setting === 'ask'));
   assert.equal(bg.state.storage.own['other.example'].mute, true, 'the other host\'s block was forgotten');
 });
