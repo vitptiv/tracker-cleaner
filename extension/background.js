@@ -432,7 +432,7 @@ async function notNow(m) {
   await sweep('settings');
   return { ok: true };
 }
-const signInCompany = (site) => site === 'github.com' || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
+const signInCompany = (site) => site === 'github.com' || NEEDED.includes(site) || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
 const seen = new Set();   // what this worker has counted already, so that a page's hundred requests cost one look
 async function noteRequest(d) {
   if (d.type === 'main_frame' || !d.initiator) return;
@@ -471,8 +471,10 @@ async function stopTracker(site) {
 }
 // "Let it through again": the block goes, and it is not offered again for a while
 async function unstop(site) {
-  const stopped = ((await chrome.storage.local.get('stopped')).stopped || []).filter((s) => s !== site);
-  await chrome.storage.local.set({ stopped });
+  const { stopped: was = [], own = {} } = await chrome.storage.local.get(['stopped', 'own']), stopped = was.filter((s) => s !== site);
+  // its notifications were blocked by C28: Chrome can only take back all blocks this extension set, so the others are set again at the sweep that follows
+  if (own[site]) try { await chrome.contentSettings.notifications.clear({}); } catch {}
+  await chrome.storage.local.set({ stopped, own: Object.fromEntries(Object.entries(own).filter(([s]) => s !== site).map(([s, e]) => [s, { ...e, at: 0 }])) });
   return { ...(await notNow({ group: 'unknown', site })), stopped };
 }
 

@@ -97,7 +97,7 @@ module.exports = function makeChrome(init = {}) {
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
     webRequest: { onBeforeRequest: event(), onBeforeRedirect: event() },
     // any permission name works: chrome.contentSettings.camera.set(...)
-    contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), perm }) }),
+    contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), clear: rec('contentSettings.clear', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },
     proxy: { settings: { set: rec('proxy.settings.set', (d) => { state.proxy = d.value; }), clear: rec('proxy.settings.clear', () => { state.proxy = null; }),
       get: rec('proxy.settings.get', () => ({ value: JSON.parse(JSON.stringify(state.proxy || { mode: 'system' })), levelOfControl: state.proxy ? 'controlled_by_this_extension' : 'controllable_by_this_extension' })) } },

@@ -39,3 +39,11 @@ test('not while its own site is open in a tab, not during a sign-in, not when of
   const off = await load(on({ storage: { modes: { C28: 'off' } } })); await off.alarm('sweep');
   assert.deepEqual(off.destructive(), []); assert.deepEqual(queued(off), []);
 });
+test('"Let it through again" gives the notifications back: the block is taken away, and the blocks of the others are set again', async () => {
+  const bg = await load(on({ storage: { modes: { C28: 'auto' }, stopped: ['trk.example', 'other.example'] } })); await bg.alarm('sweep');
+  const before = blocked(bg).length;
+  assert.deepEqual((await bg.send({ type: 'unstop', site: 'trk.example' })).stopped, ['other.example']); await bg.settle();
+  assert.equal(bg.called('contentSettings.clear').length, 1);
+  const again = blocked(bg).slice(before).map((b) => b.primaryPattern);
+  assert.ok(again.includes('*://*.other.example/*') && again.includes('*://*.doubleclick.net/*')); assert.equal(again.includes('*://*.trk.example/*'), false);
+});

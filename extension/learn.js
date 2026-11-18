@@ -4,6 +4,10 @@
 //   id    it had a number to recognise the user by (a cookie other sites can use, or a long random value in a request)
 //   hosts its server names (at most 5), so that what it saved itself can be emptied later
 // Bounded to FOLLOW_MAX companies, the longest unseen go. It stays on this computer: no report carries it.
+// Never learned and never cleaned as a passing site: companies that pages need to check that you are human or to take a
+// payment. They are seen on many sites with an ID, and stopping them would break sign-in forms and checkouts.
+const NEEDED = ['hcaptcha.com', 'recaptcha.net', 'gstatic.com', 'googleapis.com', 'cloudflare.com', 'stripe.com', 'stripe.network', 'paypal.com', 'paypalobjects.com',
+  'klarna.com', 'adyen.com', 'braintreegateway.com', 'auth0.com', 'okta.com', 'duosecurity.com'];
 const FOLLOW_N = 3, FOLLOW_MAX = 300, LATER_MS = 7 * 86400e3;
 // the name a site is known by: its last two labels, three under co.uk and the like
 const siteOf = (host) => { const h = String(host || '').toLowerCase().replace(/:\d+$/, ''), p = h.split('.');
@@ -31,4 +35,4 @@ const bounceAdded = (from, to) => { try { const b = new URL(to);
     if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.test(k)).map(([k]) => k); }
   } catch {} return []; };
 const followFull = (e) => !!e && e.on.length >= FOLLOW_N;
-if (typeof module !== 'undefined') module.exports = { FOLLOW_N, FOLLOW_MAX, LATER_MS, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };
+if (typeof module !== 'undefined') module.exports = { NEEDED, FOLLOW_N, FOLLOW_MAX, LATER_MS, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };

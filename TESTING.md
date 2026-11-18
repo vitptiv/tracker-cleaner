@@ -1,6 +1,6 @@
 # Tracker Cleaner 1.24: real-browser checklist
 
-About 30 minutes, in Google Chrome. Tick each step. The 444 Node tests run against a stand-in for Chrome;
+About 30 minutes, in Google Chrome. Tick each step. The 446 Node tests run against a stand-in for Chrome;
 `npm run test:browser` (`test/browser/run.js`, 2026-11-15, Chrome 157 headless, fresh profile) ran the real thing:
 33 checks, all passed (24 from 1.22, and R1 to R9 for the report of 1.23).
 

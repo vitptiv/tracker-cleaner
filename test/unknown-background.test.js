@@ -77,3 +77,8 @@ test('a stopped company counts as a tracker from then on: its new cookie goes, b
   assert.ok(rule(bg)); assert.equal(bg.state.dynamic.length, 4);
   await bg.send({ type: 'setMaster', on: false }); await bg.settle(); assert.equal(rule(bg), undefined);
 });
+test('never learned: a company pages need to check that you are human or to take a payment', async () => {
+  const bg = await load(on({ cookies: [{ name: 'hmt_id', domain: '.hcaptcha.com', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }, { name: 'm', domain: '.stripe.com', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
+  await three(bg, 'newassets.hcaptcha.com'); await three(bg, 'js.stripe.com', '/v3/?uid=3fa9c2d1e07b4a55aa01');
+  assert.deepEqual(bg.state.storage.follow, undefined); assert.deepEqual(queued(bg), []);
+});

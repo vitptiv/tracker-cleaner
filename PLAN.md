@@ -732,3 +732,6 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   with "Tracker Cleaner cannot stop this" and one plain reason each: an e-mail address you send, a shop telling a
   tracker what you bought, "Sign in with", like and share on the tracker's own page. A 33/2, B0 28/6, B 9/26,
   C 7/28: no change. Of C's 7 left, 6 are named in the report; the seventh is Hop's own log of the click (R5).
+- After R8, for R1, R5 and R6 (same counts): companies that pages need to check you are human or to take a payment
+  (`learn.js` NEEDED) are never learned or cleaned, and "Let it through again" also gives the notifications back.
+- Not verified anywhere: a real Google sign-in and real sites with 1.24 loaded (TESTING.md, "1.24, the repairs").
