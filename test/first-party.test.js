@@ -1,6 +1,6 @@
 // Review follow-ups on chunk 5. Several tracker domains are also products people log in to (segment.com,
 // mixpanel.com ...): a first-party visit must work. And a fresh install does not offer the cache clear at once.
-const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), load = require('./load-background.js').asks;
 const core = require('../extension/core.js')(require('../extension/lists.js'));
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const visit = (url, o = {}) => on({ tabs: [{ id: 1, active: false, url }], ...o });

@@ -142,7 +142,7 @@ async function main() {
   try {
     await check(1, 'The extension loads', async (ok, see) => {
       const v = await sw(`await ready; return chrome.runtime.getManifest().version;`);
-      ok(v === '1.24', `manifest version ${v}`);
+      ok(v === '1.25', `manifest version ${v}`);
       await sleep(1500);   // the sweep of onInstalled
       const [first, audit1] = swRed();
       ok(!first.length, `service worker errors after start-up: ${brief(first)}`);
@@ -167,17 +167,20 @@ async function main() {
       see(`enabled: ${r.on.join(', ')}; rules Chrome took / rules in the file: ${Object.entries(counts).map(([k, n]) => `${k} ${r.took[k]}/${n}`).join(', ')}`);
     });
 
-    await check(3, 'Popup renders, cleaning off on a fresh profile', async (ok, see) => {
+    await check(3, 'Popup on a fresh profile: switched on, and it says once what now happens by itself', async (ok, see) => {
+      await until(async () => (await P.state()).master === true, 8000); await P.reopen();
       const text = await P.text(), [red, audit] = redLines(x.popup), rows = await x.popup.ev(`document.querySelectorAll('[data-group]').length`);
-      ok(text.includes('Cleaning is off until you turn it on'), `popup text: ${text.slice(0, 120)}`);
-      ok(/Turn on/.test(text), 'no "Turn on" button');
+      ok(text.includes('Tracker Cleaner is on. By itself it now stops companies that follow you from site to site and deletes what they saved. To turn it off, untick "On" above.'), `popup text: ${text.slice(0, 200)}`);
+      ok(/Pause 10 min/.test(text), 'no "Pause 10 min" button');
+      ok(await P.click('OK') && await until(async () => !(await P.text()).includes('By itself it now')), 'the first-run line does not go away at OK');
       ok(rows === GROUP_ROWS, `${rows} group rows, expected ${GROUP_ROWS}`);
       ok(!red.length, `popup console errors: ${brief(red)}`);
-      see(`"Cleaning is off until you turn it on." with Turn on, ${rows} group rows, ${red.length} console errors`
+      see(`"Tracker Cleaner is on. By itself it now stops ..." with OK, gone after OK, ${rows} group rows, ${red.length} console errors`
         + (audit.length ? ` (plus ${audit.length} red line for the audit server)` : ''));
     });
 
-    await check(4, 'Cleaning off: _ga is not removed', async (ok, see) => {
+    await check(4, 'Switched off: _ga is not removed', async (ok, see) => {
+      ok(await P.click('On') && await until(async () => (await P.state()).master === false), 'unticking "On" did not switch cleaning off');
       site = await x.tab();
       const nav = await x.go(site, 'https://example.com/');
       if (!ok(!nav.error, `example.com did not load: ${nav.error}`)) return;
@@ -190,7 +193,7 @@ async function main() {
 
     await check(5, 'Turn on: _ga removed, ordinary cookie kept, shown under "This site"', async (ok, see) => {
       await P.reopen();
-      ok(await P.click('Turn on'), 'no "Turn on" button to press');
+      ok(await P.click('Off'), 'no "Off" box to tick');
       ok(await until(async () => (await P.text()).includes('Pause 10 min'), 8000), `popup after Turn on: ${(await P.text()).slice(0, 100)}`);
       ok(await until(async () => !(await x.cookie('_ga', 'example.com'))), 'the _ga from before was not removed by the sweep after Turn on');
       await setInPage(site, 'plain=1; max-age=3600'); await setInPage(site, '_ga=test; max-age=3600'); setAt = Date.now();
@@ -442,7 +445,7 @@ async function main() {
     const y = await start();
     try {
       await y.sw(`await ready;`); await sleep(1000);
-      ok(await y.P.click('Turn on'), 'no "Turn on" button');
+      ok(await until(async () => (await y.P.state()).master === true, 8000), 'a fresh profile is not switched on'); await y.P.reopen();
       await until(async () => (await y.P.text()).includes('Pause 10 min'));
       await y.b.send('Storage.setCookies', { cookies: [NID()] });
       const badge = () => y.sw(`return chrome.action.getBadgeText({});`);
@@ -644,15 +647,14 @@ async function report(offline) {
       await until(async () => (await about()) === 'This page: example.com', 8000);
     }, offline);
 
-    await check('R3', 'Turn on from the report; the count of blocked requests moves when a tracker is blocked', async (ok, see) => {
-      ok((await R.text()).includes('Cleaning is off until you turn it on.'), 'a fresh profile does not say "Cleaning is off until you turn it on."');
-      ok(await R.click('Turn on'), 'no "Turn on" button'); ok(await until(async () => (await R.text()).includes('Cleaning is on'), 8000), 'the report does not say "Cleaning is on"');
+    await check('R3', 'The report on a fresh profile says cleaning is on; the count of blocked requests moves when a tracker is blocked', async (ok, see) => {
+      ok(await until(async () => { await R.again(); return (await R.text()).includes('Cleaning is on'); }, 8000), 'the report does not say "Cleaning is on"');
       const n = async () => { const row = await R.row('blocking'); return /Chrome did not say/.test(row) ? 'Chrome did not say' : Number((/(\d+) blocked on this page/.exec(row) || [])[1]); };
       const before = await n(), t = await requestTracker(site);
       ok(t.blocked, `the tracker request was not blocked: ${t.end} ${t.why}`);
       await R.again(); const after = await n();
       ok(Number.isInteger(before) && after === before + 1, `blocked on this page: ${before} before, ${after} after one blocked request`);
-      see(`"Turn on" in the report: "Cleaning is on"; "${before} blocked on this page" before, "${after} blocked on this page" after one request to google-analytics.com was blocked and "Read again"`);
+      see(`fresh profile: "Cleaning is on"; "${before} blocked on this page" before, "${after} blocked on this page" after one request to google-analytics.com was blocked and "Read again"`);
     }, offline);
 
     const LONG = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH';

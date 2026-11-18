@@ -50,7 +50,7 @@
   },
   "broken": []
  },
- "extension": "1.24",
+ "extension": "1.25",
  "settings": {
   "A": "fresh install defaults, nothing approved, no lab entries",
   "B0": "main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)",
@@ -187,152 +187,150 @@
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
-   "reidentifiedAfterStep12": true,
+   "reidentifiedAfterStep12": false,
    "history": {
     "opened": 17,
-    "rebuilt": 17,
-    "complete": true
+    "rebuilt": 0,
+    "complete": false
    },
    "extension": {
+    "master": true,
     "guardHeldAtEnd": false,
-    "stopped": [],
-    "cutOff": [],
-    "removed": 0,
-    "waiting": {
-     "unknown": 1,
-     "bounce": 2
-    },
+    "stopped": [
+     "friendface.localhost"
+    ],
+    "cutOff": [
+     "ffclid"
+    ],
+    "removed": 11,
+    "waiting": {},
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
    },
    "rows": {
     "T1": {
      "status": "tracked",
-     "records": 28,
-     "linked": 28,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 11,
+     "linked": 11,
+     "lastStep": 5,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5"
     },
     "T2": {
      "status": "tracked",
-     "records": 23,
-     "linked": 23,
-     "lastStep": 11,
-     "atEnd": true,
+     "records": 7,
+     "linked": 7,
+     "lastStep": 5,
+     "atEnd": false,
      "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
     },
     "T3": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 5,
+     "linked": 5,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T4": {
      "status": "tracked",
-     "records": 12,
-     "linked": 12,
-     "lastStep": 11,
-     "atEnd": true,
-     "cause": "capability exists but did not fire"
+     "records": 3,
+     "linked": 3,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "learned at the first pass and handled from then on (cut off: ffclid); last arrived in step 4"
     },
     "T5": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "lastStep": 7,
-     "atEnd": true,
-     "cause": "capability exists but did not fire"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "atEnd": false
     },
     "T6": {
      "status": "tracked",
-     "records": 3,
-     "linked": 3,
-     "lastStep": 9,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 1,
+     "linked": 1,
+     "lastStep": 1,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 1"
     },
     "T7": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 3,
-     "lastStep": 7,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "atEnd": false
     },
     "T8": {
      "status": "tracked",
-     "records": 5,
-     "linked": 5,
-     "lastStep": 11,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 4,
+     "linked": 4,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T9": {
      "status": "tracked",
-     "records": 21,
-     "linked": 21,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 9,
+     "linked": 9,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T10": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
+     "records": 5,
+     "linked": 5,
+     "lastStep": 4,
+     "atEnd": false,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 5,
+     "linked": 5,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T12": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 5,
+     "linked": 5,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T13": {
      "status": "tracked",
      "records": 2,
-     "linked": 2,
-     "lastStep": 7,
-     "atEnd": true,
+     "linked": 1,
+     "lastStep": 2,
+     "atEnd": false,
      "cause": "capability exists but did not fire"
     },
     "T14": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
+     "records": 5,
+     "linked": 5,
+     "lastStep": 4,
+     "atEnd": false,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
      "status": "tracked",
-     "records": 13,
-     "linked": 13,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "records": 3,
+     "linked": 3,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "fired too late (ID already sent)"
     },
     "T16": {
      "status": "tracked",
-     "records": 13,
-     "linked": 13,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "records": 3,
+     "linked": 3,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "fired too late (ID already sent)"
     },
     "T17": {
      "status": "tracked",
@@ -340,7 +338,7 @@
      "linked": 1,
      "lastStep": 8,
      "atEnd": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "cause": "re-created after cleaning (new ID)"
     },
     "T18": {
      "status": "tracked",
@@ -364,16 +362,15 @@
      "linked": 1,
      "lastStep": 8,
      "atEnd": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
-     "status": "tracked",
+     "status": "unlinked",
      "records": 1,
-     "linked": 1,
-     "lastStep": 8,
-     "atEnd": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
+     "linked": 0,
+     "atEnd": false,
+     "cause": "fired too late (ID already sent)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -387,44 +384,42 @@
     },
     "T23": {
      "status": "tracked",
-     "records": 17,
-     "linked": 17,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 6,
+     "linked": 6,
+     "lastStep": 5,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5"
     },
     "T24": {
      "status": "tracked",
-     "records": 29,
-     "linked": 29,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list",
+     "records": 11,
+     "linked": 11,
+     "lastStep": 5,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5",
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
-    },
-    "T26": {
-     "status": "tracked",
      "records": 5,
      "linked": 5,
-     "lastStep": 7,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+    },
+    "T26": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "atEnd": false
     },
     "T27": {
      "status": "tracked",
-     "records": 3,
-     "linked": 3,
+     "records": 1,
+     "linked": 1,
      "lastStep": 7,
      "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list; the report says \"Tracker Cleaner cannot stop this\""
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
@@ -452,7 +447,7 @@
      "linked": 2,
      "lastStep": 6,
      "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list; the report says \"Tracker Cleaner cannot stop this\""
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 6; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
@@ -475,29 +470,27 @@
      "cause": "designed, not built"
     },
     "T35": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "lastStep": 6,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "atEnd": false
     },
     "T36": {
      "status": "tracked",
-     "records": 16,
-     "linked": 16,
-     "lastStep": 12,
-     "atEnd": true,
-     "cause": "not recognised: the lab's names are on no list"
+     "records": 5,
+     "linked": 5,
+     "lastStep": 4,
+     "atEnd": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     }
    },
    "counts": {
-    "tracked": 33,
-    "unlinked": 0,
-    "stopped": 2,
-    "ever": 33,
-    "atEnd": 33,
-    "stillArrivingAfterRestart": 17
+    "tracked": 28,
+    "unlinked": 1,
+    "stopped": 6,
+    "ever": 28,
+    "atEnd": 10,
+    "stillArrivingAfterRestart": 0
    }
   },
   "B0": {
@@ -620,7 +613,7 @@
     },
     "T13": {
      "status": "tracked",
-     "records": 1,
+     "records": 2,
      "linked": 1,
      "lastStep": 2,
      "atEnd": false,
@@ -640,7 +633,7 @@
      "linked": 3,
      "lastStep": 4,
      "atEnd": false,
-     "cause": "re-created after cleaning (new ID)"
+     "cause": "fired too late (ID already sent)"
     },
     "T16": {
      "status": "tracked",
@@ -648,7 +641,7 @@
      "linked": 3,
      "lastStep": 4,
      "atEnd": false,
-     "cause": "re-created after cleaning (new ID)"
+     "cause": "fired too late (ID already sent)"
     },
     "T17": {
      "status": "tracked",

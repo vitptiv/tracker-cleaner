@@ -28,7 +28,8 @@ const renderPopup = (state, tab) => {
   const status = () => typeof s.master !== 'boolean' ? `<p>Cleaning is off until you turn it on.</p><p>${btn('Turn on', { type: 'setMaster', on: true })}</p>`
     : `<div class="h">${check(s.master ? 'On' : 'Off', { type: 'setMaster' }, s.master)}`
       + (!s.master ? '' : hold.paused ? `<span>Paused until ${hhmm(hold.pauseUntil)} ${btn('Resume', { type: 'resume' })}</span>` : btn('Pause 10 min', { type: 'pause', minutes: 10 })) + '</div>'
-      + (s.master && hold.guard ? '<p class="m">Sign-in in progress: cleaning is held.</p>' : '');
+      + (s.master && hold.guard ? '<p class="m">Sign-in in progress: cleaning is held.</p>' : '')
+      + (s.master && s.firstRun ? `<p class="c">Tracker Cleaner is on. By itself it now stops companies that follow you from site to site and deletes what they saved. To turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>` : '');
   const undone = () => !undo.length ? '' : `<p>Removed in the last 10 minutes: ${undo.length >= UNDO_FULL ? UNDO_FULL + '+' : undo.length} ${btn('Restore all', { type: 'restoreAll' })}</p>`;
 
   // This site (C21). An action belongs here when its site is this host, a parent domain (where most cookies are

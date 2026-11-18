@@ -1,6 +1,6 @@
 // R6 (C28): what a tracker saved on its own site (background program, storage, the right to notify) is emptied for
 // the companies the user stopped and for the built-in list: after one question each, then once a day.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { DOMAINS } = require('../extension/lists.js');
 const OWN = 'what it saved on its own site', LISTED = 'the listed trackers', DAY = 24 * 3600e3;
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'],

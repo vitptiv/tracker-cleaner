@@ -1,6 +1,6 @@
 // Chunk 7 (C22): a removed cookie can be put back for 10 minutes. The whole cookie, value included, waits in
 // chrome.storage.session (memory only); nowhere else is a value ever kept.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { UNDO_MS, UNDO_MAX, undoKeep, undoLive, cookieDetails } = require('../extension/undo.js'), { renderPopup } = require('../extension/popup-view.js');
 const MIN = 60e3, T = 1.8e12, SECRET = 'secret-value-123';
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: T, ...o.storage } });

@@ -1,6 +1,6 @@
 // Follow-ups on chunks 7 and 8: blacklist removals are not offered for undo; the audit view's Drop goes through the
 // background worker (pause, action log, undo buffer); only one sweep runs at a time.
-const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), load = require('./load-background.js').asks;
 const { renderPopup } = require('../extension/popup-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const log = (bg) => (bg.state.storage.log || []).map((l) => [l.cap, l.kind, l.site, l.name, l.did].join(' '));

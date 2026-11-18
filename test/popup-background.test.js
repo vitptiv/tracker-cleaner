@@ -1,5 +1,5 @@
 // What the popup needs from background.js, end to end: the action log, per-cookie allow, per-site off.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { renderPopup } = require('../extension/popup-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const ask = (o = {}) => on({ ...o, storage: { ...o.storage, modes: { C03: 'ask', ...(o.storage || {}).modes } } });

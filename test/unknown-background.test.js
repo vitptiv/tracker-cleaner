@@ -1,5 +1,5 @@
 // R1 (C25) end to end: a company on no list that is seen on three sites with an ID is offered, and stopped on Approve.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const req = async (bg, host, page, path = '/px.gif') => { await bg.request({ url: `https://${host}${path}`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
 const three = async (bg, host = 'px.trk.example', path) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, host, p, path); };
 const ID = { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };

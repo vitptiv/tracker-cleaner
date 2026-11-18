@@ -42,7 +42,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C08 | Allow and Revert decisions | exists | n/a |
 | C09 | Block site permissions | exists | ask |
 | C10 | Audit view: extensions, policies, remembered servers | read-only | n/a |
-| C11 | Clear whole HTTP cache ("forget servers") | exists | ask |
+| C11 | Clear whole HTTP cache ("forget servers") | exists | auto |
 | C12 | Allow-list mode: delete every cookie not listed | exists | off |
 | C13 | Tab limit | exists | off |
 | C14 | Route Chrome through Tor | exists | off |
@@ -54,10 +54,10 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C22 | Undo: restore cookies deleted in the last 10 min | new | n/a |
 | C23 | Strip tracking parameters from URLs (`gclid`, `fbclid`, `utm_*`) | new | auto |
 | C24 | Remove saved Wi-Fi networks unused for 30+ days (local helper, `nmcli`) | new | ask |
-| C25 | Stop a company on no list that is seen on 3+ sites with an ID (learned locally) | new in 1.24 | ask |
+| C25 | Stop a company on no list that is seen on 3+ sites with an ID (learned locally) | new in 1.24 | auto |
 | C26 | Block pings that tell someone which link was followed or how long a page was read | new in 1.24 | auto |
-| C27 | Clean a site that only passes you along (redirect): its cookies and storage, and the ID it added to the address | new in 1.24 | ask |
-| C28 | Empty what a listed or stopped tracker saved on its own site (service worker, storage) and block its notifications | new in 1.24 | ask |
+| C27 | Clean a site that only passes you along (redirect): its cookies and storage, and the ID it added to the address | new in 1.24 | auto |
+| C28 | Empty what a listed or stopped tracker saved on its own site (service worker, storage) and block its notifications | new in 1.24 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -751,3 +751,11 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   purchase (sent on by the shop's own server); T30 redirect log (the first pass through the redirector is not seen
   coming); T31 share on the tracker's own page; T32 "Sign in with" (chosen by the user).
 
+- S2 automatic by default (1.25; `registry.js` C11, C25, C27, C28 now `auto`; a new install stores `master: true` and
+  the popup says once what now happens by itself). On every stop the saved copies are cleared and, in the same sweep,
+  what the tracker saved on its own site; when a tracker's cookie is deleted the saved copies of that site go, at most
+  once an hour. A site the user opens as a page (`mine`, a hash per site) is only blocked elsewhere: nothing automatic
+  deletes its cookies or storage, because the user may be signed in there. C04 still asks. A 10 / 28, B0 10 / 28,
+  B 8 / 9, C 7 / 7: the fresh install now equals B0; B0 itself did not move, its ten are saved after the stop (T17,
+  T20), need the history permission (T18, T19), sit on the tracker's own open page (T22, T31) or never pass a point
+  an extension sees (T27, T30, T32, T33). Not updated yet: TESTING.md steps 2 and 3 still describe "Turn on".

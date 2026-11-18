@@ -1,6 +1,6 @@
 // Private history: what was removed, counted per day and per cookie, kept 30 days in chrome.storage.local and
 // nowhere else. Only the extension's own pages may ask for it.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { HISTORY_DAYS, HISTORY_COOKIES, historyDay, historyAdd, historyTrim } = require('../extension/history.js');
 const DAY = 86400e3, HOUR = 3600e3, at = (d, h, m = 0) => new Date(2026, 10, d, h, m).getTime();   // November 2026, local time
 const gone = (site, name, group = 'cookies') => ({ group, kind: 'cookie', site, name });

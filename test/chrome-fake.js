@@ -95,7 +95,7 @@ module.exports = function makeChrome(init = {}) {
         return { rulesMatchedInfo: (init.matched[tabId] || []).map((rulesetId) => ({ rule: { ruleId: 1, rulesetId }, tabId, timeStamp: 0 })) }; }),
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => {
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
-    webRequest: { onBeforeRequest: event(), onBeforeRedirect: event() },
+    webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event() },
     // any permission name works: chrome.contentSettings.camera.set(...)
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), clear: rec('contentSettings.clear', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },
@@ -131,6 +131,7 @@ module.exports = function makeChrome(init = {}) {
     passes: (host, { reloaded = false } = {}) => state.dynamic.some((r) => { const under = (list) => (list || []).some((d) => host === d || host.endsWith('.' + d));
       return r.action.type === 'allowAllRequests' ? reloaded && under(r.condition.requestDomains) : r.action.type === 'allow' && under(r.condition.initiatorDomains); }),
     redirect: (d) => chrome.webRequest.onBeforeRedirect.fire(d),   // a page address answers "go to another address"
+    visit: (url) => chrome.webRequest.onCompleted.fire({ url, type: 'main_frame', statusCode: 200 }),   // the user opens a page
     request: (d) => chrome.webRequest.onBeforeRequest.fire(d),   // a page asks for something
     closeTab: async (id) => { state.tabs = state.tabs.filter((t) => t.id !== id); await chrome.tabs.onRemoved.fire(id, {}); },
     // a message as the popup sends it; `from` = another sender. No listener takes it: the answer is undefined, as in Chrome.

@@ -1,5 +1,5 @@
 // 1.21 end to end: background.js acts only where the registry gate says 'run'. Compare baseline-1.20.test.js.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const tabs = () => [1, 2, 3].map((id) => ({ id, url: `https://site${id}.test/`, lastAccessed: id }));
 // a server that asks for everything 1.20 would do
 const GREEDY = { chromeTabs: 1, forgetServers: true, torChrome: true, storageBlacklist: ['bad.test'], permissionBlacklist: [{ site: 'https://bad.test', perm: 'camera' }],
@@ -41,7 +41,7 @@ test('master on and a group set to auto: that group acts, with the lists the ser
   assert.deepEqual(await bg.names(), ['session']);               // blacklisted SID gone
   assert.deepEqual(bg.state.tabs.map((t) => t.id), [3]);
   assert.equal(bg.state.proxy.rules.singleProxy.port, 9050);
-  const api = bg.destructive().map((c) => c.api);
+  const api = bg.destructive().filter((c) => !(c.api === 'browsingData.remove' && c.args[0].origins && c.args[1].cache)).map((c) => c.api);   // 1.25: not the per-site saved copies
   assert.equal(api.filter((a) => a === 'browsingData.remove').length, 2);   // storage drop + cache
   assert.ok(api.includes('contentSettings.set'));
   assert.ok(bg.reports.length > 0); assert.ok(bg.called('runtime.requestUpdateCheck').length > 0);

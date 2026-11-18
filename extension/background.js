@@ -1,4 +1,4 @@
-// Tracker Cleaner 1.24: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.25: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic, and nothing is deleted before the user has
 // turned cleaning on. Everything is held while paused, and everything destructive while a sign-in is going on.
@@ -14,7 +14,7 @@ const { S, realHost, reason, firstParty, isTrackerHost } = makeCore({ DOMAINS, C
 // cacheClearedAt, log, allow, always, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
-  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params']), now = Date.now();
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params', 'mine']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
   if (mayRun('C19', set) !== 'run') hold.guard = false;
   // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
@@ -149,6 +149,7 @@ async function state() {
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [],
+    ...((await chrome.storage.local.get('firstRun')).firstRun ? { firstRun: true } : {}),
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
@@ -266,7 +267,7 @@ async function stored(m) {
   try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
     return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
 }
-const MESSAGES = { state, stored, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -401,7 +402,7 @@ async function sweepOnce(cause) {
   for (const c of all) { const [r, v, why] = judge(c, cx);
     if (v === 'run') { if (await remove(c, r !== 'blacklist')) { removed.push(`${realHost(c.domain)} ${c.name}`); gone.push(cookieItem(c, r)); } }
     else if (waits(v)) wait.push(cookieItem(c, r, v, why)); }
-  await logged(gone, 'removed');
+  await logged(gone, 'removed'); await copiesOf(gone.filter((it) => it.cap === 'C03').map((it) => it.site), cx);
   const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
@@ -432,6 +433,17 @@ async function notNow(m) {
   await sweep('settings');
   return { ok: true };
 }
+// Sites the user opens as pages themselves (a short hash each, never the name; at most MINE_MAX). The user may be signed
+// in there, so nothing automatic deletes such a site's cookies or empties what it saved: it is only blocked elsewhere.
+const MINE_MAX = 500, visited = (cx, site) => (cx.set.mine || []).includes(mark(site));
+async function notePage(d) {
+  if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300)) return;
+  let u; try { u = new URL(d.url); } catch { return; }
+  const m = mark(siteOf(u.hostname));
+  if (/^https?:$/.test(u.protocol)) await serial(async () => { const { mine = [] } = await chrome.storage.local.get('mine');
+    if (!mine.includes(m)) await chrome.storage.local.set({ mine: [...mine, m].slice(-MINE_MAX) }); });
+}
+try { chrome.webRequest.onCompleted.addListener((d) => { notePage(d); }, { urls: ['<all_urls>'], types: ['main_frame'] }); } catch {}
 const signInCompany = (site) => site === 'github.com' || NEEDED.includes(site) || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
 const seen = new Set();   // what this worker has counted already, so that a page's hundred requests cost one look
 async function noteRequest(d) {
@@ -456,17 +468,19 @@ async function followSweep(cx, all, wait) {
   for (const [site, e] of Object.entries((await chrome.storage.local.get('follow')).follow || {})) {
     if (!followFull(e) || stopped.includes(site) || later(cx, 'C25', site) || !(e.id || hasId(site))) continue;
     const it = { cap: 'C25', kind: 'tracker', site, name: `followed you on ${FOLLOW_N} sites`, why: 'on no list', did: waitsAs(v) };
-    if (waits(v)) wait.push(it); else if (await stopTracker(site)) await logged([it], 'removed'); }
+    if (waits(v)) wait.push(it); else if (await stopTracker(site, visited(cx, site))) await logged([it], 'removed'); }
 }
 // its sign-in cookies stay (KEEP_RE), and all of them while the user has its own site open
-async function stopTracker(site) {
+async function stopTracker(site, keep) {
   if (!isHost(site)) return false;
   const { stopped = [] } = await chrome.storage.local.get('stopped');
   if (!stopped.includes(site)) await chrome.storage.local.set({ stopped: [...stopped, site] });
   await refreshBlacklist();
   const cx = await context(), gone = [];
-  for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
+  if (!keep) for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
   await logged(gone, 'removed');
+  // a saved copy can carry the ID and bring it back: the saved copies go with the stop
+  if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {}
   return true;
 }
 // "Let it through again": the block goes, and it is not offered again for a while
@@ -504,7 +518,7 @@ async function bounceSweep(cx, wait) {
   for (const [site, e] of Object.entries((await chrome.storage.local.get('bounce')).bounce || {})) {
     const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === site) ? [{ kind: 'bounce', name: PASSED }] : []), ...e.params.filter((p) => !cut.includes(p)).map((name) => ({ kind: 'param', name }))];
     for (const x of asks) { const it = { cap: 'C27', site, why: 'a redirect', did: waitsAs(v), ...x };
-      if (later(cx, 'C27', site, x.name)) continue;
+      if (later(cx, 'C27', site, x.name) || (x.kind === 'bounce' && v === 'run' && visited(cx, site))) continue;
       if (waits(v)) wait.push(it); else if (await carry(it).catch(() => false)) done.push(it); } }
   await logged(done, 'removed');
 }
@@ -544,9 +558,9 @@ const OWN = 'what it saved on its own site', LISTED = 'the listed trackers';
 async function ownSweep(cx, wait) {
   const v = verdict('C28', cx), done = [], now = Date.now();
   if (v === 'no') return;
-  const { own = {} } = await chrome.storage.local.get('own');
-  for (const site of [...(cx.set.stopped || []), ...(mayRun('C28', cx.set) === 'run' ? [LISTED] : [])]) { const e = own[site] || {};
-    if (e.at > now - CACHE_MS || later(cx, 'C28', site, OWN) || (site !== LISTED && cx.hosts.some((h) => under(h, site)))) continue;
+  const { own = {}, stopped = [] } = await chrome.storage.local.get(['own', 'stopped']);   // read now: this sweep may just have stopped one
+  for (const site of [...stopped, ...(mayRun('C28', cx.set) === 'run' ? [LISTED] : [])]) { const e = own[site] || {};
+    if (e.at > now - CACHE_MS || later(cx, 'C28', site, OWN) || (!e.ok && visited(cx, site)) || (site !== LISTED && cx.hosts.some((h) => under(h, site)))) continue;
     const it = { cap: 'C28', kind: 'own', site, name: OWN, why: 'a tracker', did: waitsAs(v) };
     if (v === 'run' || (v === 'ask' && e.ok && !cx.hold.guard && !cx.hold.paused && cx.set.master === true)) { if (await cleanOwn(site, cx).catch(() => false)) done.push(it); }
     else wait.push(it); }
@@ -554,7 +568,7 @@ async function ownSweep(cx, wait) {
 }
 async function cleanOwn(site, cx) {
   const { own = {}, follow = {} } = await chrome.storage.local.get(['own', 'follow']);
-  const sites = site === LISTED ? DOMAINS.filter((d) => !cx.hosts.some((h) => under(h, d))) : [site];
+  const sites = site === LISTED ? DOMAINS.filter((d) => !cx.hosts.some((h) => under(h, d)) && !visited(cx, siteOf(d))) : [site];
   await dropStorage([...new Set(sites.flatMap((s) => [s, 'www.' + s, ...((follow[s] || {}).hosts || [])]))]);
   for (const s of sites) await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${s}/*`, setting: 'block' });
   await chrome.storage.local.set({ own: { ...own, [site]: { ok: true, at: Date.now() } } });
@@ -616,6 +630,16 @@ async function applyPermanentDrops(cx, wait) {
 // State); cookies and logins are untouched. Local since 1.21, no 8088 server involved: offered (ask) or done
 // (auto) at most once in 24 hours, counted from cacheClearedAt in storage.
 const CACHE_MS = 24 * 3600e3;
+// A saved copy can carry an ID and bring a deleted cookie back: when a tracker's cookie is deleted, the saved copies of
+// that site go too, at most once an hour per site (kept in memory only).
+const copiesAt = new Map();
+async function copiesOf(hosts, cx) {
+  const now = Date.now(), due = [...new Set(hosts)].filter((h) => !(copiesAt.get(h) > now - 3600e3));
+  if (!due.length || !can('C11', cx)) return;
+  if (copiesAt.size > 2000) copiesAt.clear();
+  for (const h of due) copiesAt.set(h, now);
+  try { await chrome.browsingData.remove({ origins: due.flatMap((h) => [`https://${h}`, `http://${h}`]) }, { cache: true }); } catch {}
+}
 const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
@@ -639,7 +663,7 @@ chrome.cookies.onChanged.addListener(async ({ removed, cookie }) => {
   const item = { ...cookieItem(cookie, r, v, why), page: tab ? hostOf(tab.url || tab.pendingUrl) : '' };
   if (waits(v)) return queueUp([item]);
   if (v === 'run' && await remove(cookie, r !== 'blacklist')) {
-    logged([item], 'removed');
+    logged([item], 'removed'); if (item.cap === 'C03') copiesOf([item.site], cx);
     pending.push(`${realHost(cookie.domain)} ${cookie.name}`);
     clearTimeout(timer); timer = setTimeout(() => { const r = pending; pending = []; report({ reason: 'live', removed: r }); }, 5000);
   }
@@ -652,7 +676,9 @@ async function report(body) {
 
 chrome.alarms.create('sweep', { periodInMinutes: 15 });
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); if (a.name === 'unguard') sweep('sign-in over'); });
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (d) => {
+  // 1.25: a new install is switched on, and the popup says once what now happens by itself and where the switch is
+  if (d && d.reason === 'install' && !('master' in await chrome.storage.local.get('master'))) await chrome.storage.local.set({ master: true, firstRun: true });
   // a fresh install has cleared nothing yet: count the 24 hours of C11 from now, so the first sweep does not offer it
   if (!('cacheClearedAt' in await chrome.storage.local.get('cacheClearedAt'))) await chrome.storage.local.set({ cacheClearedAt: Date.now() });
   return sweep('installed');

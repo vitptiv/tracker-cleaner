@@ -34,3 +34,7 @@ module.exports = async function load({ dir = 'extension', limits, tor, ...init }
   run('background.js'); await bg.settle();
   return bg;
 };
+// 1.25 made four groups automatic. Tests written for "ask first" load with these modes stored, as a user who chose
+// "Ask first" for them has; a test's own modes win. The defaults themselves are tested in auto-default.test.js.
+const ASK = { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask' };
+module.exports.asks = (o = {}) => module.exports({ ...o, storage: { ...o.storage, modes: { ...ASK, ...(o.storage || {}).modes } } });

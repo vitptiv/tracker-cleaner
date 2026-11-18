@@ -1,6 +1,6 @@
 // R5 (C27): a site that passes the user straight on to another site (a redirect, no page shown). What it saved is
 // deleted and the ID it added to the address is cut off, each after one question.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { bounceAdded } = require('../extension/learn.js');
 const DEST = 'https://blog.example/post?id=7', HOP = `https://hop.example/r?c=c-1a2b3c4d5e&to=${encodeURIComponent(DEST)}`;
 const pass = async (bg, from = HOP, to = DEST + '&xclid=c-1a2b3c4d5e', type = 'main_frame') => { await bg.redirect({ url: from, redirectUrl: to, type }); await bg.settle(); };

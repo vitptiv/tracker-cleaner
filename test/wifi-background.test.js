@@ -1,6 +1,6 @@
 // C24 end to end: background.js (in the vm loader) talks through the fake chrome.runtime.sendNativeMessage to the
 // real host.js `handle`, which runs on a fake nmcli. Nothing here can reach the system's networks.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { handle } = require('../wifi-helper/host.js'), { renderPopup } = require('../extension/popup-view.js');
 const { mayRun, gate } = require('../extension/registry.js');
 

@@ -1,5 +1,6 @@
 // Every capability of Tracker Cleaner (table in PLAN.md) and the one gate that decides whether it may act.
-// mode: what the group does until the user chooses: 'auto' runs silently, 'ask' waits for Approve,
+// mode: what the group does until the user chooses: 'auto' runs by itself (1.25: everything that only touches what
+// follows you; what was done is shown and can be put back), 'ask' waits for Approve,
 // 'off' does nothing, null = not an action group. destructive: it deletes, closes or reroutes something.
 // noAuto: never runs by itself, a stored 'auto' counts as 'ask' (Wi-Fi: a removed network cannot be put back).
 const C = (id, name, group, mode, destructive, noAuto) => ({ id, name, group, mode, destructive, ...(noAuto ? { noAuto } : {}) });
@@ -14,7 +15,7 @@ const CAPS = [
   C('C08', 'Allow and Revert', 'control', null, false),
   C('C09', 'Block site permissions', 'permissions', 'ask', true),
   C('C10', 'Audit view', 'control', null, false),
-  C('C11', 'Clear HTTP cache', 'cache', 'ask', true),
+  C('C11', 'Clear HTTP cache', 'cache', 'auto', true),
   C('C12', 'Allow-list mode', 'allowlist', 'off', true),
   C('C13', 'Tab limit', 'tabs', 'off', true),
   C('C14', 'Tor', 'tor', 'off', true),
@@ -26,10 +27,10 @@ const CAPS = [
   C('C22', 'Undo', 'control', null, false),
   C('C23', 'Strip tracking URL parameters', 'params', 'auto', false),
   C('C24', 'Remove unused Wi-Fi networks', 'wifi', 'ask', true, true),
-  C('C25', 'Stop unknown trackers', 'unknown', 'ask', true),
+  C('C25', 'Stop unknown trackers', 'unknown', 'auto', true),
   C('C26', 'Block pings that tell which link was followed', 'blocking', 'auto', false),
-  C('C27', 'Clean sites that only pass you along', 'bounce', 'ask', true),
-  C('C28', "Empty what a tracker saved on its own site", 'own', 'ask', true),
+  C('C27', 'Clean sites that only pass you along', 'bounce', 'auto', true),
+  C('C28', "Empty what a tracker saved on its own site", 'own', 'auto', true),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.

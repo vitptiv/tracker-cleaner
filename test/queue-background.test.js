@@ -1,5 +1,5 @@
 // Approval queue (C20) end to end: whatever the gate answers 'ask' or 'held' is queued, not dropped.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { GROUPS } = require('../extension/registry.js');
 const MIN = 60e3;
 const tracker = (bg, name = 'x') => bg.setCookie({ url: 'https://ad.doubleclick.net/', name, value: 'secret-value' });
@@ -115,7 +115,7 @@ test('state message: settings, hold state, and per group its mode, pending count
   await bg.alarm('sweep'); await bg.send({ type: 'pause', minutes: 3 }); await bg.settle();
   const s = await bg.send({ type: 'state' });
   assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'groups', 'hold', 'log', 'master', 'modes', 'now', 'params', 'server', 'sitesOff', 'stopped', 'tor', 'undo']);
-  assert.equal(s.master, true); assert.deepEqual(s.modes, { C03: 'ask' });
+  assert.equal(s.master, true); assert.deepEqual(s.modes, { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C03: 'ask' });
   assert.deepEqual(s.hold, { paused: true, guard: false, tab: false, pauseUntil: bg.now + 3 * MIN, guardUntil: 0 });
   assert.deepEqual(s.groups.map((g) => g.id), GROUPS.map((g) => g.id));
   // the Wi-Fi row also says it is never automatic and what its helper answered (none installed here)
@@ -129,12 +129,12 @@ test('state message: settings, hold state, and per group its mode, pending count
 });
 test('setMode sets every capability of the group and takes effect at once; bad input is refused', async () => {
   const bg = await load({ storage: { master: true } });
-  assert.deepEqual(await bg.send({ type: 'setMode', group: 'blocking', mode: 'off' }), { ok: true, modes: { C01: 'off', C02: 'off', C05: 'off', C26: 'off' } });
+  assert.deepEqual(await bg.send({ type: 'setMode', group: 'blocking', mode: 'off' }), { ok: true, modes: { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C01: 'off', C02: 'off', C05: 'off', C26: 'off' } });
   await bg.settle(); assert.deepEqual(bg.state.rulesets, ['url-params']);   // C23 has its own row
   assert.deepEqual(await bg.send({ type: 'setMode', group: 'blocking', mode: 'sometimes' }), { ok: false });
   assert.deepEqual(await bg.send({ type: 'setMode', group: 'control', mode: 'off' }), { ok: false });
   await bg.send({ type: 'setMaster', on: true }); await bg.send({ type: 'setMode', group: 'cookies', mode: 'ask' });
-  assert.deepEqual(bg.state.storage.modes, { C01: 'off', C02: 'off', C05: 'off', C26: 'off', C03: 'ask' });
+  assert.deepEqual(bg.state.storage.modes, { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C01: 'off', C02: 'off', C05: 'off', C26: 'off', C03: 'ask' });
 });
 test('20 cookie changes at once, not awaited, leave 20 items queued: queue writes go one after the other', async () => {
   const bg = await load(ask());
