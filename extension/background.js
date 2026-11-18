@@ -731,6 +731,27 @@ async function xidClean(cx, all) {
 }
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
+// M3 (1.26, C33): strip a confirmed cross-site id from an in-page history pushState/replaceState
+// (onHistoryStateUpdated) -- the one hand-off the DNR strip rules (M2) cannot see, because changing the address in
+// script fires no request. The DNR rules already strip the id from EVERY network navigation (a link, a scripted
+// location.assign, a meta refresh) on the wire before it commits, with no reload -- verified in the browser -- so
+// there is nothing for this to add there, and rewriting those navigations from the worker only risks a reload that
+// re-runs trackers and disturbs the walk. Never a sign-in page, a sign-in company, a site the user turned off, or a
+// sign-in return-address parameter (stripNav keeps those whole). Behind the master switch; one log line the user sees.
+async function xidNav(d) {
+  if (d.frameId !== 0 || !(d.tabId >= 0)) return;
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol) || !u.search || isSignIn(d.url)) return;
+  await ready;
+  const cx = await context();
+  if (!can('C33', cx) || signInCompany(siteOf(u.hostname)) || (cx.set.sitesOff || []).some((s) => under(u.hostname, s))) return;
+  const toks = Object.values((await chrome.storage.session.get('xsid')).xsid || {}).map((e) => e.raw);
+  const clean = stripNav(d.url, toks);
+  if (!clean || clean === d.url) return;
+  try { await chrome.tabs.update(d.tabId, { url: clean });
+    await logged([{ cap: 'C33', kind: 'link', site: u.hostname, name: 'a cross-site code in the address', why: 'a hand-off' }], 'removed'); } catch {}
+}
+try { chrome.webNavigation.onHistoryStateUpdated.addListener((d) => { xidNav(d); }); } catch {}
 // The principle (1.25, J1 and L1): what is learned from how pages behave only ever makes a question. Block (`stopped`) is
 // the user's press; "Let it through again" undoes it. Then one more question, once (USED: Remove / Keep): Remove deletes
 // what that host has saved now, once (hardClean). Keeping on removing is a switch per host (`hard`, keepRemoving).

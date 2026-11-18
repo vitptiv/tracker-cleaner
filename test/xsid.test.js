@@ -1,6 +1,6 @@
 // M1 (1.26): the pure cross-site-id helpers (extension/xsid.js). No browser, no state.
 const test = require('node:test'), assert = require('node:assert');
-const { idTokens, idValue, pathPrefix, tokHash, fnv1a, XID_MIN, applyStrip, blockRe, xidRules } = require('../extension/xsid.js');
+const { idTokens, idValue, pathPrefix, tokHash, fnv1a, XID_MIN, applyStrip, blockRe, xidRules, stripNav, RETURN_PARAMS } = require('../extension/xsid.js');
 
 test('idTokens picks only long, high-entropy values; not dates, numbers, words or short strings', () => {
   assert.equal(XID_MIN, 12);
@@ -50,4 +50,17 @@ test('xidRules builds a priority-2 collector block and priority-1 URL-strip rule
 test('blockRe matches the collector path but not the site root', () => {
   const re = new RegExp(blockRe('col.example', '/f/'));
   assert.ok(re.test('https://col.example/f/hit?x=1')); assert.equal(re.test('https://col.example/'), false); assert.equal(re.test('https://col.example/home'), false);
+});
+// M3 helper
+test('stripNav removes a confirmed id from any ordinary parameter but keeps sign-in return-address params', () => {
+  assert.equal(stripNav(`https://s.example/p?ref=${T}&q=1`, [T]), 'https://s.example/p?q=1');
+  assert.equal(stripNav(`https://s.example/p?cid=${T}`, [T]), 'https://s.example/p');
+  assert.equal(stripNav(`https://s.example/p?u=${T}`, [T]), 'https://s.example/p');   // the chain's short names ARE cut
+  assert.equal(stripNav(`https://s.example/p?q=1`, [T]), null, 'no token present');
+  assert.equal(stripNav('https://s.example/p', [T]), null, 'no query');
+  // a sign-in return-address parameter is left whole even when the id is nested in its callback URL (would break OAuth)
+  assert.ok(RETURN_PARAMS.includes('redirect_uri') && RETURN_PARAMS.includes('state'));
+  assert.equal(stripNav(`https://s.example/login?redirect_uri=https%3A%2F%2Fs.example%2Fcb%3Fx%3D${T}&state=${T}`, [T]), null);
+  // a tracking param alongside a return param: cut the tracker, keep the return address
+  assert.equal(stripNav(`https://s.example/login?state=abc&sid=${T}`, [T]), 'https://s.example/login?state=abc');
 });

@@ -1,7 +1,7 @@
 {
  "what": "Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33, M2) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. The trip runs at the fresh-install default (shield C32 off), then measures the fingerprint both ways.",
  "extension": "1.26",
- "browser": "ff2m-1a1ef2bd3d2352930",
+ "browser": "ff2m-1a1ef5df244eb804e",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
@@ -28,7 +28,7 @@
     "perturbed": false
    },
    "shieldOn": {
-    "hash": "3aedb6cf",
+    "hash": "eccc6653",
     "perturbed": true
    },
    "baseline": "bd825545"
@@ -67,7 +67,7 @@
    "type": "URL-ID chain across sites",
    "joinedOnFirstContact": true,
    "stoppedGoingForward": false,
-   "why": "survives: the master id rides the hand-off link under a rotating name; stripping it from a scripted hand-off is M3"
+   "why": "survives: M3 strips a CONFIRMED id from a scripted/meta/pushState hand-off, but ff2 gives each site its own master value at /f/ (ledger/sundial/atlas each send a different ff2m-...), so no single master value is seen on two sites and none is confirmed; the real cross-site link is the fingerprint, whose collector send is already blocked"
   },
   {
    "id": "F4",

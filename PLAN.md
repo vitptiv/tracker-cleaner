@@ -1290,3 +1290,18 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   kept, F10 ETag -> M5). A token only in a POST body to a NON-collector first-party endpoint is marked "cannot", not
   blind-blocked. Weaponization guard from M1 holds: a hostile page cannot get a victim's collector blocked by planting
   a shared value (the victim must have SENT it from its own page), pinned by an M2 attack test.
+- M3 strip a confirmed cross-site id from an in-page history pushState/replaceState (webNavigation
+  onHistoryStateUpdated). `xidNav` reads the confirmed `xsid` tokens and `stripNav` (xsid.js) removes any query
+  parameter whose value carries one, EXCEPT a sign-in return-address parameter -- the shipped never-cut list
+  `RETURN_PARAMS` (redirect_uri, return_to, state, relaystate, ...), which deliberately excludes the short rotating
+  names a chain uses (ref, cid, u, r, s, ...) so the chain is still cut. Behind the master switch; never a sign-in
+  page/company or a site the user turned off; one log line each. SCOPE finding, verified in the browser: the M2 DNR
+  strip rules already clean the id out of EVERY network navigation -- a link, a scripted location.assign, a meta
+  refresh -- on the wire before it commits, with no reload, so M3 adds only the one case DNR cannot see, an in-page
+  pushState that fires no request. An earlier version that also rewrote network navigations from the worker
+  (onBeforeNavigate/onCommitted) reloaded pages and disturbed the walk, measurably lowering how much the cleaner
+  stopped on the original Friendface, so it was dropped. ff2: no change (4/10) -- ff2 gives each site its OWN master
+  value at /f/, so no single master value is seen on two sites and none is confirmed; the real cross-site link there
+  is the fingerprint, whose collector send M2 already blocks. Proven by unit tests (confirmed id stripped from a
+  pushState; a network nav left to DNR, not reloaded; sign-in page, return-address param, off-site and C33-off all
+  left alone; an unconfirmed planted value left alone).

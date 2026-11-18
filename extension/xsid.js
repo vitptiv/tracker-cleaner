@@ -57,4 +57,21 @@ function xidRules({ eps = [], toks = [], block, strip, signin = [], off = [], bl
     rules.push({ id: s++, priority: 1, action: { type: 'redirect', redirect: { regexSubstitution: sub } }, condition: nz({ regexFilter: rf, excludedInitiatorDomains: signin, excludedRequestDomains: signin.concat(off), resourceTypes: stripTypes }) });
   return rules;
 }
-if (typeof module !== 'undefined') module.exports = { XID_MIN, XID_MAX, idTokens, idValue, fnv1a, tokHash, pathPrefix, reEsc, blockRe, stripRes, applyStrip, xidRules };
+// ---- M3 (1.26): strip a confirmed cross-site id from a navigation URL (a scripted or meta hand-off, or a pushState),
+// but NEVER from a sign-in return-address parameter -- cutting those breaks OAuth/SAML/CAS return flows. The list is
+// specific return-address names only: it must not include the short, ordinary names a tracker rotates through (ref,
+// cid, u, r, s, ...), or the chain would never be cut. Matched case-insensitively.
+const RETURN_PARAMS = ['redirect_uri', 'redirect_url', 'redirecturl', 'redirect', 'return_to', 'returnto', 'return_url', 'returnurl', 'continue', 'callback', 'callback_url', 'callbackurl', 'state', 'relaystate', 'wreply', 'wa', 'wctx', 'service', 'sso', 'saml', 'samlrequest', 'openid.return_to', 'openid_return_to', 'response_uri', 'post_logout_redirect_uri', 'ticket'];
+// Returns the URL with every query parameter whose value carries a confirmed token removed, or null if nothing changed.
+// A return-address parameter is left whole (the id may be nested in its callback URL, which the flow needs).
+function stripNav(url, toks = [], returnParams = RETURN_PARAMS) {
+  let u; try { u = new URL(url); } catch { return null; }
+  if (!u.search || !toks.length) return null;
+  const rp = new Set(returnParams.map((p) => p.toLowerCase())); let changed = false;
+  for (const name of [...new Set([...u.searchParams.keys()])]) {
+    if (rp.has(name.toLowerCase())) continue;
+    if (u.searchParams.getAll(name).some((v) => toks.some((t) => t && v.includes(t)))) { u.searchParams.delete(name); changed = true; }
+  }
+  return changed ? u.toString() : null;
+}
+if (typeof module !== 'undefined') module.exports = { XID_MIN, XID_MAX, idTokens, idValue, fnv1a, tokHash, pathPrefix, reEsc, blockRe, stripRes, applyStrip, xidRules, RETURN_PARAMS, stripNav };

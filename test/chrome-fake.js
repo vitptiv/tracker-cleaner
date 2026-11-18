@@ -80,8 +80,12 @@ module.exports = function makeChrome(init = {}) {
       get: rec('tabs.get', (id) => { const t = state.tabs.find((x) => x.id === id); if (!t) throw new Error(`No tab with id: ${id}.`); return { ...t }; }),
       getCurrent: rec('tabs.getCurrent', () => undefined),   // as in a side panel or a popup: the page is not a tab
       create: rec('tabs.create', (t) => ({ id: 1000 + calls.length, ...t })),
+      update: rec('tabs.update', (id, props) => { const t = state.tabs.find((x) => x.id === id); if (t) Object.assign(t, props); return t ? { ...t } : undefined; }),
       remove: rec('tabs.remove', (ids) => { ids = [].concat(ids); state.tabs = state.tabs.filter((t) => !ids.includes(t.id)); }),
       onCreated: event(), onUpdated: event(), onRemoved: event(), onActivated: event() },
+    // a top-level navigation: a page link, a scripted (location.assign) or meta hand-off (onBeforeNavigate/onCommitted),
+    // or an in-page history pushState (onHistoryStateUpdated). Tests fire these through fake.navigate.
+    webNavigation: { onBeforeNavigate: event(), onCommitted: event(), onHistoryStateUpdated: event() },
     windows: { getLastFocused: rec('windows.getLastFocused', () => ({ id: 1 })), getCurrent: rec('windows.getCurrent', () => ({ id: 1 })) },
     // init.noPanel: Chrome refuses to open the side panel (it does so when the call does not come straight from a click)
     sidePanel: { open: rec('sidePanel.open', () => { if (init.noPanel) throw new Error('`sidePanel.open()` may only be called in response to a user gesture.'); }) },
@@ -149,6 +153,13 @@ module.exports = function makeChrome(init = {}) {
     answer: (d) => chrome.webRequest.onHeadersReceived.fire(d.tabId === undefined && d.initiator ? { tabId: fake.tabOf(d.initiator), frameId: 0, ...d } : d),
     // a page asks for something; without a tabId it is the top page at `initiator` that asks
     request: (d) => chrome.webRequest.onBeforeRequest.fire(d.tabId === undefined && d.initiator ? { tabId: fake.tabOf(d.initiator), frameId: 0, ...d } : d),
+    // a top-level navigation arrives at `url` through the webNavigation events: fires onBeforeNavigate then onCommitted
+    // (phase 'history' fires onHistoryStateUpdated instead -- an in-page pushState). Sets the tab's url so a handler
+    // that reads it sees it. (Distinct from `navigate`, which drives tabs.onUpdated.)
+    navTo: async (url, { tabId = fake.tabOf(url), phase = 'commit' } = {}) => { const t = state.tabs.find((x) => x.id === tabId); if (t) t.url = url;
+      const d = { tabId, frameId: 0, url };
+      if (phase === 'history') return chrome.webNavigation.onHistoryStateUpdated.fire(d);
+      await chrome.webNavigation.onBeforeNavigate.fire(d); return chrome.webNavigation.onCommitted.fire(d); },
     closeTab: async (id) => { state.tabs = state.tabs.filter((t) => t.id !== id); await chrome.tabs.onRemoved.fire(id, {}); },
     // a message as the popup sends it; `from` = another sender. No listener takes it: the answer is undefined, as in Chrome.
     send: (msg, from = { id: ID, url: `chrome-extension://${ID}/popup.html` }) => new Promise((reply) => {

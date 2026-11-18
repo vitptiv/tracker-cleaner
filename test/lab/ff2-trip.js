@@ -109,7 +109,7 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     // handled in M3) or a first-party ETag (F10, M5), none stoppable here without breaking the site.
     const COLL = { F2: 'the master id reaches the collector', F6: 'the fingerprint code reaches the collector', F8: 'the address and referrer are posted to the collector', F9: 'the collector runs its loopback probe for the page' };
     const SURV = { F1: 'a per-site first-party cookie (fp_id), not a cross-site value: a visited site\'s own cookie is left alone',
-      F3: 'the master id rides the hand-off link under a rotating name; stripping it from a scripted hand-off is M3',
+      F3: 'M3 strips a CONFIRMED id from a scripted/meta/pushState hand-off, but ff2 gives each site its own master value at /f/ (ledger/sundial/atlas each send a different ff2m-...), so no single master value is seen on two sites and none is confirmed; the real cross-site link is the fingerprint, whose collector send is already blocked',
       F4: 'the from->to redirect log is the site\'s own server; cannot stop without breaking navigation',
       F5: 'a first-party click record on the site\'s own server; cannot stop without breaking the site',
       F7: 'a sign-in cookie (SID): kept on purpose, never touched', F10: 'a first-party ETag: handled in M5' };
