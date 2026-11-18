@@ -1003,3 +1003,9 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   passing only after its second destination, which is the trip's last pass: H4). The question "You use Friendface
   ... Remove what it keeps?" would clean T17, T20, T21, T22 out on Remove; it does not come up within the trip
   because the five-minute hold after her sign-in on Friendface's own page is still running.
+
+### Batch I
+
+- I1 saved copies after a stop that only blocks (T17, T20, T21): all saved copies are cleared once then, at most once
+  an hour in total (`softClearAt`), because that costs the user only speed; besides the daily clearing and the one
+  at a clean-out; never at a start of Chrome. The row's sentence says exactly that.

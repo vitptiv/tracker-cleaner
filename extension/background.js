@@ -643,7 +643,10 @@ async function followSweep(cx, all, wait) {
       if (waits(v)) { wait.push(it); continue; }
       if (recent.length >= STOPS_HOUR) { wait.push({ ...it, did: 'queued' }); continue; }   // too many in an hour to be an accident: the user is asked
       if (!(await stopTracker(site))) continue;
-      recent.push(now); await chrome.storage.local.set({ stops: recent }); await logged([{ ...it, kind: 'blocked' }], 'removed'); }
+      recent.push(now); await chrome.storage.local.set({ stops: recent }); await logged([{ ...it, kind: 'blocked' }], 'removed');
+      // a saved copy can carry the ID past the block: all saved copies are cleared once, at most once an hour in total (I1)
+      const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt');
+      if (!(softClearAt > now - 3600e3) && can('C11', cx)) { await chrome.storage.local.set({ softClearAt: now }); await copiesNow(cx); } }
     if (hard.includes(site) || !many || guarded(cx, site)) continue;
     if (visited(cx, site)) { if (!later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: 'you use it', did: 'queued' }); }
     else if (v === 'run') await hardClean(site); }
@@ -876,7 +879,8 @@ async function copiesOf(hosts, cx) {
 }
 const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
 const copiesNow = async (cx) => { if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
-// (1.25, H7: all saved copies are cleared at most once a day, and once at a clean-out; no longer a minute after it or at every start of Chrome)
+// (1.25, H7 and I1: all saved copies are cleared at most once a day, once at a clean-out, and once after a stop that only
+// blocks, that last one at most once an hour in total; never a minute later and never at a start of Chrome)
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
   if (v === 'no' || cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};

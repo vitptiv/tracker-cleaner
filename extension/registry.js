@@ -72,7 +72,7 @@ const GROUPS = [
   ['storage', 'Data that sites keep (site storage)', 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.'],
   ['wifi', 'Remembered Wi-Fi networks', 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.'],
   ['permissions', 'What sites may do (site permissions)', 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.'],
-  ['cache', 'Saved copies of pages (HTTP cache)', 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and once more when a tracker is cleaned out; pages then load a little slower the first time.'],
+  ['cache', 'Saved copies of pages (HTTP cache)', 'All copies of pages that Chrome saved to load them faster are thrown away once a day, once more when a tracker is cleaned out, and at most once an hour when a new tracker is blocked; pages then load a little slower the first time.'],
   ['allowlist', 'Keep only the cookies you list', 'Every small file that sites save to recognise you is deleted, except the ones on your own list.'],
   ['tabs', 'Limit how many tabs stay open', 'When more tabs are open than the number you set, the ones you used least are closed.'],
   ['tor', 'Hiding your address from websites (Tor)', 'Chrome reaches websites through the Tor network, so they cannot see where you are.'],
