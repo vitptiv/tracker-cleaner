@@ -319,6 +319,28 @@ async function main() {
         + `${r2.blocked ? 'still blocked' : r2.end} in the open page, ${r3.end} after a reload; unticked: ${r4.blocked ? 'blocked again' : r4.end}`);
     }, offline);
 
+    // S4: what a request to another company carries, read from Chrome's own record of what went onto the wire
+    const sentCookie = async (s, url) => { const from = s.events.length;
+      await s.ev(`fetch(${JSON.stringify(url)}, { mode: 'no-cors', credentials: 'include' }).then(() => 1, () => 0)`); await sleep(400);
+      const ev = s.events.slice(from), req = ev.find((e) => e.method === 'Network.requestWillBeSent' && e.params.request.url === url);
+      const extra = req && ev.find((e) => e.method === 'Network.requestWillBeSentExtraInfo' && e.params.requestId === req.params.requestId);
+      return !extra ? 'not seen' : /(^|; )tc3p=1/.test(Object.entries(extra.params.headers).filter(([k]) => k.toLowerCase() === 'cookie').map(([, v]) => v).join('; ')) ? 'sent' : 'not sent'; };
+    await check('10b', 'A request to another company carries no cookie; accounts.google.com is left alone', async (ok, see) => {
+      await x.go(site, 'https://example.com/');
+      const mine = (domain) => ({ name: 'tc3p', value: '1', domain, path: '/', secure: true, sameSite: 'None', expires: Math.floor(Date.now() / 1000) + 3600 });
+      await b.send('Storage.setCookies', { cookies: [mine('example.org'), mine('accounts.google.com')] });
+      const other = await sentCookie(site, `https://example.org/?a=${Date.now()}`), google = await sentCookie(site, `https://accounts.google.com/generate_204?a=${Date.now()}`);
+      ok(other === 'not sent', `the cookie for example.org, asked from example.com: ${other}`);
+      ok(google === 'sent', `the cookie for accounts.google.com, asked from example.com: ${google}`);
+      await P.s.ev(`chrome.runtime.sendMessage({ type: 'setMode', group: 'othercookies', mode: 'off' })`); await sleep(500);
+      const off = await sentCookie(site, `https://example.org/?b=${Date.now()}`);
+      await P.s.ev(`chrome.runtime.sendMessage({ type: 'setMode', group: 'othercookies', mode: 'auto' })`); await sleep(500);
+      const back = await sentCookie(site, `https://example.org/?c=${Date.now()}`);
+      ok(off === 'sent', `with the row switched off the cookie for example.org was: ${off} (so this check can see a cookie)`);
+      ok(back === 'not sent', `with the row on again: ${back}`);
+      see(`from a page on example.com: cookie for example.org ${other}, for accounts.google.com ${google}; row off: ${off}; on again: ${back}`);
+    }, offline);
+
     await check(11, 'Tracking parameters are stripped, but not on accounts.google.com', async (ok, see) => {
       await x.go(site, 'https://example.com/?utm_source=x&gclid=y&keep=1');
       const end = await site.ev('location.href');

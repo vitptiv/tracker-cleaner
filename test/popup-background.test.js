@@ -103,7 +103,7 @@ test('Turn on, a mode change, allow, revert and site-off sweep at once: the next
 });
 test('a group that cannot ask (nothing destructive in it) says so in the state: sign-in guard, blocking, parameters, server', async () => {
   const s = await (await load()).send({ type: 'state' });
-  assert.deepEqual(s.groups.filter((g) => !g.ask).map((g) => g.id), ['signin', 'blocking', 'params', 'server']);
+  assert.deepEqual(s.groups.filter((g) => !g.ask).map((g) => g.id), ['signin', 'blocking', 'othercookies', 'params', 'server']);
 });
 test('a live cookie action records the page: the host of the active tab of the last-focused window; a sweep does not guess', async () => {
   const tabs = [{ id: 1, active: true, windowId: 2, url: 'https://elsewhere.test/' }, { id: 2, active: false, url: 'https://shop.test/' }, { id: 3, active: true, url: 'https://www.news.test/a?b' }];

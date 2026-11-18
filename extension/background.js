@@ -5,7 +5,7 @@
 // can be put back, for 10 minutes; emptied storage and cleared saved copies cannot. Everything is held while paused,
 // and everything destructive while a sign-in is going on. Login cookies (KEEP_RE) are deleted by nothing but the
 // user's own always-delete list and "Delete" in the report.
-importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js', 'learn.js');
+importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js', 'learn.js', 'net-rules.js');
 const REPORT = 'http://127.0.0.1:8088/audit/cleaner';
 // The cookie decisions and their settings (S) live in core.js, where the Node tests can reach them.
 const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCore({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE });
@@ -29,9 +29,25 @@ const verdict = (id, cx) => gate(id, cx.set, cx.hold);
 const can = (id, cx) => verdict(id, cx) === 'run';
 const waits = (v) => v === 'ask' || v === 'held';
 // Sign-in guard (C19): every navigation to a sign-in URL (re)arms it.
-const arm = (url) => { if (isSignIn(url)) chrome.storage.local.set({ guardUntil: Date.now() + GUARD_MS }); };
-chrome.tabs.onCreated.addListener((t) => arm(t.pendingUrl || t.url));
-chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) arm(info.url); });
+// The tab it is seen in, and the tab that opened it (a sign-in in a pop-up), are noted in chrome.storage.session
+// { gtabs: { '<tab>': until } }: in those tabs nothing is blocked or changed while the guard holds (guardTabsRule).
+const arm = (url, tabs = []) => { if (!isSignIn(url)) return;
+  chrome.storage.local.set({ guardUntil: Date.now() + GUARD_MS });
+  serial(async () => { const { gtabs = {} } = await chrome.storage.session.get('gtabs');
+    for (const id of tabs) if (Number.isInteger(id) && id >= 0) gtabs[id] = Date.now() + GUARD_MS;
+    await chrome.storage.session.set({ gtabs }); }).then(guardTabsRule); };
+chrome.tabs.onCreated.addListener((t) => arm(t.pendingUrl || t.url, [t.id, t.openerTabId]));
+chrome.tabs.onUpdated.addListener((id, info, t) => { if (info.url) arm(info.url, [id, (t || {}).openerTabId]); });
+async function guardTabsRule() {
+  try { const set = await chrome.storage.local.get(['master', 'modes']), now = Date.now(), { gtabs = {} } = await chrome.storage.session.get('gtabs');
+    const live = Object.fromEntries(Object.entries(gtabs).filter(([, t]) => t > now).slice(-100));
+    if (Object.keys(live).length !== Object.keys(gtabs).length) await chrome.storage.session.set({ gtabs: live });
+    const open = (await chrome.tabs.query({})).filter((t) => isSignIn(t.url || t.pendingUrl)).map((t) => t.id);   // a sign-in page still open counts as long as it is
+    const ids = mayRun('C19', set) === 'run' ? [...new Set([...Object.keys(live).map(Number), ...open])].sort((a, b) => a - b) : [];
+    const old = (await chrome.declarativeNetRequest.getSessionRules()).filter((r) => r.id === GUARD_RULE);
+    if (JSON.stringify(old.map((r) => r.condition.tabIds)) !== JSON.stringify(ids.length ? [guardRule(ids).condition.tabIds] : []))
+      await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [GUARD_RULE], addRules: ids.length ? [guardRule(ids)] : [] }); } catch {}
+}
 // Pause (C18): everything stops until pauseUntil; the 'resume' alarm switches the features back on.
 // The storage listener at the end of this file applies the change.
 async function pause(minutes) {
@@ -385,7 +401,10 @@ async function applyFeatures() {
       condition: { resourceTypes: ['main_frame'], excludedRequestDomains: SIGNIN_HOSTS } }]),
     // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
     ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
-      condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }])]);
+      condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }]),
+    // S4: what other companies get less of (net-rules.js); left alone: sign-in hosts, the companies pages need, the sites cleaning is off for
+    ...netRules({ cookies: BLOCK && can('C29', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED, ...(cx.set.sitesOff || [])], self: chrome.runtime.id })]);
+  await guardTabsRule();
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
   const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
@@ -440,7 +459,7 @@ async function sweepOnce(cause) {
 // another site asks for it (one dynamic rule, above LEARNED; the rules below it are siteOff's), its cookies deleted,
 // and from then on judged like a listed tracker (core.js EXTRA). Never learned: a company people sign in with.
 const LEARNED = 100000, TYPES = ['script', 'xmlhttprequest', 'image', 'ping', 'sub_frame', 'media', 'other', 'websocket', 'font', 'stylesheet'];
-const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.action.redirect]);
+const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.condition.excludedRequestDomains, r.condition.regexFilter, r.action]);
 async function learnedRules(want) {
   try { const old = (await chrome.declarativeNetRequest.getDynamicRules()).filter((r) => r.id > LEARNED);
     if (old.map(sig).join() !== want.map(sig).join()) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); } catch {}

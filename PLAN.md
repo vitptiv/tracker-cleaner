@@ -58,6 +58,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C26 | Block pings that tell someone which link was followed or how long a page was read | new in 1.24 | auto |
 | C27 | Clean a site that only passes you along (redirect): its cookies and storage, and the ID it added to the address | new in 1.24 | auto |
 | C28 | Empty what a listed or stopped tracker saved on its own site (service worker, storage) and block its notifications | new in 1.24 | auto |
+| C29 | No cookies for other companies: a request to another company carries none and may set none (rule, automatic) | new in 1.25 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -829,3 +830,13 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   for the real notification setting of the network's site. If it is "block", T22 is not counted at the end, gets the
   status "stopped (real setting blocked; the lab's simulated Allow overrides it)", and is named in
   `counts.simulated` and in the headline. `walk.js` and the lab are untouched.
+- S4 no cookies for other companies (C29, own row, automatic, deletes nothing): rules built by `net-rules.js` (the
+  shared builder; it already holds the rule shapes of S5 and S8, wired in their own commits) remove `Cookie` from
+  every request to another registrable site but the page itself, and `Set-Cookie` from its answer. Left alone as
+  asker and as asked: the sign-in hosts, github.com, the captcha and payment companies (`NEEDED`), the sites cleaning
+  is off for; and requests inside Google's, Microsoft's and Apple's own families of sites. A tab in which a sign-in
+  page was seen, and the tab that opened it, are let through entirely while the guard holds (one session rule with
+  the tab numbers, kept in `storage.session`). Needs no new permission (declarativeNetRequest and the host access
+  are there). Checked in a real Chrome (run.js 10b): from example.com the cookie for example.org is not sent, the
+  one for accounts.google.com is, and with the row off it is sent again. Not reached: what a frame of another
+  company asks of its own company (to Chrome that is the same site asking itself).

@@ -76,7 +76,7 @@ test('a stopped company counts as a tracker from then on: its new cookie goes, b
   await bg.setCookie({ url: 'https://www.trk.example/', name: 'mine', value: 'u-77aa88bb99' });
   assert.deepEqual(await bg.names(), ['mine']);
   await bg.send({ type: 'siteOff', host: 'news.example', on: true }); await bg.settle();
-  assert.ok(rule(bg)); assert.equal(bg.state.dynamic.length, 4);
+  assert.ok(rule(bg)); assert.equal(bg.state.dynamic.filter((r) => r.id < 100010).length, 4);   // not counting the rules of net-rules.js (1.25)
   await bg.send({ type: 'setMaster', on: false }); await bg.settle(); assert.equal(rule(bg), undefined);
 });
 test('never learned: a company pages need to check that you are human or to take a payment', async () => {

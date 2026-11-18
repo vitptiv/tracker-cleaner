@@ -31,6 +31,7 @@ const CAPS = [
   C('C26', 'Block pings that tell which link was followed', 'blocking', 'auto', false),
   C('C27', 'Clean sites that only pass you along', 'bounce', 'auto', true),
   C('C28', "Empty what a tracker saved on its own site", 'own', 'auto', true),
+  C('C29', 'No cookies for other companies', 'othercookies', 'auto', false),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.
@@ -57,6 +58,7 @@ const GROUPS = [
   ['blocking', 'Ads and trackers blocked as pages load', 'Pages are stopped from calling the companies that follow you from site to site, and YouTube plays without its ads.'],
   ['cookies', "Trackers' cookies", 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.'],
   ['google', 'Cookies Google uses to recognise you', 'Small files that Google and YouTube save to recognise you when you are not signed in are deleted, while the ones that keep you signed in stay.'],
+  ['othercookies', 'Other companies get no cookies', 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.'],
   ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
   ['unknown', 'Trackers that are on no list', 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.'],
   ['bounce', 'Sites that only pass you along', 'A site that sends you straight on to another site without showing you anything has what it saved deleted, and the tag it added to the address is cut off.'],

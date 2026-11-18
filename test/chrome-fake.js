@@ -93,6 +93,9 @@ module.exports = function makeChrome(init = {}) {
       // init.matched: { <tab id>: [the rule file of each request Chrome stopped or changed on that tab] }; none given = Chrome does not say
       getMatchedRules: rec('declarativeNetRequest.getMatchedRules', ({ tabId } = {}) => { if (!init.matched) throw new Error('This function may not be called this often.');
         return { rulesMatchedInfo: (init.matched[tabId] || []).map((rulesetId) => ({ rule: { ruleId: 1, rulesetId }, tabId, timeStamp: 0 })) }; }),
+      getSessionRules: rec('declarativeNetRequest.getSessionRules', () => JSON.parse(JSON.stringify(state.rules))),
+      updateSessionRules: rec('declarativeNetRequest.updateSessionRules', (o) => {
+        state.rules = [...state.rules.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }),
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => {
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
     webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event() },
