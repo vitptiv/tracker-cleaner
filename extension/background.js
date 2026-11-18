@@ -497,9 +497,11 @@ async function sweepOnce(cause) {
   const xid = await xidSweep(cx);
   if (xid.changed) await applyFeatures();   // a newly confirmed cross-site id: install (or lift) its block and strip rules now (M2)
   const xidC = await xidClean(cx, all);     // delete a cookie whose value carries a confirmed cross-site id (M2)
+  // M6: first-party address/referrer collection the cleaner cannot stop without breaking the site -- reported honestly
+  const cannot = mayRun('C33', cx.set) === 'no' ? 0 : Object.keys((await chrome.storage.session.get('xcannot')).xcannot || {}).length;
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
-  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...(xid.crossIds ? { crossIds: xid.crossIds } : {}), ...xidC });
+  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...(xid.crossIds ? { crossIds: xid.crossIds } : {}), ...xidC, ...(cannot ? { cannotStop: cannot, cannotNote: "cannot stop (the site's own server)" } : {}) });
 }
 
 // ---- Trackers on no list (C25, learn.js). Every request a page makes to another company is counted, privately: on
@@ -709,6 +711,31 @@ async function noteEtag(d) {
   if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase(), (u.host + u.pathname).toLowerCase());
 }
+// M6 (F8): first-party address/referrer collection -- the page posting its own URL (and referrer) to its OWN server.
+// This cannot be blocked without breaking the site, and no other company is involved, so the cleaner does NOT fake a
+// win: when it is not going to a cross-site collector the cleaner is already blocking, it records the site (a salted
+// hash, capped, never the name) so the sweep report can say, honestly, "cannot stop (the site's own server)".
+async function noteOwnCollect(d) {
+  if (d.type === 'main_frame' || !(d.tabId >= 0) || d.frameId !== 0) return;
+  if (d.method !== 'POST' && !['ping', 'csp_report'].includes(d.type)) return;
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol) || isSignIn(d.url)) return;
+  const page = await topSite(d);
+  if (!page || siteOf(u.hostname) !== page || signInCompany(page)) return;   // the site's OWN server only (first-party)
+  // the signal is the page's own address carried IN the body or a query value (location.href/referrer) -- not the
+  // request's own path, which is same-origin for any first-party request and would match everything.
+  const origin = d.initiator;
+  if (!origin || !(safeDecode(u.search) + ' ' + bodyText(d.requestBody)).includes(origin)) return;
+  await ready;
+  if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
+  const ep = (u.host + pathPrefix(u.pathname)).toLowerCase();
+  const confirmed = Object.values((await chrome.storage.session.get('xsid')).xsid || {}).some((e) => (e.eps || []).includes(ep));
+  if (confirmed) return;   // this endpoint is a cross-site collector the cleaner is blocking (M2), not a "cannot"
+  const salt = await saltNow(), h = mark(`${salt} ${page}`);
+  await serial(async () => { const xcannot = (await chrome.storage.session.get('xcannot')).xcannot || {};
+    if (xcannot[h]) return; const ks = Object.keys(xcannot); if (ks.length >= 200) delete xcannot[ks[0]];
+    xcannot[h] = true; await chrome.storage.session.set({ xcannot }); });
+}
 // At each sweep: a token SENT by two or more sites that are both in `mine` is confirmed a cross-site id. Re-checked
 // every sweep, so a site added to `mine` after the value was first seen still counts. Records the confirmation
 // (session `xsid`) and counts it for the report; acting on it (M2) reads the same `xsid`.
@@ -752,7 +779,7 @@ async function xidClean(cx, all) {
   await logged(gone, 'removed');
   return gone.length ? { crossIdCookies: gone.length } : {};
 }
-try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
+try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); noteOwnCollect(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); noteEtag(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
 // M3 (1.26, C33): strip a confirmed cross-site id from an in-page history pushState/replaceState
 // (onHistoryStateUpdated) -- the one hand-off the DNR strip rules (M2) cannot see, because changing the address in

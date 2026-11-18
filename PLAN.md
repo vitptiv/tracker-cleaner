@@ -1327,3 +1327,13 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   ETag is per-site (the master, different per site) AND its image /f/px.gif sits under the /f/ collector path M2 already
   blocks, so F10 is stopped going forward by that block (verified: /f/px.gif is blocked); M5's cross-site-ETag strip is
   the general case ff2 does not exercise. ff2 now 5/10 stopped going forward (F2/F6/F8/F9/F10), 5/10 survive (F1/F3/F4/F5/F7).
+- M6 first-party address/referrer collection (F8), honesty. `noteOwnCollect` recognises a page POSTing its own address
+  (its origin appears in the request body or a query value, i.e. location.href / document.referrer) to its OWN server
+  (first-party), and records the site (salted hash, capped) UNLESS that endpoint is a cross-site collector the cleaner
+  is already blocking (M2). The sweep report then carries `cannotStop` with the exact phrase "cannot stop (the site's
+  own server)". The cleaner NEVER blocks such a request -- blocking a site's own beacon would break it, and no other
+  company is involved -- so it does not fake a win; it tells the user the truth. In ff2, F8 goes to the collector /f/,
+  which M2 blocks, so ff2's F8 is a genuine stop, not a "cannot"; the "cannot" path is the general first-party-to-own-
+  server case (e.g. the shop's own purchase beacon in the original Friendface trip, T33). Report-only, so no trip number
+  changes. Proven by unit tests (own-address beacon recorded + never blocked + report note; a non-address first-party
+  POST not flagged; a confirmed-collector endpoint blocked not flagged; C33 off records nothing).
