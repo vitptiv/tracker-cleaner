@@ -3,7 +3,7 @@
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const { DOMAINS } = require('../extension/lists.js');
 const OWN = 'what it saved on its own site', LISTED = 'the listed trackers', DAY = 24 * 3600e3;
-const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'],
+const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'], hard: ['trk.example'],
   follow: { 'trk.example': { on: ['a', 'b', 'c'], id: true, hosts: ['px.trk.example:8443'], t: 1 } }, ...o.storage } });
 const queued = (bg) => ((bg.state.storage.pending || {}).own || { items: [] }).items.map((i) => [i.cap, i.kind, i.site, i.name]);
 const emptied = (bg) => bg.called('browsingData.remove').map((c) => c.args), blocked = (bg) => bg.called('contentSettings.set').map((c) => c.args[0]);
@@ -41,7 +41,7 @@ test('not while its own site is open in a tab, not during a sign-in, not when of
   assert.deepEqual(off.destructive(), []); assert.deepEqual(queued(off), []);
 });
 test('"Let it through again" gives the notifications back: the block is taken away, and the blocks of the others are set again', async () => {
-  const bg = await load(on({ storage: { modes: { C28: 'auto' }, stopped: ['trk.example', 'other.example'] } })); await bg.alarm('sweep');
+  const bg = await load(on({ storage: { modes: { C28: 'auto' }, stopped: ['trk.example', 'other.example'], hard: ['trk.example', 'other.example'] } })); await bg.alarm('sweep');
   const before = blocked(bg).length;
   assert.deepEqual((await bg.send({ type: 'unstop', site: 'trk.example' })).stopped, ['other.example']); await bg.settle();
   assert.equal(bg.called('contentSettings.clear').length, 1);

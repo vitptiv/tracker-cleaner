@@ -412,8 +412,10 @@ test('R1: "X followed you on 3 sites. Stop it?" with Approve and Not now for tha
   assert.ok(text(html).includes('Trackers you stopped (1)old.exampleLet it through again'));
   assert.equal(row(r, 'unknown').count, '0 stopped today, 1 waiting');
 });
-test('R1: a cookie of a company the user stopped is called a tracker\'s', () => {
-  const r = buildReport(state({ stopped: ['trk.example'] }), tab({ host: 'news.example', cookies: [{ domain: '.trk.example', name: 'uid', value: 'x' }] }));
+test('R1: a cookie of a company that was stopped and cleaned out is called a tracker\'s; one that is only blocked keeps its cookies (1.25, H1)', () => {
+  const soft = buildReport(state({ stopped: ['trk.example'] }), tab({ host: 'news.example', cookies: [{ domain: '.trk.example', name: 'uid', value: 'x' }] }));
+  assert.equal(soft.cookies.rows[0].what, 'on no tracker list, kept');
+  const r = buildReport(state({ stopped: ['trk.example'], hard: ['trk.example'] }), tab({ host: 'news.example', cookies: [{ domain: '.trk.example', name: 'uid', value: 'x' }] }));
   assert.equal(r.cookies.rows[0].what, "comes from a tracker's site, deleted automatically");
 });
 

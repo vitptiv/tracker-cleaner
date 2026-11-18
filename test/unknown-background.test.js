@@ -67,8 +67,8 @@ test('Not now: the question goes away for a week. "Let it through again" takes t
   assert.deepEqual(await bg.send({ type: 'unstop', site: 'trk.example' }), { ok: true, stopped: [] }); await bg.settle();
   assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg), []);
 });
-test('a stopped company counts as a tracker from then on: its new cookie goes, but not while its own site is open; switching a site off keeps the block', async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'] }, cookies: [] }));
+test('a stopped and cleaned-out company counts as a tracker from then on: its new cookie goes, but not while its own site is open; switching a site off keeps the block', async () => {
+  const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, cookies: [] }));
   await bg.alarm('sweep'); assert.ok(rule(bg));
   await bg.setCookie({ url: 'https://px.trk.example/', name: 'again', value: 'u-77aa88bb99' });
   assert.deepEqual(await bg.names(), []);

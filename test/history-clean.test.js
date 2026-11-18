@@ -2,7 +2,7 @@
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const { renderPopup } = require('../extension/popup-view.js'), manifest = require('../extension/manifest.json');
 const PAGES = ['https://www.trk.example/feed', 'https://trk.example/a?b=1', 'https://news.example/story?from=trk.example', 'https://nottrk.example/', 'https://trk.example.evil.test/', 'https://ad.doubleclick.net/x', 'https://used.example/home'];
-const on = (o = {}) => ({ history: PAGES, granted: ['history'], ...o, storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'], histOn: true, ...o.storage } });
+const on = (o = {}) => ({ history: PAGES, granted: ['history'], ...o, storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'], hard: ['trk.example'], histOn: true, ...o.storage } });
 const left = (bg) => bg.state.history.map((h) => h.url);
 
 test('the permission is optional: Chrome does not ask for it at install', () => {
@@ -21,7 +21,7 @@ test('nothing is read or removed: not switched on, not allowed by Chrome, cleani
     assert.deepEqual(left(bg), PAGES); assert.deepEqual(bg.called('history.search'), []); assert.deepEqual(bg.called('history.deleteUrl'), []); }
 });
 test('a stopped company whose site the user opens as a page keeps its history', async () => {
-  const bg = await load(on({ storage: { stopped: ['used.example'] } }));
+  const bg = await load(on({ storage: { stopped: ['used.example'], hard: ['used.example'] } }));
   await bg.opens('https://used.example/home'); await bg.alarm('sweep');
   assert.ok(left(bg).includes('https://used.example/home'));
 });

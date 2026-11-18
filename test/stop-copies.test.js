@@ -15,14 +15,14 @@ test('a stop clears the saved copies, sets one wake-up a minute later, and that 
 });
 test('when Chrome starts the saved copies are cleared if a tracker is stopped, and not otherwise; never while a sign-in is in front or cleaning is off', async () => {
   const start = async (o) => { const bg = await load(o); await bg.chrome.runtime.onStartup.fire(); await bg.settle(); return clears(bg); };
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'] } })), 1);
+  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } })), 1);
   assert.equal(await start(on()), 0);
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] })), 0);
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'], master: false } })), 0);
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'], modes: { C11: 'off' } } })), 0);
+  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] })), 0);
+  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'], master: false } })), 0);
+  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'], modes: { C11: 'off' } } })), 0);
 });
 test("a stopped tracker's notifications are blocked once even while its own page is open; its cookies and what it saved there stay", async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }],
+  const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }],
     cookies: [ID, { name: 'session', domain: 'www.trk.example', value: 's-1' }] }));
   await bg.alarm('sweep');
   assert.equal(blocked(bg), 1); assert.deepEqual(await bg.names(), ['uid', 'session']);
@@ -32,11 +32,11 @@ test("a stopped tracker's notifications are blocked once even while its own page
   assert.equal(bg.called('contentSettings.clear').length, 1, '"Let it through again" does not give the notifications back');
 });
 test('notifications are not blocked on "Ask first" before the answer, nor while cleaning is switched off', async () => {
-  for (const storage of [{ stopped: ['trk.example'], modes: { C28: 'ask' } }, { stopped: ['trk.example'], master: false }]) {
+  for (const storage of [{ stopped: ['trk.example'], hard: ['trk.example'], modes: { C28: 'ask' } }, { stopped: ['trk.example'], hard: ['trk.example'], master: false }]) {
     const bg = await load(on({ storage })); await bg.alarm('sweep'); assert.equal(blocked(bg), 0); }
 });
 test('when the extension itself is loaded again (an update): the wake-up set before is gone, so the saved copies are cleared then too', async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'] } }));
+  const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } }));
   await bg.chrome.runtime.onInstalled.fire({ reason: 'update' }); await bg.settle();
   assert.equal(clears(bg), 1);
   const none = await load(on()); await none.chrome.runtime.onInstalled.fire({ reason: 'update' }); await none.settle();
@@ -44,7 +44,7 @@ test('when the extension itself is loaded again (an update): the wake-up set bef
 });
 test('a block this extension set can be gone when Chrome starts or the extension is loaded again: it is set again then', async () => {
   for (const ev of ['onStartup', 'onInstalled']) {
-    const bg = await load(on({ storage: { stopped: ['trk.example'] } })); await bg.alarm('sweep'); assert.equal(blocked(bg), 1);
+    const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } })); await bg.alarm('sweep'); assert.equal(blocked(bg), 1);
     await bg.chrome.runtime[ev].fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle(); await bg.alarm('sweep');
     assert.equal(blocked(bg), 2, ev); }
 });

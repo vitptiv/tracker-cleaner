@@ -915,3 +915,15 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   site only: T13, T22. In Chrome's files only, handed in from outside: T17, T18, T19, T20. Arrived but tied to
   nobody: T3, T6, T10, T11, T12, T14, T15, T16, T23, T25 (the fingerprint), T36. `misses.json` now has `sites` and
   `via` per row (measuring side).
+
+### Fixes after the second audit (be668ec): H1 to H11
+
+- H1 a stop on thin evidence was a weapon (a page hands its own ID to a bank, the bank answers with a cookie, the bank
+  is cleaned out). A stop now has two halves. Soft, by itself (`stopped`): the company is blocked when another site
+  asks for it, nothing else. Hard (`hard`: cookies but those that look like a sign-in, its own storage and worker,
+  notifications, all saved copies once): by itself only for a company seen on two visited sites whose own site the
+  user does not open as a page; for one the user also uses, one question once ("You use X, and it follows you on
+  other sites. Remove what it keeps to do that?" Remove / Keep), which the group button never answers. A company
+  learned at one sighting is only ever blocked. Only `hard` companies are judged like listed trackers
+  (`core.js` EXTRA). The hourly limit is written after every stop inside the loop; tenants of one shared host count
+  as one visited site.
