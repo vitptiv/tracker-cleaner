@@ -41,7 +41,7 @@ test('fresh install: a company seen on three sites is stopped at once; what it s
 });
 test('a company whose own site you open as a page is blocked on other sites, but its cookies and what it saved stay: you may be signed in there', async () => {
   const bg = await fresh({ cookies: [ID] });
-  await bg.visit('https://www.trk.example/home'); await three(bg);
+  await bg.opens('https://www.trk.example/home'); await bg.closeTab(bg.tabOf('https://www.trk.example/home')); await three(bg);
   assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']);
   assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);
   assert.equal(/trk\.example\/home/.test(JSON.stringify(bg.state.storage)), false, 'the address of a visited page is stored');
@@ -53,7 +53,7 @@ test('a site that passes you along is cleaned by itself, but not one you also op
   await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), []); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['hid']);   // the tag: a question, never by itself (F2)
   bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
-  await bg.visit('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
+  await bg.opens('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['hid']);   // the tag: a question, never by itself (F2)
 });
 test('fresh install, a sign-in page in front: nothing is deleted or stopped', async () => {

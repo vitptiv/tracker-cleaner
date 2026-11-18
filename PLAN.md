@@ -795,3 +795,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   cookie as "comes from a tracker's site".
 - F4 an update from before 1.25 made an install with cleaning on automatic without a word. It still does (the owner's
   decision), and the popup now says so once: "New in 1.25: ...", with where to set it back; stored modes are kept.
+- F5 `mine` (sites opened as pages): the 2000 opened last, refreshed on a revisit, hashed with a random value of this
+  install (`salt`), emptied by "Clear history"; a page counts only when its tab is still on that site 3 seconds later.
+  For sign-ins older than the list: a stop, the sweeps after it and the cleaning of a passing site never delete a
+  cookie that looks like a sign-in (HttpOnly and Secure, or a `KEEP_RE` name) of a company on no built-in list.

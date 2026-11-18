@@ -14,7 +14,7 @@ const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCor
 // cacheClearedAt, log, allow, always, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
-  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params', 'mine']), now = Date.now();
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params', 'mine', 'salt']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
   if (mayRun('C19', set) !== 'run') hold.guard = false;
   // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
@@ -50,10 +50,12 @@ const spared = (c, cx, noBlack) => {
   if (r !== 'blacklist' && (cx.set.allow || []).some((a) => a.site === bare(c.domain) && a.name === c.name)) return null;
   return r === 'host' && (firstParty(c, cx.hosts) || usedSite(c, cx)) ? null : r;
 };
-// a cookie of a company that was stopped here (on no built-in list) whose site the user opens as a page: the user may be
-// signed in there, so no sweep and no cookie event deletes it; the company is only blocked on other sites
+// a cookie of a company that was stopped here (on no built-in list) whose site the user opens as a page, or one that
+// looks like a sign-in (the user may have signed in there before this list existed): no sweep and no cookie event
+// deletes it; the company is only blocked on other sites
+const signinLike = (c) => KEEP_RE.test(c.name) || (c.httpOnly === true && c.secure === true);
 const usedSite = (c, cx) => { const h = realHost(c.domain), s = (cx.set.stopped || []).find((x) => under(h, x));
-  return !!s && !DOMAINS.some((d) => under(h, d)) && (cx.set.mine || []).includes(mark(s)); };
+  return !!s && !DOMAINS.some((d) => under(h, d)) && (signinLike(c) || visited(cx, s)); };
 // [reason, verdict] for a cookie. A blacklisted cookie whose capability only asks is still deleted when
 // another rule that runs wants it gone (a tracker name, allow-list mode); otherwise it waits in the queue.
 // Loop breaker (loop.js): a cookie that would be removed, but that its site has put back LOOP_N times in a row, is not
@@ -278,7 +280,7 @@ const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local
   restoreAll: () => restore(() => true), drop,
   // the private history, for the extension's own page; "Clear history" empties it
   history: async () => ({ ok: true, ...historyTrim((await chrome.storage.local.get('history')).history, Date.now()) }),
-  clearHistory: async () => { await serial(() => chrome.storage.local.remove('history')); return { ok: true }; } };
+  clearHistory: async () => { await serial(() => chrome.storage.local.remove(['history', 'mine'])); return { ok: true }; } };
 
 // ---- Drop (the audit view's buttons, popup-audit.js): one item now, because the user said so. Through here so
 // that pause and the master switch hold it back, it is in the action log, and a cookie can be undone.
@@ -443,15 +445,23 @@ async function notNow(m) {
   await sweep('settings');
   return { ok: true };
 }
-// Sites the user opens as pages themselves (a short hash each, never the name; at most MINE_MAX). The user may be signed
-// in there, so nothing automatic deletes such a site's cookies or empties what it saved: it is only blocked elsewhere.
-const MINE_MAX = 500, visited = (cx, site) => (cx.set.mine || []).includes(mark(site));
+// Sites the user opens as pages themselves: a short hash each, made with a random value of this install (`salt`), never
+// the name; the MINE_MAX opened last, emptied by "Clear history". The user may be signed in there, so nothing
+// automatic deletes such a site's cookies or empties what it saved: it is only blocked elsewhere. A page counts when
+// its tab is still on that site MINE_WAIT_MS later: one that passes the browser straight on cannot put itself here.
+const MINE_MAX = 2000, MINE_WAIT_MS = 3000;
+function visited(cx, site) { return !!cx.set.salt && (cx.set.mine || []).includes(mark(`${cx.set.salt} ${site}`)); }
 async function notePage(d) {
-  if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300)) return;
+  if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300) || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
-  const m = mark(siteOf(u.hostname));
-  if (/^https?:$/.test(u.protocol)) await serial(async () => { const { mine = [] } = await chrome.storage.local.get('mine');
-    if (!mine.includes(m)) await chrome.storage.local.set({ mine: [...mine, m].slice(-MINE_MAX) }); });
+  const site = siteOf(u.hostname);
+  if (/^https?:$/.test(u.protocol)) setTimeout(async () => {
+    const tab = await chrome.tabs.get(d.tabId).catch(() => null);
+    if (!tab || siteOf(hostOf(tab.url)) !== site) return;
+    await serial(async () => { let { mine = [], salt } = await chrome.storage.local.get(['mine', 'salt']);
+      if (!salt) salt = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('');
+      const m = mark(`${salt} ${site}`);
+      if (mine.at(-1) !== m) await chrome.storage.local.set({ salt, mine: [...mine.filter((x) => x !== m), m].slice(-MINE_MAX) }); }); }, MINE_WAIT_MS);
 }
 try { chrome.webRequest.onCompleted.addListener((d) => { notePage(d); }, { urls: ['<all_urls>'], types: ['main_frame'] }); } catch {}
 const signInCompany = (site) => site === 'github.com' || isGoogleHost(site) || NEEDED.includes(site) || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
@@ -497,7 +507,7 @@ async function stopTracker(site, keep) {
   if (!stopped.includes(site)) { if (stopped.length >= STOPPED_MAX) return false; await chrome.storage.local.set({ stopped: [...stopped, site] }); }
   await refreshBlacklist();
   const cx = await context(), gone = [];
-  if (!keep) for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
+  if (!keep) for (const c of await allCookies()) if (under(bare(c.domain), site) && !signinLike(c) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
   await logged(gone, 'removed');
   // a saved copy can carry the ID and bring it back: the saved copies go with the stop
   // (clearing them for the tracker's addresses alone was tried in a real Chrome: it leaves the compiled copy of its script and the remembered server)
@@ -547,7 +557,7 @@ async function bounceSweep(cx, wait) {
 async function cleanBounce(site) {
   const e = ((await chrome.storage.local.get('bounce')).bounce || {})[site], gone = [];
   if (!e) return false;
-  for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name });
+  for (const c of await allCookies()) if (under(bare(c.domain), site) && !signinLike(c) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name });
   await dropStorage(e.hosts);
   await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce'); if (bounce[site]) { bounce[site].done = bounce[site].n; await chrome.storage.local.set({ bounce }); } });
   await logged(gone, 'removed');
