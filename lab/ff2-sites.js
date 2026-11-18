@@ -20,7 +20,14 @@ function pages(c) {
   const { site, url, lab } = c, p = url.pathname;
   // a hand-off link names the destination only in data attributes; the kit fills the real cross-site href at run time
   // (with the master id under a rotating param, F2-3), so the static HTML names no other host.
-  const out = (id, to, dest, label) => `<p><a id="${id}" class="ff2-out" data-ff2to="${to}" data-ff2p="${dest}" href="#">${label}</a></p>`;
+  const out = (id, to, dest, label, meta) => `<p><a id="${id}" class="ff2-out" data-ff2to="${to}" data-ff2p="${dest}"${meta ? ' data-ff2meta="1"' : ''} href="#">${label}</a></p>`;
+  // the meta-refresh hand-off page (F2-4): no HTTP 302, no script click; the onward address carries the id
+  if (p === '/hop') { const to = url.searchParams.get('to') || '', dest = url.searchParams.get('p') || '/', mid = url.searchParams.get('m') || '', name = url.searchParams.get('n') || 'r';
+    if (!SITES2[to]) return false;
+    const onward = `http://${to}.localhost:${lab.port}${dest}?${name}=${encodeURIComponent(mid)}`;
+    if (mid) { c.store.record(['ff2m:' + mid, 'ff2chain:' + c.host], 'F4', `${c.host} to ${onward.split('?')[0]}`, c.host, 'meta-refresh hand-off, no HTTP redirect');
+      c.store.record(['ff2m:' + mid], 'F5', `click to ${to}.localhost`, c.host, 'the click recorded first-party before the meta jump'); }
+    return page(site, 'Taking you on', `<p>Taking you to ${esc(SITES2[to])}…</p>`, `<meta http-equiv="refresh" content="0;url=${esc(onward)}">`); }
   if (site === 'ledger') {
     if (p === '/') return page(site, 'Your budgets', `<p><a id="go-budget" href="/budget">Open this month’s budget</a></p>`);
     if (p === '/budget') return page(site, 'October budget', `${filler(3)}${out('to-sundial', 'sundial', '/forecast', 'See the weather for your trips')}`);
@@ -31,7 +38,7 @@ function pages(c) {
   }
   if (site === 'atlas') {
     if (p === '/') return page(site, 'Local guide', `<p><a id="go-guide" href="/guide">Places near you</a></p>`);
-    if (p === '/guide') return page(site, 'Places near you', `${filler(3)}${out('to-ledger', 'ledger', '/budget', 'Back to your budget')}`);
+    if (p === '/guide') return page(site, 'Places near you', `${filler(3)}${out('to-ledger', 'ledger', '/budget', 'Back to your budget', true)}`);
   }
   return false;
 }

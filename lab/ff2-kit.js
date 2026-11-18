@@ -8,8 +8,9 @@
   // the URL chain (F2-3): put the master id on each outgoing hand-off link under a rotating ordinary-looking name,
   // a different one per link, so no single parameter name is a tell and the shipped strip list never matches.
   window.ff2chain = (mid) => { let i = Number(sessionStorage.getItem('ff2_hop') || '0');
-    for (const a of document.querySelectorAll('a.ff2-out[data-ff2to]')) { const name = CHAIN[i++ % CHAIN.length];
-      a.href = `http://${a.dataset.ff2to}.localhost:${PORT}${a.dataset.ff2p}?${name}=${encodeURIComponent(mid)}`; }
+    for (const a of document.querySelectorAll('a.ff2-out[data-ff2to]')) { const name = CHAIN[i++ % CHAIN.length], dest = `${a.dataset.ff2p}?${name}=${encodeURIComponent(mid)}`;
+      // a meta-refresh hand-off goes to this site's own /hop first (F2-4); a direct one points at the destination
+      a.href = a.dataset.ff2meta ? `/hop?to=${a.dataset.ff2to}&p=${encodeURIComponent(a.dataset.ff2p)}&m=${encodeURIComponent(mid)}&n=${name}` : `http://${a.dataset.ff2to}.localhost:${PORT}${dest}`; }
     sessionStorage.setItem('ff2_hop', String(i)); };
   const idb = (write) => new Promise((done) => { const o = indexedDB.open('ff2', 1);
     o.onupgradeneeded = () => o.result.createObjectStore('kv'); o.onerror = () => done('');
@@ -35,6 +36,8 @@
     PROBE && fetch('/f/probe?ports=' + PROBE + '&m=' + encodeURIComponent(mid), { credentials: 'include' }).catch(() => {});
     // the URL chain (F2-3): carry the id on every outgoing hand-off link under a rotating ordinary-looking name
     if (typeof window.ff2chain === 'function') window.ff2chain(mid);
+    // the scripted hand-off (F2-4): record the click first-party and move on by script, not an HTTP redirect
+    if (typeof window.ff2handoff === 'function') window.ff2handoff(mid);
     window.ff2mid = mid;
   })();
 })();

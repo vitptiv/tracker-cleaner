@@ -1222,3 +1222,8 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   per hop. The landing site's server reads whichever name is present, rebuilds the id (F3), joins the browser and
   seeds the page so its kit adopts it. C23 strips only its shipped names; a novel name is never touched. Tested in
   `test/ff2-chain.test.js`.
+- F2-4 scripted hand-off (`lab/ff2-handoff.js`; `/hop` meta route in `ff2-sites.js`, `/f/hop` in `ff2-server.js`):
+  the browser is passed between sites by `location.assign` or a `<meta refresh>`, never an HTTP 302, and the click is
+  recorded first-party (F5) before the jump. background.js `noteRedirect` listens on `onBeforeRedirect` only, so it
+  never fires; `skip.js` and the bounce question never engage; there is no `ping` attribute for `no-ping.js`. The
+  from->to redirect log still fills (F4). Tested in `test/ff2-handoff.test.js`.

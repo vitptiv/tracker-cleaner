@@ -31,7 +31,8 @@ function start2({ port = 8300, logFile } = {}) {
   fetch('/f/hit?u=' + u + '&r=' + r, { credentials: 'include', keepalive: true }).catch(() => {});
   new Image().src = '/f/px.gif?t=' + Date.now();
   fetch('/f/probe?ports=__PROBE__', { credentials: 'include' }).catch(() => {}); })();`;
-  try { kitJs = require('fs').readFileSync(require('path').join(__dirname, 'ff2-kit.js'), 'utf8'); } catch {}
+  try { const rd = (f) => { try { return require('fs').readFileSync(require('path').join(__dirname, f), 'utf8'); } catch { return ''; } };
+    kitJs = [rd('ff2-fp.js'), rd('ff2-handoff.js'), rd('ff2-kit.js')].filter(Boolean).join('\n'); } catch {}
   const kitFor = () => kitJs.replace('__PROBE__', lab.probe.join(',')).replace('__PORT__', String(port)).replace('__CHAIN__', JSON.stringify(CHAIN));
 
   // ---- the collector (its own loopback port). Every request reaches it reverse-proxied from a site's own /f/ path,
@@ -57,6 +58,10 @@ function start2({ port = 8300, logFile } = {}) {
       if (asked === tag) { store.record(ids, 'F10', `ETag ${tag} on the site’s own image`, host, 'the browser revalidated the first-party image with If-None-Match');
         return c.send(304, 'image/gif', '', { ETag: tag, 'Cache-Control': 'private, no-cache' }); }
       setId(); return c.send(200, 'image/gif', GIF, { ETag: tag, 'Cache-Control': 'private, no-cache' }); }
+    if (p === '/f/hop') { const b = c.body || {}, to = String(b.to || ''), toSite = siteOf(new URL(to, 'http://x').hostname);
+      store.record(ids, 'F4', `${b.from || host} to ${to.split('?')[0]}`, host, 'scripted navigation, no HTTP redirect');
+      store.record(ids, 'F5', `click to ${toSite}`, host, 'the click recorded first-party before the scripted jump');
+      return c.json({ ok: true }); }
     if (p === '/f/probe') { const want = c.p('ports').split(',').map(Number).filter(Boolean).slice(0, 4);
       const got = await Promise.all(want.map(async (n) => [n, await probePort(n)]));
       store.record(ids, 'F9', ['open', 'closed'].map((s) => `${s}: ${got.filter((x) => x[1] === s).map((x) => x[0]).join(' ') || 'none'}`).join('; '), host, 'the page asked its own site; the site probed loopback');
