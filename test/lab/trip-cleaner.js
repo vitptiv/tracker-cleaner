@@ -3,7 +3,7 @@
 // extension/ loaded, in several settings. It measures only: nothing here demands "cleaned". The table goes to
 // lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A B0 B C]
 const fs = require('node:fs'), path = require('node:path');
-const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline } = require('./count');
+const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline, simulatedOnly } = require('./count');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
@@ -90,6 +90,9 @@ async function run(name, set, cert, flags, chance = {}) {
     const matched = await E.b.popup.ev(`chrome.declarativeNetRequest.getMatchedRules({}).then((r) => r.rulesMatchedInfo.map((x) => x.rule.rulesetId + ':' + x.rule.ruleId))`).catch(() => []);
     out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], cutOff: ext.params || [], removed: ext.log.filter((l) => l.did === 'removed').length,
       waiting: Object.fromEntries(ext.groups.filter((g) => g.pending).map((g) => [g.id, g.pending])), blockRuleMatches: matched.filter((m) => m.endsWith(':9001')).length, tagRuleMatches: matched.filter((m) => m.endsWith(':9002') || m.startsWith('url-params')).length };
+    // S15: what Chrome's real notification setting for the network's site is, read from the extension's side (declared in `simulated`)
+    const setting = await E.b.popup.ev(`chrome.contentSettings.notifications.get({ primaryUrl: ${JSON.stringify(E.at('friendface'))} }).then((d) => d.setting)`).catch(() => null);
+    out.extension.notificationSetting = setting;
     const dir = E.b.dir; await E.b.close(true); E.b = null; const files = outside(dir, PORT); fs.rmSync(dir, { recursive: true, force: true });
 
     // ---- one verdict per row
@@ -111,6 +114,8 @@ async function run(name, set, cert, flags, chance = {}) {
       row.atEnd = atEnd({ outside: OUTSIDE.includes(id), onDisk: !!files[id], second: set.manual && REVISITED.includes(id), after: after.some((r) => linked.has(r)), lastStep: row.lastStep, lastChance: chance[id] });
       if (set.manual) { row.duringTrip = trip.some((r) => linked.has(r)) ? 'tracked' : trip.length ? 'unlinked' : 'stopped'; row.sameIdAfterCleaning = after.some((r) => trip.some((x) => x.value === r.value));
         if (!REVISITED.includes(id) && !OUTSIDE.includes(id)) row.note = 'not repeated after cleaning: what was sent during the trip stays sent'; }
+      row.ever = status === 'tracked';
+      if (simulatedOnly({ id, atEnd: row.atEnd, setting })) { row.atEnd = false; row.simulatedOnly = true; row.status = 'stopped (real setting blocked; the lab\'s simulated Allow overrides it)'; }
       if (status === 'stopped' && !row.atEnd) continue;
       const caps = COVER[id], fired = firedAt(id), last = Math.max(0, ...fired);
       const blockSeen = caps.includes('C01') && out.extension.blockRuleMatches > 0;
@@ -129,7 +134,8 @@ async function run(name, set, cert, flags, chance = {}) {
       if (SAID[id]) row.cause += `; the report says "Tracker Cleaner ${SAID[id]} this"`;
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
-    out.counts.ever = out.counts.tracked; out.counts.atEnd = Object.values(out.rows).filter((r) => r.atEnd).length;
+    out.counts.ever = Object.values(out.rows).filter((r) => r.ever).length; out.counts.atEnd = Object.values(out.rows).filter((r) => r.atEnd).length;
+    out.counts.simulated = Object.keys(out.rows).filter((id) => out.rows[id].simulatedOnly);
     out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep > RESTART).length;   // the steps after the restart open the same sites again
     return out;
   } finally { if (E.b) await E.b.close(); await lab.close(); }
@@ -148,7 +154,7 @@ async function run(name, set, cert, flags, chance = {}) {
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
     testOnlyEntries: { how: 'B and C only, alive only while the script runs; no shipped file is edited', sessionRules: RULES, alwaysDeleteList: ALWAYS,
       notAdded: 'DOMAINS (cookies judged by tracker host) is a constant inside lists.js, so the always-delete list by cookie name stands in for it. Permanent storage and permission drops come only from the settings program on port 8088, which is not running and is not imitated: in C they are done by hand instead.' },
-    simulated: SIMULATED.guard, automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
+    simulated: SIMULATED.guard, simulatedRows: { T22: 'the lab\'s Allow is a grant over the control channel and overrides every setting, so the lab reads "granted" whatever the cleaner does. When Chrome\'s real setting for that site (contentSettings, read from the extension at the end) is "block", T22 is not counted at the end and is listed in counts.simulated' }, automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
   for (const n of names) { result.runs[n] = await run(n, SETTINGS[n], cert, flags, chance); console.log(''); }
   const cell = (r) => r.status === 'not built' ? '-' : (r.atEnd ? 'AT END ' : '') + r.status + (r.cause ? `: ${r.cause}` : '');
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);

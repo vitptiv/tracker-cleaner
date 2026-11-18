@@ -825,3 +825,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   History file, most of them pages of the sites she visited, which this must not touch. Carried over into this
   commit: at 300 stopped companies the popup says new ones are not stopped; the report words a kept cookie of a
   stopped company as kept.
+- S15 T22 told as it is (measuring side only): at the end `trip-cleaner.js` asks Chrome, from the extension's side,
+  for the real notification setting of the network's site. If it is "block", T22 is not counted at the end, gets the
+  status "stopped (real setting blocked; the lab's simulated Allow overrides it)", and is named in
+  `counts.simulated` and in the headline. `walk.js` and the lab are untouched.

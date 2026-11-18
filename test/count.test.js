@@ -31,3 +31,11 @@ test('F9: the headline is the fresh install (A), both counts always written; B0 
   assert.equal(headline(runs), 'A (fresh install, nothing changed): 7 at the end, 28 ever, of 36. B0 (every group forced to Automatic): 6 at the end, 27 ever. C: 5 at the end, 7 ever.');
   assert.equal(headline({ B0: runs.B0 }), 'A was not run. B0 (every group forced to Automatic): 6 at the end, 27 ever.');
 });
+test('S15: a notification right that Chrome really has blocked, but that the lab keeps seeing through its simulated Allow, is listed apart and never folded in', () => {
+  const { simulatedOnly, headline } = require('./lab/count');
+  assert.equal(simulatedOnly({ id: 'T22', atEnd: true, setting: 'block' }), true);
+  for (const o of [{ id: 'T22', atEnd: true, setting: 'allow' }, { id: 'T22', atEnd: true, setting: 'ask' }, { id: 'T22', atEnd: true, setting: null }, { id: 'T22', atEnd: false, setting: 'block' }, { id: 'T19', atEnd: true, setting: 'block' }])
+    assert.equal(simulatedOnly(o), false, JSON.stringify(o));
+  assert.equal(headline({ A: { counts: { atEnd: 6, ever: 28, simulated: ['T22'] } } }),
+    "A (fresh install, nothing changed): 6 at the end, 28 ever, of 36; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked).");
+});
