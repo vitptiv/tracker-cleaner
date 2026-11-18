@@ -420,7 +420,7 @@ async function sweepOnce(cause) {
   for (const c of all) { const [r, v, why] = judge(c, cx);
     if (v === 'run') { if (await remove(c, r !== 'blacklist')) { removed.push(`${realHost(c.domain)} ${c.name}`); gone.push(cookieItem(c, r)); } }
     else if (waits(v)) wait.push(cookieItem(c, r, v, why)); }
-  await logged(gone, 'removed'); await copiesOf(gone.filter((it) => it.cap === 'C03').map((it) => it.site), cx);
+  await logged(gone, 'removed'); await copiesOf(gone.filter((it) => it.cap === 'C03' && isTrackerHost(realHost(it.site))).map((it) => it.site), cx);
   const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
@@ -681,8 +681,9 @@ async function applyPermanentDrops(cx, wait) {
 // State); cookies and logins are untouched. Local since 1.21, no 8088 server involved: offered (ask) or done
 // (auto) at most once in 24 hours, counted from cacheClearedAt in storage.
 const CACHE_MS = 24 * 3600e3;
-// A saved copy can carry an ID and bring a deleted cookie back: when a tracker's cookie is deleted, the saved copies of
-// that site go too, at most once an hour per site (kept in memory only).
+// A saved copy can carry an ID and bring a deleted cookie back: when a cookie is deleted because it sits on a tracker's
+// own address (listed or stopped), the saved copies of that address go too, at most once an hour (kept in memory only).
+// Never for a site the user visits that merely carries a cookie with a tracker's name.
 const copiesAt = new Map();
 async function copiesOf(hosts, cx) {
   const now = Date.now(), due = [...new Set(hosts)].filter((h) => !(copiesAt.get(h) > now - 3600e3));
@@ -720,7 +721,7 @@ chrome.cookies.onChanged.addListener(async ({ removed, cookie }) => {
   const item = { ...cookieItem(cookie, r, v, why), page: tab ? hostOf(tab.url || tab.pendingUrl) : '' };
   if (waits(v)) return queueUp([item]);
   if (v === 'run' && await remove(cookie, r !== 'blacklist')) {
-    logged([item], 'removed'); if (item.cap === 'C03') copiesOf([item.site], cx);
+    logged([item], 'removed'); if (item.cap === 'C03' && isTrackerHost(realHost(item.site))) copiesOf([item.site], cx);
     pending.push(`${realHost(cookie.domain)} ${cookie.name}`);
     clearTimeout(timer); timer = setTimeout(() => { const r = pending; pending = []; report({ reason: 'live', removed: r }); }, 5000);
   }

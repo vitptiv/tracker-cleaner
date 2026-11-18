@@ -61,12 +61,16 @@ test('fresh install, a sign-in page in front: nothing is deleted or stopped', as
   await three(bg);
   assert.deepEqual(bg.destructive(), []); assert.equal(rule(bg), undefined);
 });
-test("when a tracker's cookie is deleted, the saved copies of that site go too, at most once an hour per site", async () => {
+test("F7: saved copies are cleared per site only for a tracker's own address, never for the site you visit that merely carries a tracker's cookie", async () => {
   const bg = await fresh();
   const copies = () => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].origins).map((c) => c.args[0].origins.join());
   await bg.setCookie({ url: 'https://www.example.com/', domain: '.example.com', name: '_ga', value: 'GA1.2.3' });
-  await bg.setCookie({ url: 'https://www.example.com/', domain: '.example.com', name: '_ga', value: 'GA1.2.4' });
-  assert.deepEqual(copies(), ['https://example.com,http://example.com']);
-  bg.now += 61 * 60e3; await bg.setCookie({ url: 'https://www.example.com/', domain: '.example.com', name: '_ga', value: 'GA1.2.5' });
+  assert.deepEqual(await bg.names(), []); assert.deepEqual(copies(), [], 'the visited site lost its saved copies');
+  await bg.setCookie({ url: 'https://ad.doubleclick.net/', domain: '.doubleclick.net', name: 'IDE', value: 'x1' });
+  await bg.setCookie({ url: 'https://ad.doubleclick.net/', domain: '.doubleclick.net', name: 'IDE', value: 'x2' });
+  assert.deepEqual(copies(), ['https://doubleclick.net,http://doubleclick.net']);
+  bg.now += 61 * 60e3; await bg.setCookie({ url: 'https://ad.doubleclick.net/', domain: '.doubleclick.net', name: 'IDE', value: 'x3' });
+  assert.equal(copies().length, 2);
+  await bg.setCookie({ url: 'https://www.example.com/', domain: '.example.com', name: '_ga', value: 'GA1.2.4' }); await bg.alarm('sweep');
   assert.equal(copies().length, 2);
 });

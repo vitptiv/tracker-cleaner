@@ -803,3 +803,5 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   cleaning off without a word. Now it is asked only while that row is on (default off); switching the row off takes
   its switches and lists away at once; while it has something switched off the popup says which, in one line. The
   cookie blacklist, tab limit and permanent drops it supplies therefore need that row on.
+- F7 the per-site clearing of saved copies also hit the visited site that merely carried a cookie with a tracker's
+  name (`_ga` on the site itself), hourly. Now only when the deleted cookie sits on a tracker's own address.
