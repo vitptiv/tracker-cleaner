@@ -1,11 +1,11 @@
 // S8: a page may not ask this computer or the home network (net-rules.js LOCAL_RE, one block rule, its own row).
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const { NET_BASE, LOCAL_RES, netRules } = require('../extension/net-rules.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
-const local = (bg) => bg.state.dynamic.find((r) => r.id === NET_BASE + 10);
+const local = (bg) => bg.state.dynamic.find((r) => r.id === NET_BASE + 20);
 
 test('S8: this computer and the home network by address, the whole host and nothing that only looks like it', () => {
   const rules = netRules({ local: true, self: 'abcdefghijklmnopabcdefghijklmnop' }), [r] = rules, re = { test: (u) => LOCAL_RES.some((x) => new RegExp(x, 'i').test(u)) };
-  assert.deepEqual(rules.slice(0, LOCAL_RES.length).map((x) => [x.id, x.action.type, x.condition.domainType, x.condition.regexFilter]), LOCAL_RES.map((x, i) => [NET_BASE + 10 + i, 'block', 'thirdParty', x]));
+  assert.deepEqual(rules.slice(0, LOCAL_RES.length).map((x) => [x.id, x.action.type, x.condition.domainType, x.condition.regexFilter]), LOCAL_RES.map((x, i) => [NET_BASE + 20 + i, 'block', 'thirdParty', x]));
   for (const x of LOCAL_RES) assert.ok(x.length < 160, 'a pattern Chrome may refuse for its size: ' + x);
   assert.deepEqual(r.condition.excludedInitiatorDomains, ['abcdefghijklmnopabcdefghijklmnop']); assert.equal(r.condition.resourceTypes.includes('main_frame'), false);
   for (const u of ['http://localhost/', 'http://localhost:8080/x', 'https://127.0.0.1:8443/', 'http://127.1.2.3', 'ws://127.0.0.1:9222/devtools', 'wss://localhost:1/', 'http://10.0.0.1/', 'http://172.16.0.1/', 'http://172.31.255.255:81/a',
@@ -29,8 +29,8 @@ test('its own row, on by default; what the extension itself asks is no page\'s r
 });
 test('one rule Chrome refuses does not take the other rules down', async () => {
   const bg = await load({ storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'] } });
-  bg.refuse = (r) => r.id === NET_BASE + 12; await bg.send({ type: 'setMode', group: 'local', mode: 'off' }); await bg.send({ type: 'setMode', group: 'local', mode: 'auto' }); await bg.settle();
+  bg.refuse = (r) => r.id === NET_BASE + 22; await bg.send({ type: 'setMode', group: 'local', mode: 'off' }); await bg.send({ type: 'setMode', group: 'local', mode: 'auto' }); await bg.settle();
   const ids = bg.state.dynamic.map((r) => r.id);
-  assert.equal(ids.includes(NET_BASE + 12), false);
-  for (const id of [100001, 100003, NET_BASE + 10, NET_BASE + 11, NET_BASE + 13]) assert.ok(ids.includes(id), 'missing rule ' + id);
+  assert.equal(ids.includes(NET_BASE + 22), false);
+  for (const id of [100001, 100003, NET_BASE + 20, NET_BASE + 21, NET_BASE + 23]) assert.ok(ids.includes(id), 'missing rule ' + id);
 });

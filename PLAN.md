@@ -1077,3 +1077,10 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   around a block or a clean-out shares one budget of once an hour (`softClearAt`; ten clean-outs caused ten
   clearings), the daily clearing and "Clean now" apart; a page reached by a number instead of a name is never put
   on the list of sites the user opens (`mine`).
+- J7 local-network rule: the same patterns now also stop a form posted (POST, PUT, PATCH, DELETE as a page change)
+  from a page of another site to a private target; following a plain link there stays possible. Added patterns: a
+  name of one word (router, nas), names ending in .home and .corp, easy.box, an IPv4 address written the two old
+  IPv6 ways ([::7f00:1], [::ffff:...]), fec0::/10 (with fe80::/10: everything from fe80 to feff), 198.18.0.0/15.
+  Eleven patterns and one for names under localhost, each as two rules; all 22 were accepted by a real Chrome.
+  What remains: a public name that resolves to a private address; a plain link or a form sent with GET to a
+  private target; a public IPv6 address of a device at home; requests a page makes from inside a private page.

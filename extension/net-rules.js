@@ -10,7 +10,7 @@
 // as whole names (a name and its subdomains), never as part of a longer name.
 // guardTabs: the tabs a sign-in is going on in; there the header rules do not apply. Only a session rule can name
 // tabs, so background.js installs the header rules as session rules (again at every start) and the local ones as dynamic.
-const NET_BASE = 100010;   // rule ids: NET_BASE .. NET_BASE + 9 the header rules (session rules), NET_BASE + 10 .. + 19 the local network (dynamic rules)
+const NET_BASE = 100010;   // rule ids: NET_BASE .. NET_BASE + 9 the header rules (session rules); the local network (dynamic rules): NET_BASE + 20 .. what pages ask, NET_BASE + 50 .. forms they post
 const NET_TYPES = ['sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other'];
 // Google's hosts for sign-in and for services pages embed with a key that is checked against the referring page. Not all
 // of googleapis.com: storage.googleapis.com serves anyone's files.
@@ -29,11 +29,14 @@ const FAMILIES = [['google.com', ...GOOGLE_CC, 'youtube.com', 'youtube-nocookie.
 // Chrome allows a pattern only 2 KB when compiled (the whole list in one was refused), so there is one short pattern per range.
 const local = (hosts) => `^(https?|wss?)://([^/?#@]*@)?(${hosts})\\.?(:[0-9]+)?([/?#]|$)`, N = '\\.[0-9]+';
 const LOCAL_RES = [local('localhost|0\\.0\\.0\\.0'), local(`127${N}${N}${N}`), local(`10${N}${N}${N}`), local(`172\\.(1[6-9]|2[0-9]|3[01])${N}${N}`), local(`192\\.168${N}${N}|169\\.254${N}${N}`),
-  local('\\[(::|::1|::ffff:[0-9a-f:.]+|f[cd][0-9a-f][0-9a-f]:[0-9a-f:]*|fe[89ab][0-9a-f]:[0-9a-f:]*)\\]'),
-  local(`100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])${N}${N}`)];   // 100.64 to 100.127: the range providers share out to home routers
+  local('\\[(::|::1|::ffff:[0-9a-f:.]+|::[0-9a-f]+:[0-9a-f]+)\\]'),   // the unspecified and loopback addresses, and an IPv4 address written the two old ways
+  local('\\[(f[cd][0-9a-f][0-9a-f]|fe[89a-f][0-9a-f]):[0-9a-f:]*\\]'),   // fc00::/7 private, fe80::/10 link-local, fec0::/10 site-local
+  local(`100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])${N}${N}|198\\.1[89]${N}${N}`)];   // 100.64 to 100.127: shared out to home routers; 198.18 and 198.19: test networks
 // Names that only exist inside a home or office network (H5): anything ending in .local, .lan, .internal or .home.arpa,
 // and fritz.box; and LOCAL_SUB, a name under localhost, which is blocked only for a page that is not itself under localhost.
-const LABELS = '([a-z0-9_-]+\\.)', LOCAL_NAMES = local(`${LABELS}+(local|lan|internal|home\\.arpa)|${LABELS}*fritz\\.box`), LOCAL_SUB = local(`${LABELS}+localhost`);
+// J7: also .home and .corp, easy.box, and a name of one word ("router", "nas"): such a name exists only inside a network.
+const LABELS = '([a-z0-9_-]+\\.)', LOCAL_NAMES = local(`${LABELS}+(local|lan|internal|home\\.arpa|home|corp)|${LABELS}*(fritz|easy)\\.box`), LOCAL_ONE = local('[a-z0-9_-]+'), LOCAL_SUB = local(`${LABELS}+localhost`);
+const LOCAL_ALL = [...LOCAL_RES, LOCAL_NAMES, LOCAL_ONE];
 // self: this extension's own id: what it asks itself (the settings program, Tor's port) is no page's request
 const netRules = ({ cookies, tags, local, exempt = [], self, guardTabs = [] }) => {
   const tabs = [...new Set(guardTabs)].slice(0, 100);
@@ -47,7 +50,9 @@ const netRules = ({ cookies, tags, local, exempt = [], self, guardTabs = [] }) =
   return [...(!head(main).length ? [] : conds.map((c, i) => strip(NET_BASE + i, main, answer, NET_TYPES, c))),
     // the referring page: not for an embedded frame (video players and maps check where they are shown)
     ...(!tags ? [] : conds.map((c, i) => strip(NET_BASE + conds.length + i, ['referer'], [], NET_TYPES.filter((t) => t !== 'sub_frame'), c))),
-    ...(!local ? [] : [...LOCAL_RES, LOCAL_NAMES, LOCAL_SUB].map((regexFilter, i) => ({ id: NET_BASE + 10 + i, priority: 1, action: { type: 'block' },
-      condition: { regexFilter, domainType: 'thirdParty', resourceTypes: NET_TYPES, excludedInitiatorDomains: [...(self ? [self] : []), ...(regexFilter === LOCAL_SUB ? ['localhost'] : [])] } })))];
+    // local: what a page of another site asks of a private target; and (J7) a form it posts there, which is a page change with a
+    // method that sends something. Following a plain link to a private target stays possible.
+    ...(!local ? [] : [[NET_TYPES, 20, {}], [['main_frame'], 50, { requestMethods: ['post', 'put', 'patch', 'delete'] }]].flatMap(([types, base, more]) => [...LOCAL_ALL, LOCAL_SUB].map((regexFilter, i) => ({ id: NET_BASE + base + i, priority: 1, action: { type: 'block' },
+      condition: { regexFilter, domainType: 'thirdParty', resourceTypes: types, ...more, excludedInitiatorDomains: [...(self ? [self] : []), ...(regexFilter === LOCAL_SUB ? ['localhost'] : [])] } }))))];
 };
-if (typeof module !== 'undefined') module.exports = { NET_BASE, NET_TYPES, FAMILIES, GOOGLE_APIS, LOCAL_RES, LOCAL_NAMES, LOCAL_SUB, netRules };
+if (typeof module !== 'undefined') module.exports = { NET_BASE, NET_TYPES, FAMILIES, GOOGLE_APIS, LOCAL_RES, LOCAL_NAMES, LOCAL_ONE, LOCAL_ALL, LOCAL_SUB, netRules };

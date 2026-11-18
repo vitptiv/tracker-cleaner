@@ -20,7 +20,7 @@ test('the rules: names are blocked for a page of another site; a name under loca
   const re = new RegExp(loc.condition.regexFilter, 'i');
   for (const u of ['http://app.localhost/', 'http://a.b.localhost:3000/x']) assert.ok(re.test(u), u);
   for (const u of ['http://localhost/', 'http://app.localhost.evil.test/', 'http://notlocalhost/', 'http://evil.test/app.localhost']) assert.equal(re.test(u), false, u);
-  assert.equal(new Set(rules.map((r) => r.id)).size, rules.length); assert.ok(rules.every((r) => r.id >= NET_BASE + 10 && r.id < NET_BASE + 20 && r.condition.regexFilter.length < 170));
+  assert.equal(new Set(rules.map((r) => r.id)).size, rules.length); assert.ok(rules.every((r) => r.id >= NET_BASE + 20 && r.id < NET_BASE + 80 && r.condition.regexFilter.length < 170));
 });
 test('said in the report: a name that leads to a device at home cannot be stopped', () => {
   const c = buildReport({ now: 1, groups: [] }, null).cannot.find((x) => /name that leads to/.test(x.what));

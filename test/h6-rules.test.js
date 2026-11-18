@@ -17,7 +17,7 @@ test('a header rule Chrome refuses: the others are installed, and the popup name
   assert.equal((await bg.send({ type: 'state' })).notWorking, undefined);
 });
 test('the same for the other rules: a refused local-network rule or stop rule is named', async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'] } })); bg.refuse = (r) => r.id === NET_BASE + 12 || r.id === 100001;
+  const bg = await load(on({ storage: { stopped: ['trk.example'] } })); bg.refuse = (r) => r.id === NET_BASE + 22 || r.id === 100001;
   await bg.send({ type: 'setMode', group: 'local', mode: 'off' }); await bg.send({ type: 'setMode', group: 'local', mode: 'auto' }); await bg.settle();
   assert.deepEqual((await bg.send({ type: 'state' })).notWorking.sort(), ['Pages may not call this computer', 'Stopped trackers are blocked']);
 });
