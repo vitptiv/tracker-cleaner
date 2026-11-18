@@ -42,3 +42,9 @@ test('when the extension itself is loaded again (an update): the wake-up set bef
   const none = await load(on()); await none.chrome.runtime.onInstalled.fire({ reason: 'update' }); await none.settle();
   assert.equal(clears(none), 0);
 });
+test('a block this extension set can be gone when Chrome starts or the extension is loaded again: it is set again then', async () => {
+  for (const ev of ['onStartup', 'onInstalled']) {
+    const bg = await load(on({ storage: { stopped: ['trk.example'] } })); await bg.alarm('sweep'); assert.equal(blocked(bg), 1);
+    await bg.chrome.runtime[ev].fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle(); await bg.alarm('sweep');
+    assert.equal(blocked(bg), 2, ev); }
+});

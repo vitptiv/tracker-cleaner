@@ -60,6 +60,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C28 | Empty what a listed or stopped tracker saved on its own site (service worker, storage) and block its notifications | new in 1.24 | auto |
 | C29 | No cookies for other companies: a request to another company carries none and may set none (rule, automatic) | new in 1.25 | auto |
 | C30 | No cache tags (If-None-Match, If-Modified-Since, ETag) and no referring page for other companies (rule, automatic) | new in 1.25 | auto |
+| C31 | A page may not ask this computer or the home network (loopback and private addresses; rule, automatic) | new in 1.25 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -847,3 +848,24 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   (strict-origin-when-cross-origin); removing the header also covers pages that ask for the full address to be sent,
   and takes the site name away too. Setting a `Referrer-Policy` on every page instead would be gentler but would
   rewrite each page's own headers, so it was not chosen.
+- S8 a page may not ask this computer or the home network (C31, own row, automatic): six block rules, one short
+  pattern per address range (`LOCAL_RES` in `net-rules.js`: localhost, 0.0.0.0, 127.x, 10.x, 172.16 to 172.31,
+  192.168.x, 169.254.x, the IPv6 loopback, mapped, private and link-local ranges), the whole host anchored, for a
+  request from another site (`thirdParty`), never the page itself and never what the extension asks. Names such as
+  `x.localhost` are not matched, so the lab's sites work; the lab exercises the rule because its sites are
+  `*.localhost` names asking `127.0.0.1` by number. Found in a real Chrome and fixed here: one pattern for all ranges
+  was refused ("exceeded the 2KB memory limit"), and that refusal took every other dynamic rule down with it,
+  because Chrome refuses the whole change; `learnedRules` now tries each rule alone when the change is refused.
+  Not covered: a public name that resolves to a private address. A page on one private address asking another is
+  blocked too ("Don't clean on this site" lets it through).
+- S4, reworked in the S8 commit after the first measurement: letting a whole sign-in tab through with an `allow`
+  rule for five minutes also switched blocking off there (A went to 10 at the end, 32 ever). Now the header rules
+  are session rules with `excludedTabIds`, only while the guard holds; blocking in that tab stays as it was.
+- S2b, completed in the S8 commit: a notification block set by the extension was gone after the lab's restart (the
+  extension is loaded again there); the note that it was set is now dropped when Chrome starts or the extension is
+  loaded again, so the next sweep sets it again.
+- After batch 2 (S11, S15, S4, S5, S8): A 6 at the end, 27 ever; B0 6 / 27; B 6 / 9; C 6 / 7; T22 apart (Chrome's real
+  setting is "block"). At the end: T18, T19 (history: by hand only, and the row is all of her history), T27, T33
+  (the shop's server), T31, T32 (her own press). "Ever" moved by one kind only (T6, the matched pair, no longer tied
+  to her): until the tracker is learned, its script runs inside each visited site and sends everything itself, in a
+  request these rules leave its address on; cookies, cache tags and the probe answer reach it that way. That is S6.

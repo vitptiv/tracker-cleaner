@@ -96,7 +96,8 @@ module.exports = function makeChrome(init = {}) {
       getSessionRules: rec('declarativeNetRequest.getSessionRules', () => JSON.parse(JSON.stringify(state.rules))),
       updateSessionRules: rec('declarativeNetRequest.updateSessionRules', (o) => {
         state.rules = [...state.rules.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }),
-      updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => {
+      // fake.refuse(rule) true = Chrome refuses that rule, and with it the whole change (as it does)
+      updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
     webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event() },
     // any permission name works: chrome.contentSettings.camera.set(...)

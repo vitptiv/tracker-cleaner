@@ -30,24 +30,14 @@ const can = (id, cx) => verdict(id, cx) === 'run';
 const waits = (v) => v === 'ask' || v === 'held';
 // Sign-in guard (C19): every navigation to a sign-in URL (re)arms it.
 // The tab it is seen in, and the tab that opened it (a sign-in in a pop-up), are noted in chrome.storage.session
-// { gtabs: { '<tab>': until } }: in those tabs nothing is blocked or changed while the guard holds (guardTabsRule).
+// { gtabs: [tab numbers] }: in those tabs the header rules of net-rules.js do not apply while the guard holds
+// (applyFeatures; the list is emptied when the guard is over).
 const arm = (url, tabs = []) => { if (!isSignIn(url)) return;
   chrome.storage.local.set({ guardUntil: Date.now() + GUARD_MS });
-  serial(async () => { const { gtabs = {} } = await chrome.storage.session.get('gtabs');
-    for (const id of tabs) if (Number.isInteger(id) && id >= 0) gtabs[id] = Date.now() + GUARD_MS;
-    await chrome.storage.session.set({ gtabs }); }).then(guardTabsRule); };
+  serial(async () => { const { gtabs = [] } = await chrome.storage.session.get('gtabs');
+    await chrome.storage.session.set({ gtabs: [...new Set([...gtabs, ...tabs.filter((id) => Number.isInteger(id) && id >= 0)])].slice(-100) }); }).then(() => applyFeatures()); };
 chrome.tabs.onCreated.addListener((t) => arm(t.pendingUrl || t.url, [t.id, t.openerTabId]));
 chrome.tabs.onUpdated.addListener((id, info, t) => { if (info.url) arm(info.url, [id, (t || {}).openerTabId]); });
-async function guardTabsRule() {
-  try { const set = await chrome.storage.local.get(['master', 'modes']), now = Date.now(), { gtabs = {} } = await chrome.storage.session.get('gtabs');
-    const live = Object.fromEntries(Object.entries(gtabs).filter(([, t]) => t > now).slice(-100));
-    if (Object.keys(live).length !== Object.keys(gtabs).length) await chrome.storage.session.set({ gtabs: live });
-    const open = (await chrome.tabs.query({})).filter((t) => isSignIn(t.url || t.pendingUrl)).map((t) => t.id);   // a sign-in page still open counts as long as it is
-    const ids = mayRun('C19', set) === 'run' ? [...new Set([...Object.keys(live).map(Number), ...open])].sort((a, b) => a - b) : [];
-    const old = (await chrome.declarativeNetRequest.getSessionRules()).filter((r) => r.id === GUARD_RULE);
-    if (JSON.stringify(old.map((r) => r.condition.tabIds)) !== JSON.stringify(ids.length ? [guardRule(ids).condition.tabIds] : []))
-      await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [GUARD_RULE], addRules: ids.length ? [guardRule(ids)] : [] }); } catch {}
-}
 // Pause (C18): everything stops until pauseUntil; the 'resume' alarm switches the features back on.
 // The storage listener at the end of this file applies the change.
 async function pause(minutes) {
@@ -402,9 +392,16 @@ async function applyFeatures() {
     // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
     ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
       condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }]),
-    // S4, S5: what other companies get less of (net-rules.js); left alone: sign-in hosts, the companies pages need, the sites cleaning is off for
-    ...netRules({ cookies: BLOCK && can('C29', cx), tags: BLOCK && can('C30', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED, ...(cx.set.sitesOff || [])], self: chrome.runtime.id })]);
-  await guardTabsRule();
+    // S8: no calls from a page to this computer (net-rules.js)
+    ...netRules({ local: BLOCK && can('C31', cx), self: chrome.runtime.id })]);
+  // S4, S5: what other companies get less of; left alone: sign-in hosts, the companies pages need, the sites cleaning is off for,
+  // and, while the sign-in guard holds, the tabs a sign-in page was seen in (session rules: only those can name tabs)
+  try { let { gtabs = [] } = await chrome.storage.session.get('gtabs');
+    if (!cx.hold.guard && gtabs.length) await chrome.storage.session.set({ gtabs: gtabs = [] });
+    const guardTabs = cx.hold.guard ? [...new Set([...gtabs, ...cx.tabs.filter((t) => isSignIn(t.url || t.pendingUrl)).map((t) => t.id)])].sort((a, b) => a - b) : [];
+    const want = netRules({ cookies: BLOCK && can('C29', cx), tags: BLOCK && can('C30', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED, ...(cx.set.sitesOff || [])], guardTabs });
+    const old = (await chrome.declarativeNetRequest.getSessionRules()).filter((r) => r.id >= NET_BASE && r.id < NET_BASE + 10);
+    if (JSON.stringify(old) !== JSON.stringify(want)) await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); } catch {}
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
   const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
@@ -462,7 +459,11 @@ const LEARNED = 100000, TYPES = ['script', 'xmlhttprequest', 'image', 'ping', 's
 const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.condition.excludedRequestDomains, r.condition.regexFilter, r.action]);
 async function learnedRules(want) {
   try { const old = (await chrome.declarativeNetRequest.getDynamicRules()).filter((r) => r.id > LEARNED);
-    if (old.map(sig).join() !== want.map(sig).join()) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); } catch {}
+    if (old.map(sig).join() === want.map(sig).join()) return;
+    try { await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); }
+    // Chrome refuses the whole change when it refuses one rule: then each rule is tried alone, so that one bad rule cannot take the others down
+    catch { await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id) });
+      for (const r of want) try { await chrome.declarativeNetRequest.updateDynamicRules({ addRules: [r] }); } catch {} } } catch {}
 }
 // "Not now" on one question (site and name) or on all about a site: not asked again for LATER_MS
 const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());
@@ -776,6 +777,11 @@ async function report(body) {
 
 chrome.alarms.create('sweep', { periodInMinutes: 15 });
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); if (a.name === 'unguard') sweep('sign-in over'); });
+// A notification block this extension set can be gone when Chrome starts or the extension is loaded again: the note that it
+// was set is taken away then, so the sweep that follows sets it again.
+const unmute = () => serial(async () => { const { own = {} } = await chrome.storage.local.get('own');
+  if (Object.values(own).some((e) => e.mute)) await chrome.storage.local.set({ own: Object.fromEntries(Object.entries(own).map(([s, e]) => [s, { ...e, mute: false }])) }); });
+chrome.runtime.onStartup.addListener(unmute); chrome.runtime.onInstalled.addListener(unmute);
 chrome.runtime.onInstalled.addListener(async (d) => {
   // 1.25: a new install is switched on, and the popup says once what now happens by itself and where the switch is
   const { master } = await chrome.storage.local.get('master'), [a, b] = String((d || {}).previousVersion).split('.').map(Number);

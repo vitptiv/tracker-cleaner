@@ -3,8 +3,8 @@
 const test = require('node:test'), assert = require('node:assert');
 const { buildReport, renderReport } = require('../extension/report-view.js'), { GROUPS } = require('../extension/registry.js');
 const NOW = new Date(2026, 10, 15, 14, 5).getTime();   // 15 Nov 2026, 14:05 local
-const MODE = { othertags: 'auto', othercookies: 'auto', signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
-const NO_ASK = ['signin', 'blocking', 'othercookies', 'othertags', 'params', 'server'];
+const MODE = { local: 'auto', othertags: 'auto', othercookies: 'auto', signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
+const NO_ASK = ['signin', 'blocking', 'othercookies', 'othertags', 'local', 'params', 'server'];
 const groups = (over = {}) => GROUPS.map((g) => ({ id: g.id, title: g.title, says: g.says, ask: !NO_ASK.includes(g.id), mode: MODE[g.id], pending: 0, items: [], ...over[g.id] }));
 const state = (o = {}, over = {}) => ({ now: NOW, master: true, hold: {}, groups: groups(over), allow: [], always: [], sitesOff: [], history: { days: {}, cookies: {} }, ...o });
 const tab = (o = {}) => ({ id: 7, host: 'www.example.com', matched: [], ...o });
@@ -26,6 +26,7 @@ const SAYS = {
   permissions: 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.',
   othercookies: 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.',
   othertags: 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.',
+  local: 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.',
   cache: 'The copies of pages that Chrome saves to load them faster are thrown away once a day.',
   allowlist: 'Every small file that sites save to recognise you is deleted, except the ones on your own list.',
   tabs: 'When more tabs are open than the number you set, the ones you used least are closed.',

@@ -2,7 +2,7 @@
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const { NET_BASE, netRules } = require('../extension/net-rules.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
 const removed = (r, k) => (r.action[k] || []).map((h) => h.header);
-const net = (bg) => bg.state.dynamic.filter((r) => r.id >= NET_BASE && r.id < NET_BASE + 10);
+const net = (bg) => bg.state.rules.filter((r) => r.id >= NET_BASE && r.id < NET_BASE + 10);   // the header rules are session rules
 
 test('S5: cache tags and the referring page go with the same rules; both switched on share them', () => {
   const [t] = netRules({ tags: true }), [both] = netRules({ cookies: true, tags: true });
