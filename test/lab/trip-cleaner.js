@@ -76,6 +76,8 @@ async function run(name, set, cert, flags, chance = {}) {
     const mark = lab.store.records.length, tMark = Date.now(), before = lab.store.records.slice();
     if (set.manual) { const st = await E.b.msg({ type: 'state' }), did = out.manual = {};
       for (const g of st.groups.filter((x) => x.id !== 'wifi' && x.pending)) did[`approve ${g.id}`] = await E.b.msg({ type: 'approve', group: g.id }).catch((e) => String(e.message));
+      // the question about a company she also uses is never answered by a group button: C presses its Remove (I2)
+      for (const it of ((st.groups.find((x) => x.id === 'unknown') || {}).items || []).filter((x) => x.kind === 'used')) did[`remove what ${it.site} keeps`] = await E.b.msg({ type: 'approve', group: 'unknown', site: it.site, name: it.name }).catch((e) => String(e.message));
       for (const h of [...HOSTS, 'friendface.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));
         did[`storage of ${h}`] = await E.b.msg({ type: 'drop', kind: 'storage', site: h.endsWith('.test') ? `${h}:${lab.tlsPort}` : `${h}:${PORT}` }).catch((e) => String(e.message)); }
       did['block notifications'] = await E.b.msg({ type: 'drop', kind: 'permission', site: `http://friendface.localhost:${PORT}`, perm: 'notifications' }).catch((e) => String(e.message));

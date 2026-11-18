@@ -22,3 +22,17 @@ test('I1: not when the saved-copies row is off or asks first, and nothing but sa
   const bg = await load(on({ cookies: [FP, { name: 'uid', domain: '.trk1.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] })); await soft(bg, 'trk1.example');
   assert.deepEqual(bg.called('cookies.remove'), []); assert.equal(bg.called('browsingData.remove').some((c) => (c.args[0].origins || []).some((o) => o.includes('trk1'))), false); assert.deepEqual(bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes('trk1')), []);
 });
+test('I2: a company the user also uses is asked about as soon as it is blocked, at one sighting and while its own sign-in page holds its site; Remove acts at once and keeps what looks like a sign-in', async () => {
+  const cookies = [FP, { name: 'prefs', domain: '.used.example', value: 'p-3fa9c2d1e0', sameSite: 'no_restriction' }, { name: 'sess', domain: '.used.example', value: 's-3fa9c2d1e0', httpOnly: true, secure: true }];
+  const bg = await load(on({ cookies, tabs: [{ id: 1, active: true, url: 'https://www.used.example/' }] }));
+  await bg.opens('https://www.used.example/home'); await bg.navigate(1, 'https://www.used.example/login'); await bg.settle(); await bg.navigate(1, 'https://other.example/'); await bg.settle();
+  assert.ok(bg.state.storage.sguard['used.example'] > 0, 'its site is not held');
+  await soft(bg, 'used.example');
+  assert.deepEqual(bg.state.storage.stopped, ['used.example']); assert.deepEqual(asks(bg), [['used', 'used.example']]); assert.deepEqual(bg.called('cookies.remove'), []);
+  assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'used.example', name: 'what it keeps to follow you' }), { ok: true, done: 1, of: 1 }); await bg.settle();
+  assert.deepEqual((await bg.names()).sort(), ['_fp', 'sess']); assert.deepEqual(bg.state.storage.hard, ['used.example']);
+});
+test('I2: a company the user does not use is still cleaned out by itself only after two visited sites, and not while its site is held', async () => {
+  const bg = await load(on({ cookies: [FP, { name: 'uid', domain: '.trk1.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] })); await soft(bg, 'trk1.example');
+  assert.deepEqual(asks(bg), []); assert.deepEqual(bg.state.storage.hard || [], []); assert.ok((await bg.names()).includes('uid'));
+});

@@ -647,9 +647,10 @@ async function followSweep(cx, all, wait) {
       // a saved copy can carry the ID past the block: all saved copies are cleared once, at most once an hour in total (I1)
       const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt');
       if (!(softClearAt > now - 3600e3) && can('C11', cx)) { await chrome.storage.local.set({ softClearAt: now }); await copiesNow(cx); } }
-    if (hard.includes(site) || !many || guarded(cx, site)) continue;
+    if (hard.includes(site)) continue;
+    // a company the user also uses: the question at once, also at one sighting and while its site is held (the answer is the user's own press)
     if (visited(cx, site)) { if (!later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: 'you use it', did: 'queued' }); }
-    else if (v === 'run') await hardClean(site); }
+    else if (many && v === 'run' && !guarded(cx, site)) await hardClean(site); }
   if (stops.length !== n) await chrome.storage.local.set({ stops: recent });
 }
 async function stopTracker(site) {

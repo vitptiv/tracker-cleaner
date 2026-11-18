@@ -1009,3 +1009,8 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
 - I1 saved copies after a stop that only blocks (T17, T20, T21): all saved copies are cleared once then, at most once
   an hour in total (`softClearAt`), because that costs the user only speed; besides the daily clearing and the one
   at a clean-out; never at a start of Chrome. The row's sentence says exactly that.
+- I2 the question about a company the user also uses ("You use X ... Remove what it keeps to do that?") is asked as
+  soon as that company is blocked: also at one sighting, and also while its own sign-in page holds its site.
+  Remove is the user's own press and acts at once; it still never deletes a cookie that looks like a sign-in.
+  A company she does not use is cleaned out by itself only after two visited sites and not while its site is held,
+  as before. Setting C presses Remove with its other manual actions; A does not.
