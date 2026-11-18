@@ -7,13 +7,15 @@ const makeCore = ({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS = [] }) =
   // BLACK  your blacklist (audit page / settings): deleted even when normally kept (sign-ins included).
   // MODE 'allowlist' + ALLOW: delete EVERY cookie except the allowed sign-ins (YouTube, Spotify).
   // CLEAN false = settings switch "delete cookies" is off.
-  const S = { BLACK: [], MODE: 'normal', ALLOW: [], CLEAN: true };
+  // EXTRA  companies the user stopped (C25, learned here): judged like the DOMAINS, under the name Chrome has for them.
+  const S = { BLACK: [], MODE: 'normal', ALLOW: [], CLEAN: true, EXTRA: [] };
   // the DOMAINS entry a host falls under
-  const trackerSite = (h) => { h = h.toLowerCase().replace(/^\./, ''); return DOMAINS.find((d) => h === d || h.endsWith('.' + d)); };
+  const trackerSite = (h) => { h = h.toLowerCase().replace(/^\./, ''); return [...DOMAINS, ...S.EXTRA].find((d) => h === d || h.endsWith('.' + d)); };
+  const trackerOf = (domain) => trackerSite(realHost(domain)) || trackerSite(domain);
   const isTrackerHost = (h) => !!trackerSite(h);
   // hosts: those of the open tabs. True when one is on the tracker's own site: segment.com, mixpanel.com and others are
   // also products people log in to, and a cookie that is only there because of its host must survive that visit.
-  const firstParty = (c, hosts) => { const d = trackerSite(realHost(c.domain)); return !!d && hosts.some((h) => h === d || h.endsWith('.' + d)); };
+  const firstParty = (c, hosts) => { const d = trackerOf(c.domain); return !!d && hosts.some((h) => h === d || h.endsWith('.' + d)); };
   // Proxied Fit-browser hosts look like www.example.com.localhost: judge them by the real host.
   const realHost = (h) => h.replace(/^\./, '').replace(/(\.http)?\.localhost$/, '');
   // exact site, or the real site (which then also covers its Fit-browser *.localhost copy)
@@ -26,7 +28,7 @@ const makeCore = ({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS = [] }) =
   // your blacklist always wins, also over the allow-list
   // noBlack: judge as if the blacklist were empty (background.js: the blacklist asks, another rule may still run)
   const reason = (c, noBlack) => !S.CLEAN ? null : !noBlack && isBlack(c) ? 'blacklist' : S.MODE === 'allowlist' ? (isAllowed(c) ? null : 'allowlist')
-    : KEEP_RE.test(c.name) ? null : COOKIE_RE.test(c.name) ? 'name' : isTrackerHost(realHost(c.domain)) ? 'host'
+    : KEEP_RE.test(c.name) ? null : COOKIE_RE.test(c.name) ? 'name' : trackerOf(c.domain) ? 'host'
     : GOOGLE_RE && GOOGLE_RE.test(c.name) && isGoogleHost(realHost(c.domain)) ? 'google' : null;
   const shouldGo = (c) => !!reason(c);
   // What the url-params rule (C23, rules-params.json) does to a URL, for the tests: declarativeNetRequest does not run

@@ -36,7 +36,7 @@ const { buildReport, renderReport } = (() => {
       : 'Routed over Tor: yes, websites see an address of the Tor network, not yours')
     : t.wanted && t.running === false ? 'Tor is not running on this computer; nothing is routed' : 'Routed over Tor: no';
   // what a group's removal is called: "4 deleted today"
-  const DID = { cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
+  const DID = { unknown: 'stopped', cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
   // Blocked and cleaned links are those of this tab (Chrome counts them per tab). Deleted today and waiting are those
   // of the whole group, on all sites. For the groups that delete cookies and nothing else, the history's per-cookie
   // counters also give this site's share of today (history.js: d and g), for the site and the sites above and below it.
@@ -99,7 +99,9 @@ const { buildReport, renderReport } = (() => {
       says: typeof s.master !== 'boolean' ? 'Cleaning is off until you turn it on.' : !s.master ? 'Cleaning is off'
         : hold.paused ? 'Cleaning is paused' + (hold.pauseUntil ? ` until ${hhmm(hold.pauseUntil)}` : '') : hold.guard ? 'Cleaning is on, but held while you sign in' : 'Cleaning is on' }; };
   // what the button of a group does, and to what: "Remove 12 cookies"
-  const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'] };
+  const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
+  // things asked one by one, in one sentence each, with Approve and Not now
+  const ASKS = { tracker: (it) => `${it.site} ${it.name}. Stop it?` };
   const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
     : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (its site keeps putting it back)' : '');
   const waiting = (s) => (s.groups || []).filter((g) => Number(g.pending) > 0).map((g) => { const n = Number(g.pending), [verb, thing] = DOES[g.id] || ['Remove', 'item'], until = g.postponedUntil;
@@ -107,14 +109,17 @@ const { buildReport, renderReport } = (() => {
     return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome starts again' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
       button: barred ? '' : g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
       note: barred ? 'This user is not allowed to remove saved networks without a password, so nothing can be removed from here.' : g.id === 'wifi' ? 'Removing a saved network cannot be undone here.' : '',
-      items: (g.items || []).map(waitItem) }; });
+      asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), line: ASKS[it.kind](it) })),
+      items: (g.items || []).filter((it) => !ASKS[it.kind]).map(waitItem) }; });
 
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;
+    core.S.EXTRA = (s.stopped || []).map(String);   // companies the user stopped count as trackers
     return { top: top(s), waiting: waiting(s), readAt: hms(s.now || 0), full: UNDO_FULL, site: host, tabId: tab && Number.isInteger(tab.id) ? tab.id : null, stored: host ? storedOf(tab.stored) : null,
       features: (s.groups || []).map((g) => ({ id: g.id, title: g.title, says: g.says, state: word(g, s), count: counted(g, s, tab) })),
       cookies: host && Array.isArray(tab.cookies) ? { n: tab.cookies.length, rows: tab.cookies.map((c) => cookieRow(c, s, host)) } : null,
       // what the user chose to always delete on this site, also when the cookie is not there right now
+      stoppedTrackers: (s.stopped || []).map(String),
       always: host ? (s.always || []).filter((a) => under(host, String(a.site)) || under(String(a.site), host)) : [],
       stopped: (s.hold || {}).paused ? 'paused' : s.master === false ? 'switched off' : '' };   // deleting would be refused
   };
@@ -168,10 +173,14 @@ const { buildReport, renderReport } = (() => {
         + btn('Clear the saved copies of pages', { type: 'drop', kind: 'servers' }, off) + '</div>'
         + (t.undo ? '' : '<div class="m">0 cookies deleted in the last 10 minutes, so there is nothing to put back.</div>') + '</div>'; };
     const page = () => `<p class="m">${r.site ? `This page: ${esc(r.site)}` : 'This tab is not a web page'} · Read at ${esc(r.readAt)} <button class="small" data-act="refresh">Read again</button></p>`;
-    const waits = () => '<h2>Waiting for your answer</h2>' + (!(r.waiting || []).length ? '<p class="m">Nothing is waiting for your answer.</p>' : r.waiting.map((w) =>
+    const ask = (w, a) => `<div class="c" data-ask="${esc(a.site)}"><div>${esc(a.line)}</div><div class="b">${btn('Approve', { type: 'approve', group: w.id, site: a.site }, ' class="go"' + off)}`
+      + `${btn('Not now', { type: 'notNow', group: w.id, site: a.site })}</div></div>`;
+    const stoppedList = () => !(r.stoppedTrackers || []).length ? '' : `<details id="stopped"><summary>Trackers you stopped (${r.stoppedTrackers.length})</summary>`
+      + r.stoppedTrackers.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unstop', site: x })}</div>`).join('') + '</details>';
+    const waits = () => '<h2>Waiting for your answer</h2>' + (!(r.waiting || []).length ? '<p class="m">Nothing is waiting for your answer.</p>' : r.waiting.map((w) => (w.asks || []).map((a) => ask(w, a)).join('') + (!w.items.length && (w.asks || []).length ? '' :
       `<div class="c" data-wait="${esc(w.id)}"><div>${esc(w.line)}</div><div class="b">${w.button ? btn(esc(w.button), { type: 'approve', group: w.id }, ' class="go"' + off) : ''}`
       + `${btn('Postpone 1 hour', { type: 'postpone', group: w.id, minutes: 60 })}</div>` + (w.note ? `<div class="m">${w.note}</div>` : '')
-      + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? ` (the newest ${w.items.length} of ${w.n})` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`).join(''));
+      + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? ` (the newest ${w.items.length} of ${w.n})` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`)).join('')) + stoppedList();
     return topLine() + page() + waits() + '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored();
   };
   return { buildReport, renderReport };

@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning).",
- "extension": "1.23",
+ "extension": "1.24",
  "settings": {
   "A": "fresh install defaults, nothing approved, no lab entries",
   "B0": "main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)",
@@ -116,6 +116,7 @@
   "cookies",
   "google",
   "params",
+  "unknown",
   "storage",
   "permissions",
   "cache"
@@ -141,130 +142,153 @@
    },
    "extension": {
     "guardHeldAtEnd": true,
+    "stopped": [],
     "removed": 0,
-    "waiting": {},
+    "waiting": {
+     "unknown": 1
+    },
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
    },
    "rows": {
     "T1": {
      "status": "tracked",
-     "records": 28,
-     "linked": 28,
+     "records": 29,
+     "linked": 29,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T2": {
      "status": "tracked",
      "records": 23,
      "linked": 23,
+     "lastStep": 11,
      "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
     },
     "T3": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T4": {
      "status": "tracked",
      "records": 21,
      "linked": 21,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T5": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T6": {
      "status": "tracked",
      "records": 3,
      "linked": 3,
+     "lastStep": 9,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T7": {
      "status": "tracked",
      "records": 3,
      "linked": 3,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T8": {
      "status": "tracked",
      "records": 5,
      "linked": 5,
+     "lastStep": 11,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T9": {
      "status": "tracked",
      "records": 21,
      "linked": 21,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T10": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T12": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T13": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T14": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
      "status": "tracked",
      "records": 13,
      "linked": 13,
+     "lastStep": 12,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
     },
     "T16": {
      "status": "tracked",
      "records": 13,
      "linked": 13,
+     "lastStep": 12,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
     },
     "T17": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
     },
     "T18": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "no capability covers it (icons go only with the history)"
     },
     "T19": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "no capability covers it (history is left alone by decision)"
     },
     "T20": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
      "simulated": "needs the lab certificate"
     },
@@ -272,6 +296,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
      "simulated": "needs the lab certificate"
     },
@@ -279,6 +304,7 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list",
      "simulated": "the press on Allow is a grant over the control channel"
     },
@@ -286,12 +312,14 @@
      "status": "tracked",
      "records": 17,
      "linked": 17,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T24": {
      "status": "tracked",
      "records": 29,
      "linked": 29,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list",
      "simulated": "the second address is a forwarded-for header"
     },
@@ -299,54 +327,63 @@
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T26": {
      "status": "tracked",
      "records": 5,
      "linked": 5,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T27": {
      "status": "tracked",
      "records": 3,
      "linked": 3,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T28": {
      "status": "tracked",
      "records": 19,
      "linked": 19,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T29": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "no capability covers it (first-party ping on the network's own page)"
     },
     "T30": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "no capability covers it (the redirector is the page in front)"
     },
     "T31": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 6,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T32": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 4,
      "cause": "no capability covers it (kept on purpose: a sign-in)"
     },
     "T33": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "cause": "no capability covers it (sent by the shop's server, not by the browser)"
     },
     "T34": {
@@ -357,19 +394,22 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 6,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T36": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     }
    },
    "counts": {
     "tracked": 35,
     "unlinked": 0,
-    "stopped": 0
+    "stopped": 0,
+    "stillArrivingAfterRestart": 18
    }
   },
   "B0": {
@@ -386,8 +426,11 @@
    "extension": {
     "master": true,
     "guardHeldAtEnd": true,
+    "stopped": [],
     "removed": 0,
-    "waiting": {},
+    "waiting": {
+     "unknown": 1
+    },
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
    },
@@ -396,120 +439,140 @@
      "status": "tracked",
      "records": 28,
      "linked": 28,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T2": {
      "status": "tracked",
      "records": 23,
      "linked": 23,
+     "lastStep": 11,
      "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
     },
     "T3": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T4": {
      "status": "tracked",
      "records": 21,
      "linked": 21,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T5": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T6": {
      "status": "tracked",
      "records": 3,
      "linked": 3,
+     "lastStep": 9,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T7": {
      "status": "tracked",
      "records": 3,
      "linked": 3,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T8": {
      "status": "tracked",
      "records": 5,
      "linked": 5,
+     "lastStep": 11,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T9": {
      "status": "tracked",
      "records": 21,
      "linked": 21,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T10": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T12": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T13": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 3,
+     "linked": 3,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T14": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
      "status": "tracked",
      "records": 13,
      "linked": 13,
+     "lastStep": 12,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
     },
     "T16": {
      "status": "tracked",
      "records": 13,
      "linked": 13,
+     "lastStep": 12,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
     },
     "T17": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
     },
     "T18": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "no capability covers it (icons go only with the history)"
     },
     "T19": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "no capability covers it (history is left alone by decision)"
     },
     "T20": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
      "simulated": "needs the lab certificate"
     },
@@ -517,6 +580,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
      "simulated": "needs the lab certificate"
     },
@@ -524,6 +588,7 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list",
      "simulated": "the press on Allow is a grant over the control channel"
     },
@@ -531,12 +596,14 @@
      "status": "tracked",
      "records": 17,
      "linked": 17,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T24": {
      "status": "tracked",
      "records": 29,
      "linked": 29,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list",
      "simulated": "the second address is a forwarded-for header"
     },
@@ -544,54 +611,63 @@
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T26": {
      "status": "tracked",
      "records": 5,
      "linked": 5,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T27": {
      "status": "tracked",
      "records": 3,
      "linked": 3,
+     "lastStep": 7,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T28": {
      "status": "tracked",
      "records": 19,
      "linked": 19,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T29": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "no capability covers it (first-party ping on the network's own page)"
     },
     "T30": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "no capability covers it (the redirector is the page in front)"
     },
     "T31": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 6,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T32": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 4,
      "cause": "no capability covers it (kept on purpose: a sign-in)"
     },
     "T33": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "cause": "no capability covers it (sent by the shop's server, not by the browser)"
     },
     "T34": {
@@ -602,19 +678,22 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 6,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T36": {
      "status": "tracked",
      "records": 16,
      "linked": 16,
+     "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     }
    },
    "counts": {
     "tracked": 35,
     "unlinked": 0,
-    "stopped": 0
+    "stopped": 0,
+    "stillArrivingAfterRestart": 18
    }
   },
   "B": {
@@ -631,8 +710,10 @@
    "extension": {
     "master": true,
     "guardHeldAtEnd": true,
+    "stopped": [],
     "removed": 6,
     "waiting": {
+     "unknown": 1,
      "storage": 2
     },
     "blockRuleMatches": 10,
@@ -703,6 +784,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 2,
      "cause": "capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)"
     },
     "T14": {
@@ -729,12 +811,14 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "no capability covers it (icons go only with the history)"
     },
     "T19": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "cause": "no capability covers it (history is left alone by decision)"
     },
     "T20": {
@@ -751,6 +835,7 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)",
      "simulated": "the press on Allow is a grant over the control channel"
     },
@@ -778,6 +863,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "cause": "no capability covers it (sent by the shop's server, not by the browser)"
     },
     "T28": {
@@ -789,30 +875,35 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "no capability covers it (first-party ping on the network's own page)"
     },
     "T30": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "cause": "no capability covers it (the redirector is the page in front)"
     },
     "T31": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 6,
      "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)"
     },
     "T32": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 4,
      "cause": "no capability covers it (kept on purpose: a sign-in)"
     },
     "T33": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "cause": "no capability covers it (sent by the shop's server, not by the browser)"
     },
     "T34": {
@@ -833,7 +924,8 @@
    "counts": {
     "tracked": 10,
     "unlinked": 0,
-    "stopped": 25
+    "stopped": 25,
+    "stillArrivingAfterRestart": 0
    }
   },
   "C": {
@@ -848,6 +940,11 @@
     "complete": false
    },
    "manual": {
+    "approve unknown": {
+     "ok": true,
+     "done": 1,
+     "of": 1
+    },
     "approve storage": {
      "ok": true,
      "done": 1,
@@ -939,11 +1036,14 @@
    "extension": {
     "master": true,
     "guardHeldAtEnd": true,
-    "removed": 18,
+    "stopped": [
+     "friendface.localhost"
+    ],
+    "removed": 19,
     "waiting": {
      "storage": 1
     },
-    "blockRuleMatches": 20,
+    "blockRuleMatches": 12,
     "tagRuleMatches": 0
    },
    "rows": {
@@ -1036,6 +1136,7 @@
      "status": "stopped",
      "records": 1,
      "linked": 1,
+     "lastStep": 2,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false
     },
@@ -1071,6 +1172,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "cause": "no capability covers it (icons go only with the history)"
@@ -1079,6 +1181,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 8,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "cause": "no capability covers it (history is left alone by decision)"
@@ -1101,6 +1204,7 @@
      "status": "stopped",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false
     },
@@ -1136,6 +1240,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1152,6 +1257,7 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1161,6 +1267,7 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "lastStep": 7,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1170,6 +1277,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 6,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1179,6 +1287,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 4,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1188,6 +1297,7 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "lastStep": 7,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1216,7 +1326,8 @@
    "counts": {
     "tracked": 8,
     "unlinked": 0,
-    "stopped": 27
+    "stopped": 27,
+    "stillArrivingAfterRestart": 0
    }
   }
  }

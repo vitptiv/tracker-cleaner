@@ -11,7 +11,7 @@ const DAY_OF = typeof module !== 'undefined' ? require('./history.js').historyDa
 // The inspector command (tools/inspect.js) that shows the same things from Chrome's own files, per group
 const COMMAND = { cookies: 'cookies', google: 'cookies', allowlist: 'cookies', storage: 'storage', wifi: 'wifi', permissions: 'permissions', cache: 'cache', tor: 'tor' };
 // What the button of a group does, and to what: "Remove 12 cookies"
-const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'] };
+const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
 // The Tor row, from background.js's { wanted, running, routed } (as torSays in report-view.js)
 const TOR_SAYS = (t) => t.routed ? (t.running === false ? 'Routed over Tor: yes, but Tor has stopped answering. Pages will not load until Tor runs again or you switch this off'
     : 'Routed over Tor: yes, websites see an address of the Tor network, not yours')

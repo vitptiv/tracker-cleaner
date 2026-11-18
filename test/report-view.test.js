@@ -3,7 +3,7 @@
 const test = require('node:test'), assert = require('node:assert');
 const { buildReport, renderReport } = require('../extension/report-view.js'), { GROUPS } = require('../extension/registry.js');
 const NOW = new Date(2026, 10, 15, 14, 5).getTime();   // 15 Nov 2026, 14:05 local
-const MODE = { signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
+const MODE = { signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
 const NO_ASK = ['signin', 'blocking', 'params', 'server'];
 const groups = (over = {}) => GROUPS.map((g) => ({ id: g.id, title: g.title, says: g.says, ask: !NO_ASK.includes(g.id), mode: MODE[g.id], pending: 0, items: [], ...over[g.id] }));
 const state = (o = {}, over = {}) => ({ now: NOW, master: true, hold: {}, groups: groups(over), allow: [], always: [], sitesOff: [], history: { days: {}, cookies: {} }, ...o });
@@ -18,6 +18,7 @@ const SAYS = {
   cookies: 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.',
   google: 'Small files that Google and YouTube save to recognise you when you are not signed in are deleted, while the ones that keep you signed in stay.',
   params: 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.',
+  unknown: 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.',
   storage: 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.',
   wifi: 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.',
   permissions: 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.',
@@ -392,4 +393,20 @@ test('what waits: nothing says so; put off says until when; paused or off greys 
   // Wi-Fi: this user may not remove saved networks: no button, one sentence
   r = buildReport(state({}, { wifi: { pending: 1, helper: 'ok', canDelete: 'no', items: [{ kind: 'wifi', site: 'Cafe', name: 'u', why: 'never used' }] } }), tab());
   assert.equal(r.waiting[0].button, ''); assert.ok(text(renderReport(r)).includes('This user is not allowed to remove saved networks without a password, so nothing can be removed from here.'));
+});
+
+// ---- 1.24, R1: a tracker on no list is asked about in one sentence, with Approve and Not now
+test('R1: "X followed you on 3 sites. Stop it?" with Approve and Not now for that one; stopped ones can be let through again', () => {
+  const it = { cap: 'C25', kind: 'tracker', site: 'trk.example', name: 'followed you on 3 sites', why: 'on no list' };
+  const r = buildReport(state({ stopped: ['old.example'] }, { unknown: { pending: 1, items: [it] } }), tab()), html = renderReport(r);
+  assert.deepEqual(r.waiting.find((w) => w.id === 'unknown').asks, [{ site: 'trk.example', line: 'trk.example followed you on 3 sites. Stop it?' }]);
+  assert.ok(text(html).includes('trk.example followed you on 3 sites. Stop it?ApproveNot now'));
+  assert.ok(html.includes('data-msg="{&quot;type&quot;:&quot;approve&quot;,&quot;group&quot;:&quot;unknown&quot;,&quot;site&quot;:&quot;trk.example&quot;}"'));
+  assert.ok(html.includes('{&quot;type&quot;:&quot;notNow&quot;,&quot;group&quot;:&quot;unknown&quot;,&quot;site&quot;:&quot;trk.example&quot;}'));
+  assert.ok(text(html).includes('Trackers you stopped (1)old.exampleLet it through again'));
+  assert.equal(row(r, 'unknown').count, '0 stopped today, 1 waiting');
+});
+test('R1: a cookie of a company the user stopped is called a tracker\'s', () => {
+  const r = buildReport(state({ stopped: ['trk.example'] }), tab({ host: 'news.example', cookies: [{ domain: '.trk.example', name: 'uid', value: 'x' }] }));
+  assert.equal(r.cookies.rows[0].what, "comes from a tracker's site, deleted automatically");
 });

@@ -36,5 +36,5 @@ test('the url-params ruleset is on by default, follows C23 alone, and is off whi
 test('C23 has its own popup row', async () => {
   const { GROUPS, cap } = require('../extension/registry.js'), g = GROUPS.find((x) => x.id === 'params');
   assert.deepEqual([g.title, g.caps], ['Tracking tags removed from links', ['C23']]); assert.equal(cap('C23').group, 'params');
-  assert.equal(GROUPS.length, 13); assert.deepEqual(GROUPS.find((x) => x.id === 'blocking').caps, ['C01', 'C02', 'C05']);
+  assert.equal(GROUPS.length, 14); assert.deepEqual(GROUPS.find((x) => x.id === 'blocking').caps, ['C01', 'C02', 'C05']);
 });

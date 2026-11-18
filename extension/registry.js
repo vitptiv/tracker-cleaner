@@ -26,6 +26,7 @@ const CAPS = [
   C('C22', 'Undo', 'control', null, false),
   C('C23', 'Strip tracking URL parameters', 'params', 'auto', false),
   C('C24', 'Remove unused Wi-Fi networks', 'wifi', 'ask', true, true),
+  C('C25', 'Stop unknown trackers', 'unknown', 'ask', true),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.
@@ -53,6 +54,7 @@ const GROUPS = [
   ['cookies', "Trackers' cookies", 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.'],
   ['google', 'Cookies Google uses to recognise you', 'Small files that Google and YouTube save to recognise you when you are not signed in are deleted, while the ones that keep you signed in stay.'],
   ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
+  ['unknown', 'Trackers that are on no list', 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.'],
   ['storage', 'Data that sites keep (site storage)', 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.'],
   ['wifi', 'Remembered Wi-Fi networks', 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.'],
   ['permissions', 'What sites may do (site permissions)', 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.'],

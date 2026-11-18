@@ -8,7 +8,7 @@ const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
 const HOSTS = ['friendface', 'hop', 'pennant', 'gazette', 'parcelpine', 'metrics.parcelpine', 'tidewater', 'loopreel'].map((h) => h + '.localhost');
-const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'storage', 'permissions', 'cache'];
+const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'unknown', 'storage', 'permissions', 'cache'];
 
 // ---- the lab's test-only entries. None of them is in a shipped list; they exist only while this script runs.
 // 1. Two session rules, added through the extension's own popup page, shaped like the shipped ones (rules.json rule 1, rules-params.json).
@@ -55,13 +55,13 @@ async function run(name, cert, flags) {
     if (first && set.auto) { await b.msg({ type: 'setMaster', on: true }); for (const g of AUTO) await b.msg({ type: 'setMode', group: g, mode: 'auto' }); }
     if (first && set.entries) for (const a of ALWAYS) await b.msg({ type: 'always', ...a, on: true });
     first = false; return b; };
-  const W = makeWalk({ lab, port: PORT, launch: launchExt, soft: true }), E = W.E, out = { says: set.says, broken: [], steps: {} };
+  const W = makeWalk({ lab, port: PORT, launch: launchExt, soft: true }), E = W.E, out = { says: set.says, broken: [], steps: {} }, ends = [];   // ends: how many records there were after each step
   try {
     await E.open();
     out.canary = await E.kt.ev(`document.getElementById('canary').textContent`).catch(() => 'no answer');
     const personNow = () => { const a = lab.store.accounts.find((x) => x.email === MARA.email); return a ? lab.store.lookup(['acct:' + a.id]) : null; };
     for (const s of TRIP) { try { await within(W.steps[s.n](), 90000, `step ${s.n}`); } catch (e) { out.broken.push(`step ${s.n}: ${String(e.message || e).split('\n')[0]}`); }
-      await sleep(400); process.stdout.write(`${name}${s.n} `); }
+      await sleep(400); ends.push(lab.store.records.length); process.stdout.write(`${name}${s.n} `); }
     await sleep(1500);
     const k12 = await E.know().catch(() => null);
     out.reidentifiedAfterStep12 = !!(k12 && k12.who && k12.who.name === MARA.name);
@@ -81,7 +81,7 @@ async function run(name, cert, flags) {
       out.afterManual = { reidentified: !!(kc && kc.who && kc.who.name === MARA.name), historyStillShown: kc ? kc.history.length : 0 }; }
     const ext = await E.b.msg({ type: 'state' }).catch(() => ({ log: [], groups: [], hold: {} }));
     const matched = await E.b.popup.ev(`chrome.declarativeNetRequest.getMatchedRules({}).then((r) => r.rulesMatchedInfo.map((x) => x.rule.rulesetId + ':' + x.rule.ruleId))`).catch(() => []);
-    out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), removed: ext.log.filter((l) => l.did === 'removed').length,
+    out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], removed: ext.log.filter((l) => l.did === 'removed').length,
       waiting: Object.fromEntries(ext.groups.filter((g) => g.pending).map((g) => [g.id, g.pending])), blockRuleMatches: matched.filter((m) => m.endsWith(':9001')).length, tagRuleMatches: matched.filter((m) => m.endsWith(':9002') || m.startsWith('url-params')).length };
     const dir = E.b.dir; await E.b.close(true); E.b = null; const files = outside(dir, PORT); fs.rmSync(dir, { recursive: true, force: true });
 
@@ -100,6 +100,7 @@ async function run(name, cert, flags) {
       let status = use.some((r) => linked.has(r)) ? 'tracked' : use.length ? 'unlinked' : 'stopped';
       if (set.manual && OUTSIDE.includes(id)) status = files[id] ? 'tracked' : 'stopped';
       const row = out.rows[id] = { status, records: all.length, linked: all.filter((r) => linked.has(r)).length };
+      const lastN = Math.max(-1, ...trip.filter((r) => linked.has(r)).map((r) => r.n)); if (lastN >= 0) row.lastStep = TRIP[Math.max(0, ends.findIndex((e) => lastN < e))].n;
       if (set.manual) { row.duringTrip = trip.some((r) => linked.has(r)) ? 'tracked' : trip.length ? 'unlinked' : 'stopped'; row.sameIdAfterCleaning = after.some((r) => trip.some((x) => x.value === r.value));
         if (!REVISITED.includes(id) && !OUTSIDE.includes(id)) row.note = 'not repeated after cleaning: what was sent during the trip stays sent'; }
       if (status === 'stopped') continue;
@@ -109,7 +110,7 @@ async function run(name, cert, flags) {
       if (vias.length && vias.every((v) => /shop's server/.test(v))) row.cause = 'no capability covers it (sent by the shop\'s server, not by the browser)';
       else if (set.entries && caps.length && caps.every((c) => c === 'C06' || c === 'C09') && !fired.length) row.cause = 'capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)';
       else if (!caps.length) row.cause = `no capability covers it${WHY_NONE[id] ? ` (${WHY_NONE[id]})` : ''}`;
-      else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list';
+      else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list' + (out.extension.stopped.length ? `; learned and stopped later (${out.extension.stopped.join(', ')}), last arrived in step ${row.lastStep}` : '');
       else if (!fired.length && !blockSeen) { const g = ext.groups.find((x) => x.pending && x.items && x.items.some((it) => it.name === COOKIE[id]));
         row.cause = `capability exists but did not fire${caps.includes('C11') ? ' (cache: once a day, first time 24 h after install)' : out.extension.guardHeldAtEnd && (COOKIE[id] || KIND[id]) ? ' (held: sign-in guard, 5 minutes after any /login or /oauth address)' : g ? ' (waits for approval)' : ''}`; }
       else if (!fired.length && blockSeen) row.cause = 'capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)';
@@ -118,6 +119,7 @@ async function run(name, cert, flags) {
           : `re-created after cleaning (${via ? via.replace('the cookie was gone; ', '') : sameId ? 'same ID again' : 'new ID'}${survivors(last).filter((x) => x !== id).length ? `; re-linked by ${survivors(last).filter((x) => x !== id).join(' ')}` : ''})`; }
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
+    out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep >= 9).length;   // steps 9 to 12 open the same sites again
     return out;
   } finally { if (E.b) await E.b.close(); await lab.close(); }
 }

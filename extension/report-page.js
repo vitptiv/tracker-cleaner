@@ -29,7 +29,7 @@ async function show(msg) {
   for (const id of open) { const d = id && document.getElementById(id); if (d) d.open = true; }
   note.textContent = msg || '';
 }
-const said = (m, r) => !r || r.ok === false ? REFUSED[r && r.why] || 'That did not work.' : m.type === 'approve' ? `Removed ${r.done} of ${r.of}.` : m.type === 'dropSite' ? `Deleted ${r.done} of ${r.of}.`
+const said = (m, r) => !r || r.ok === false ? REFUSED[r && r.why] || 'That did not work.' : m.type === 'approve' && m.site ? 'Done.' : m.type === 'approve' ? `Removed ${r.done} of ${r.of}.` : m.type === 'dropSite' ? `Deleted ${r.done} of ${r.of}.`
   : r.restored !== undefined ? `Put back ${r.restored}.` : m.type === 'drop' || m.type === 'always' ? 'Done.' : '';
 const copy = (text, done) => navigator.clipboard.writeText(text).then(() => { note.textContent = done; }, () => { note.textContent = 'Could not copy. Click once inside this report, then press the button again.'; });
 out.addEventListener('click', async (e) => { const b = e.target.closest('button'); if (!b) return;

@@ -9,6 +9,7 @@
 // TC_VERIFY=1 (only the third run, the V checks), TC_REPORT=1 (only the fourth run, the R checks of the 1.23 report).
 const { spawn, execFileSync } = require('node:child_process'), fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const EXT = path.join(__dirname, '..', '..', 'extension');
+const GROUP_ROWS = require(path.join(EXT, 'registry.js')).GROUPS.length;   // one popup row per group
 const AUDIT = '127.0.0.1:8088';   // the optional local audit server: Chrome prints a red line for every unanswered fetch
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const until = async (fn, ms = 6000, step = 100) => { const end = Date.now() + ms;
@@ -141,7 +142,7 @@ async function main() {
   try {
     await check(1, 'The extension loads', async (ok, see) => {
       const v = await sw(`await ready; return chrome.runtime.getManifest().version;`);
-      ok(v === '1.23', `manifest version ${v}`);
+      ok(v === '1.24', `manifest version ${v}`);
       await sleep(1500);   // the sweep of onInstalled
       const [first, audit1] = swRed();
       ok(!first.length, `service worker errors after start-up: ${brief(first)}`);
@@ -170,7 +171,7 @@ async function main() {
       const text = await P.text(), [red, audit] = redLines(x.popup), rows = await x.popup.ev(`document.querySelectorAll('[data-group]').length`);
       ok(text.includes('Cleaning is off until you turn it on'), `popup text: ${text.slice(0, 120)}`);
       ok(/Turn on/.test(text), 'no "Turn on" button');
-      ok(rows === 13, `${rows} group rows, expected 13`);
+      ok(rows === GROUP_ROWS, `${rows} group rows, expected ${GROUP_ROWS}`);
       ok(!red.length, `popup console errors: ${brief(red)}`);
       see(`"Cleaning is off until you turn it on." with Turn on, ${rows} group rows, ${red.length} console errors`
         + (audit.length ? ` (plus ${audit.length} red line for the audit server)` : ''));
@@ -358,7 +359,7 @@ async function main() {
       ok(opts.join(',') === 'Off,Ask first', `Wi-Fi choices: ${opts.join(', ')}`);
       ok(row.includes('Nothing waiting'), 'the Wi-Fi row has something waiting');
       const st = await P.state(), [red, audit] = swRed(), [pred] = redLines(x.popup);
-      ok(st && st.groups.length === 13, 'the state message did not answer with 13 groups');
+      ok(st && st.groups.length === GROUP_ROWS, `the state message did not answer with ${GROUP_ROWS} groups`);
       ok(!red.length, `service worker errors during the run: ${brief(red)}`);
       ok(!pred.length, `popup errors during the run: ${brief(pred)}`);
       see(`row: "${row.replace(/\n+/g, ' / ')}", choices ${opts.join(' / ')}; over the whole run ${red.length} service worker errors and ${pred.length} popup errors`

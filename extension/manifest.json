@@ -1,7 +1,7 @@
 {
  "manifest_version": 3,
  "name": "Tracker Cleaner (local)",
- "version": "1.23",
+ "version": "1.24",
  "description": "Blocks trackers and cleans tracking cookies, but asks before it deletes: Approve or Postpone per group. Never disturbs a sign-in.",
  "permissions": [
   "cookies",
@@ -9,6 +9,7 @@
   "alarms",
   "declarativeNetRequest",
   "declarativeNetRequestFeedback",
+  "webRequest",
   "proxy",
   "browsingData",
   "contentSettings",

@@ -54,8 +54,9 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C22 | Undo: restore cookies deleted in the last 10 min | new | n/a |
 | C23 | Strip tracking parameters from URLs (`gclid`, `fbclid`, `utm_*`) | new | auto |
 | C24 | Remove saved Wi-Fi networks unused for 30+ days (local helper, `nmcli`) | new | ask |
+| C25 | Stop a company on no list that is seen on 3+ sites with an ID (learned locally) | new in 1.24 | ask |
 
-Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C22, C23, C06,
+Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C22, C23, C25, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
 
 ## Rules for every chunk
@@ -688,3 +689,8 @@ B0 everything automatic and no lab names, B with the lab's names entered by hand
 A row counts as tracked when it arrived once during the trip, also when it was stopped later in the trip.
 
 - Step 0, measured before any repair: A 35/0, B0 35/0, B 10/25, C 8/27.
+- R1 unknown trackers (C25, `learn.js`, asks first; needs the `webRequest` permission, which adds no install warning
+  beside "all sites"): A 35/0, B0 35/0, B 10/25, C 8/27. Friendface was learned without any lab name in every
+  setting (seen on 3 sites, one question waiting). In A it waits for the answer; in B0 it is held by the sign-in
+  guard to the end of the 70-second trip (see R3); in C "approve all" stopped it. Not learned: Parcel & Pine's
+  disguised subdomain (same site as the shop) and Hop (never asked for by a page, only passed through, see R5).
