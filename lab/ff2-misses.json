@@ -1,7 +1,7 @@
 {
  "what": "Friendface 2 against the shipped cleaner v1.25, fully on (master on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on. The trip runs at the fresh-install default (fingerprint shield C32 off); the shield is then measured both off and on, so the fingerprint numbers are not run-dependent.",
- "extension": "1.25",
- "browser": "ff2m-1a1ee2d955acc9ede",
+ "extension": "1.26",
+ "browser": "ff2m-1a1ef12cfc05753a3",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
@@ -22,7 +22,7 @@
     "perturbed": false
    },
    "shieldOn": {
-    "hash": "5877ef41",
+    "hash": "f294c2bd",
     "perturbed": true
    },
    "baseline": "bd825545"
@@ -45,7 +45,7 @@
    "id": "F1",
    "type": "First-party reverse-proxy ID",
    "mark": "tracked",
-   "value": "fp_id=fp-7a3e3c6906",
+   "value": "fp_id=fp-8c4ae43837",
    "sites": [
     "ledger.localhost",
     "sundial.localhost",
@@ -58,7 +58,7 @@
    "id": "F2",
    "type": "Cookie-less first-party ID",
    "mark": "tracked",
-   "value": "ff2_id=ff2m-1a1ee2d955acc9ede (kept in localStorage, IndexedDB, cacheStorage, no cookie)",
+   "value": "ff2_id=ff2m-1a1ef12cfc05753a3 (kept in localStorage, IndexedDB, cacheStorage, no cookie)",
    "sites": [
     "ledger.localhost",
     "sundial.localhost",
@@ -71,7 +71,7 @@
    "id": "F3",
    "type": "URL-ID chain across sites",
    "mark": "tracked",
-   "value": "ff2_id=ff2m-1a1ee2d955acc9ede carried to sundial.localhost/forecast",
+   "value": "ff2_id=ff2m-1a1ef12cfc05753a3 carried to sundial.localhost/forecast",
    "sites": [
     "sundial.localhost",
     "atlas.localhost",
@@ -123,7 +123,7 @@
    "id": "F7",
    "type": "Sign-in-window cookie",
    "mark": "tracked",
-   "value": "SID=sess-d4b8f12ebc",
+   "value": "SID=sess-152f4ab0dc",
    "sites": [
     "ledger.localhost"
    ],
@@ -160,7 +160,7 @@
    "id": "F10",
    "type": "First-party cache tag (ETag)",
    "mark": "tracked",
-   "value": "ETag \"fp-7a3e3c6906\" on the site’s own image",
+   "value": "ETag \"fp-8c4ae43837\" on the site’s own image",
    "sites": [
     "ledger.localhost",
     "sundial.localhost",

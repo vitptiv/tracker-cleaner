@@ -3,7 +3,7 @@
 const test = require('node:test'), assert = require('node:assert');
 const { buildReport, renderReport } = require('../extension/report-view.js'), { GROUPS } = require('../extension/registry.js');
 const NOW = new Date(2026, 10, 15, 14, 5).getTime();   // 15 Nov 2026, 14:05 local
-const MODE = { shield: 'auto', local: 'auto', othertags: 'auto', othercookies: 'auto', signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
+const MODE = { shield: 'auto', crossid: 'auto', local: 'auto', othertags: 'auto', othercookies: 'auto', signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
 const NO_ASK = ['signin', 'blocking', 'othercookies', 'othertags', 'local', 'shield', 'params', 'server'];
 const groups = (over = {}) => GROUPS.map((g) => ({ id: g.id, title: g.title, says: g.says, ask: !NO_ASK.includes(g.id), mode: MODE[g.id], pending: 0, items: [], ...over[g.id] }));
 const state = (o = {}, over = {}) => ({ now: NOW, master: true, hold: {}, groups: groups(over), allow: [], always: [], sitesOff: [], history: { days: {}, cookies: {} }, ...o });
@@ -28,6 +28,7 @@ const SAYS = {
   othertags: 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.',
   local: 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.',
   shield: 'Experimental. Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.',
+  crossid: 'When the same hidden code turns up on two different sites you visit, it is a tracker following you between them, so it is stripped from links and requests and the address that collects it is blocked - that exact address, never the whole site. Everything can be undone.',
   cache: 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.',
   allowlist: 'Every small file that sites save to recognise you is deleted, except the ones on your own list.',
   tabs: 'When more tabs are open than the number you set, the ones you used least are closed.',

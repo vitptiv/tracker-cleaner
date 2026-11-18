@@ -62,6 +62,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C30 | No cache tags (If-None-Match, If-Modified-Since, ETag) and no referring page for other companies (rule, automatic) | new in 1.25 | auto |
 | C31 | A page may not ask this computer or the home network (loopback and private addresses; rule, automatic) | new in 1.25 | auto |
 | C32 | Page shield, experimental: canvas, sound, graphics-chip name and saved-amount readings changed a little (page script, off unless switched on) | new in 1.25 | off |
+| C33 | Block cross-site identifiers: a high-entropy value the cleaner sees sent by two different sites you visit is stripped from links and requests and the collector path that receives it is blocked (automatic, reversible) | new in 1.26 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -1262,3 +1263,16 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   (getParameter 37445/37446); it does NOT touch installed fonts, matchMedia or screen, which is why the F6 join key
   (built only from those) survives both ways and equals the cleaner-off baseline. With the shield OFF (the default)
   it touches none of them.
+
+### Counter-repairs against Friendface 2 (M1..M7): the cleaner reacts to cross-site VALUES, not host labels
+
+The owner chose aggressive first-party auto-block and the shield on by default. Nothing in `extension/` is keyed on any
+lab site name; it acts on values and behaviour only. New capability C33 (manifest 1.26).
+- M1 cross-site identifier detector (`extension/xsid.js`, wired in `background.js`). A high-entropy value (>=12 chars,
+  letters+digits or 16+ hex, high distinct-char ratio) the cleaner sees SENT by two different registrable sites the
+  user visited (both in `mine`) is confirmed a cross-site id, whoever serves it -- first- or third-party. Observed in
+  `noteSent` on `onBeforeRequest` (never the main_frame address bar, so a value an attacker reflects into a victim's
+  address is not attributed to the victim; the weaponization test pins this), kept hashed in `chrome.storage.session`
+  with the raw value in memory only (never storage.local, the log, the queue or a report); confirmed each sweep in
+  `xidSweep`. Caps: at most 50 tokens tracked, 10 new per site per hour; no timing gate, so a value seen just after a
+  scripted hand-off still counts. M1 only detects and reports (`crossIds` count); stripping and blocking are M2.

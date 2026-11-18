@@ -1,11 +1,11 @@
-// Tracker Cleaner 1.25: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.26: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic. A new install is switched on, and the groups
 // that only touch what follows you run without asking from the start; the popup says so once. Only deleted cookies
 // can be put back, for 10 minutes; emptied storage and cleared saved copies cannot. Everything is held while paused,
 // and everything destructive while a sign-in is going on. Login cookies (KEEP_RE) are deleted by nothing but the
 // user's own always-delete list and "Delete" in the report.
-importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js', 'learn.js', 'net-rules.js');
+importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js', 'learn.js', 'xsid.js', 'net-rules.js');
 const REPORT = 'http://127.0.0.1:8088/audit/cleaner';
 // The cookie decisions and their settings (S) live in core.js, where the Node tests can reach them.
 const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCore({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE });
@@ -489,9 +489,10 @@ async function sweepOnce(cause) {
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
   await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait); await ownSweep(cx, wait); await historySweep(cx);
+  const xid = await xidSweep(cx);
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
-  await report({ reason: cause, scanned: all.length, removed, kept, ...rest });
+  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...xid });
 }
 
 // ---- Trackers on no list (C25, learn.js). Every request a page makes to another company is counted, privately: on
@@ -638,7 +639,57 @@ async function noteAnswer(d) {
       await chrome.storage.local.set({ follow: next }); } });
   if (full) sweep('learned');
 }
-try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
+// ---- Cross-site identifiers (1.26, C33). Orthogonal to first/third party: a high-entropy VALUE the cleaner sees SENT
+// by two or more DIFFERENT registrable sites the user actually visited is a cross-site tracking id, whoever serves it.
+// This catches a first-party reverse-proxy collector that carries one id across sites with no third-party signal: the
+// cleaner reacts to the VALUE, not the host. What it observes is kept in chrome.storage.session (memory), never in
+// storage.local, the log, the queue or a report: xseen { tokHash: { raw, sites: { siteHash }, eps: { 'host/prefix' },
+// t } } and, once confirmed, xsid { tokHash: { raw, eps: [...], n } }. A value counts for a site only where the cleaner
+// saw that site's OWN page send it -- a sub-resource it asked for, never the address bar -- so a value an attacker
+// merely reflects into a victim's address is not attributed to the victim; and both sites must be in `mine`. The token
+// hash uses a per-session salt kept beside xseen so the hashes stay stable while the worker sleeps. Caps: at most
+// XSEEN_MAX tokens tracked, XNEW_HOUR new per visited site per hour; a value seen 3 s after a scripted hand-off still
+// counts, because there is no timing gate. M1 only detects and reports; stripping and blocking are C33's job (M2).
+const XSEEN_MAX = 50, XNEW_HOUR = 10, xnew = new Map();   // xnew: per visited site, tokens new to this worker this hour
+async function xidSalt() { let { xsalt } = await chrome.storage.session.get('xsalt');
+  if (!xsalt) { xsalt = [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join(''); await chrome.storage.session.set({ xsalt }); }
+  return xsalt; }
+async function noteSent(d) {
+  if (d.type === 'main_frame' || !(d.tabId >= 0)) return;   // not the address bar: only what a page itself sends counts
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol) || isSignIn(d.url)) return;   // never a sign-in return address (the never-cut list is M3)
+  const page = await topSite(d);
+  if (!page) return;
+  await ready;
+  if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
+  const toks = idTokens(safeDecode(d.url) + ' ' + bodyText(d.requestBody));
+  if (!toks.length) return;
+  const salt = await saltNow(), xs = await xidSalt(), siteHash = mark(`${salt} ${page}`), ep = (u.host + pathPrefix(u.pathname)).toLowerCase();
+  await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, now = Date.now(); let changed = false;
+    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k];
+      if (e) { if (!e.sites[siteHash]) { e.sites[siteHash] = true; changed = true; } if (!e.eps[ep]) { e.eps[ep] = true; changed = true; } e.t = now; continue; }
+      // a token new to this worker: it costs the site one of its XNEW_HOUR new tokens an hour, and at most XSEEN_MAX are kept
+      const c = xnew.get(page); if (xnew.size > 500) xnew.clear();
+      if (!c || c.t < now - 3600e3) xnew.set(page, { t: now, n: 1 }); else if (++c.n > XNEW_HOUR) continue;
+      const ks = Object.keys(xseen); if (ks.length >= XSEEN_MAX) delete xseen[ks.sort((a, b) => xseen[a].t - xseen[b].t)[0]];
+      xseen[k] = { raw: tok, sites: { [siteHash]: true }, eps: { [ep]: true }, t: now }; changed = true; }
+    if (changed) await chrome.storage.session.set({ xseen }); });
+}
+// At each sweep: a token SENT by two or more sites that are both in `mine` is confirmed a cross-site id. Re-checked
+// every sweep, so a site added to `mine` after the value was first seen still counts. M1 records the confirmation
+// (session `xsid`) and counts it for the report; acting on it (M2) reads the same `xsid`.
+async function xidSweep(cx) {
+  if (mayRun('C33', cx.set) === 'no') return {};
+  let n = 0;
+  await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, was = (await chrome.storage.session.get('xsid')).xsid || {}, xsid = {};
+    const ours = (h) => (cx.set.mine || []).includes(h) || (cx.set.mineShared || []).includes(h);
+    for (const [k, e] of Object.entries(xseen)) { const sites = Object.keys(e.sites).filter(ours);
+      if (sites.length >= 2) xsid[k] = { raw: e.raw, eps: Object.keys(e.eps), n: sites.length }; }
+    n = Object.keys(xsid).length;
+    if (JSON.stringify(xsid) !== JSON.stringify(was)) await chrome.storage.session.set({ xsid }); });
+  return n ? { crossIds: n } : {};
+}
+try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
 // The principle (1.25, J1 and L1): what is learned from how pages behave only ever makes a question. Block (`stopped`) is
 // the user's press; "Let it through again" undoes it. Then one more question, once (USED: Remove / Keep): Remove deletes
