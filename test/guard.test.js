@@ -4,7 +4,7 @@ const { gate, mayRun, CAPS, GROUPS, cap } = require('../extension/registry.js');
 
 test('isSignIn: sign-in hosts, OAuth-style URLs and login paths', () => {
   for (const u of ['https://accounts.google.com/v3/signin/identifier', 'https://accounts.google.com/', 'https://accounts.youtube.com/accounts/SetSID',
-    'https://login.microsoftonline.com/common/x', 'https://login.live.com/', 'https://appleid.apple.com/auth', 'https://github.com/login', 'https://github.com/login/device',
+    'https://login.microsoftonline.com/common/x', 'https://login.live.com/', 'https://appleid.apple.com/auth', 'https://accounts.google.com/signin', 'https://github.com/login/device',
     'https://github.com/sessions/two-factor', 'https://example.com/cb?client_id=1&redirect_uri=https%3A%2F%2Fa.test', 'https://example.com/oauth/start',
     'https://example.com/api/oauth2/v1', 'https://example.com/authorize?x=1', 'https://example.com/signin', 'https://example.com/en/sign-in/',
     'https://example.com/Login', 'https://example.com/sso/start', 'https://idp.example.com/saml/acs', 'http://example.com/login'])
@@ -20,7 +20,7 @@ test('isSignIn: everything else is not sign-in', () => {
 const T = 1.8e12, tab = (url, active = true) => ({ id: 1, url, active });
 test('guard: an active sign-in tab holds regardless of the timestamp; pendingUrl counts', () => {
   assert.equal(holdNow({}, [tab('https://accounts.google.com/')], T).guard, true);
-  assert.equal(holdNow({ guardUntil: T - 1 }, [{ id: 2, active: true, pendingUrl: 'https://github.com/login/oauth/x' }], T).guard, true);
+  assert.equal(holdNow({ guardUntil: T - 1 }, [{ id: 2, active: true, pendingUrl: 'https://accounts.google.com/o/oauth2/x' }], T).guard, true);
   assert.equal(holdNow({}, [tab('https://example.com/')], T).guard, false);
 });
 test('guard: a sign-in tab in the background does not hold by itself, only through guardUntil', () => {

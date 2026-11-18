@@ -38,8 +38,9 @@ const SGUARD_AGAIN_MS = 3600e3;
 const arm = (url, tab, opener) => { if (!isSignIn(url)) return;
   const site = siteOf(hostOf(url)), now = Date.now();
   if (!isGuardSignIn(url)) return serial(async () => { const { sguard = {} } = await chrome.storage.local.get('sguard');
-    if (sguard[site] > now - SGUARD_AGAIN_MS) return;
-    const live = Object.entries(sguard).filter(([, t]) => t > now - SGUARD_AGAIN_MS).slice(-200);
+    if (sguard[site] > now - SGUARD_AGAIN_MS) return;   // once an hour per site: going there again does not begin it anew
+    const live = Object.entries(sguard).filter(([, t]) => t > now - SGUARD_AGAIN_MS);
+    if (live.length >= 200) return;   // full: no new hold, rather than pushing a running one out (which would let it begin anew)
     await chrome.storage.local.set({ sguard: Object.fromEntries([...live, [site, now]]) }); chrome.alarms.create('unguard', { when: now + GUARD_MS + 1000 }); });
   chrome.storage.local.set({ guardUntil: now + GUARD_MS });
   serial(async () => { const { gtabs = [] } = await chrome.storage.session.get('gtabs'), from = Number.isInteger(opener) && opener >= 0 ? await chrome.tabs.get(opener).catch(() => null) : null;

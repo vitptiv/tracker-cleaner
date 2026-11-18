@@ -15,7 +15,7 @@ test('a sign-in sets a wake-up for the moment the guard ends; what was held is d
 test('a further sign-in step moves the wake-up; one that comes too early changes nothing', async () => {
   const bg = await start();
   await bg.setCookie({ url: 'https://ad.doubleclick.net/', name: 'x' });
-  bg.now += 3 * MIN; await bg.navigate(1, 'https://github.com/login'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
+  bg.now += 3 * MIN; await bg.navigate(1, 'https://accounts.google.com/signin'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
   assert.deepEqual(bg.state.alarms.unguard, { when: bg.now + 5 * MIN + 1000 });
   bg.now += 2 * MIN; await bg.alarm('unguard'); assert.deepEqual(await bg.names(), ['x']);
   bg.now += 3 * MIN + 1000; await bg.alarm('unguard'); assert.deepEqual(await bg.names(), []);

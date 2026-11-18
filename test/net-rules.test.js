@@ -52,7 +52,7 @@ test('sign-in guard: the tab a sign-in page is seen in, and the tab that opened 
 });
 test('the guard cut short ends the skipping at once; with the guard switched off no tab is skipped', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://shop.example/' }] }));
-  await bg.navigate(1, 'https://github.com/login'); await bg.settle(); await bg.navigate(1, 'https://github.com/account'); await bg.settle();
+  await bg.navigate(1, 'https://accounts.google.com/signin'); await bg.settle(); await bg.navigate(1, 'https://shop.example/account'); await bg.settle();
   assert.deepEqual(net(bg)[0].condition.excludedTabIds, [1]);
   await bg.chrome.storage.local.set({ guardUntil: bg.now - 1 }); await bg.settle();
   assert.equal('excludedTabIds' in net(bg)[0].condition, false);

@@ -1,14 +1,14 @@
 // H2 (second audit): a page must not be able to switch the sign-in pause on for everything by its own address.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
-const { NET_BASE } = require('../extension/net-rules.js'), { GUARD_MS, isGuardHost, holdNow } = require('../extension/guard.js');
+const { NET_BASE } = require('../extension/net-rules.js'), { GUARD_MS, isGuardSignIn, holdNow } = require('../extension/guard.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const ga = (domain) => ({ url: `https://www.${domain}/`, domain: '.' + domain, name: '_ga', value: 'GA1.2.3' });
 const header = (bg) => bg.state.rules.find((r) => r.id === NET_BASE);
 const MIN = 60e3;
 
-test('which hosts may hold everything: the shipped sign-in hosts and the big families, by whole name', () => {
-  for (const h of ['accounts.google.com', 'login.live.com', 'appleid.apple.com', 'github.com', 'www.google.com', 'login.microsoftonline.com']) assert.equal(isGuardHost(h), true, h);
-  for (const h of ['evil.example', 'accounts.google.com.evil.example', 'notgithub.com', 'google.com.evil.test', 'shop.example']) assert.equal(isGuardHost(h), false, h);
+test('which hosts may hold everything: the shipped sign-in hosts, by exact name (1.25, J3)', () => {
+  for (const h of ['accounts.google.com', 'login.live.com', 'appleid.apple.com', 'login.microsoftonline.com', 'accounts.youtube.com']) assert.equal(isGuardSignIn(`https://${h}/x`), true, h);
+  for (const h of ['evil.example', 'accounts.google.com.evil.example', 'github.com', 'www.google.com', 'shop.example']) assert.equal(isGuardSignIn(`https://${h}/login`), false, h);
   assert.equal(holdNow({}, [{ id: 1, active: true, url: 'https://evil.example/login' }], 1).guard, false);
   assert.equal(holdNow({}, [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }], 1).guard, true);
 });

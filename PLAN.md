@@ -1043,3 +1043,9 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   cloudflarestorage.com, firebasestorage.app, blob.core.windows.net, azurestaticapps.net, deno.dev, surge.sh,
   gitlab.io, bitbucket.io, jsdelivr.net, unpkg.com, cdninstagram.com, fbcdn.net, twimg.com. Remove deletes the
   cookies of that host and below it, not those of the company's other hosts.
+- J3 sign-in guard: everything is held only while a tab's host is exactly one of `SIGNIN_HOSTS` (accounts.google.com,
+  accounts.youtube.com, login.microsoftonline.com, login.live.com, appleid.apple.com), or for five minutes after;
+  no subdomain, path or parameter pattern arms it (github.com/login and a youtube.com address with client_id and
+  redirect_uri did). `GUARD_HOSTS` of H2 is gone. Any other sign-in-looking address holds deleting for that site
+  alone; its five minutes an hour begin once and are not begun anew by going there again, and when 200 sites are
+  held no further one is added (a running hold is never pushed out).
