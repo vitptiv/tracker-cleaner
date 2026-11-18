@@ -552,7 +552,7 @@ async function report(body) {
 }
 
 chrome.alarms.create('sweep', { periodInMinutes: 15 });
-chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); });
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); if (a.name === 'unguard') sweep('sign-in over'); });
 chrome.runtime.onInstalled.addListener(async () => {
   // a fresh install has cleared nothing yet: count the 24 hours of C11 from now, so the first sweep does not offer it
   if (!('cacheClearedAt' in await chrome.storage.local.get('cacheClearedAt'))) await chrome.storage.local.set({ cacheClearedAt: Date.now() });
@@ -624,5 +624,7 @@ chrome.runtime.onInstalled.addListener(applyProxy);
 chrome.storage.onChanged.addListener((ch) => {
   if (ch.master || ch.modes || ch.pauseUntil || ch.stopped) { applyFeatures(); applyProxy(); }
   if (ch.pending || ch.pauseUntil || ch.guardUntil) badge();
+  // the sign-in guard was armed: wake up when it ends, so that what it held is done then and not at the next quarter-hour sweep
+  if (ch.guardUntil && ch.guardUntil.newValue > Date.now()) chrome.alarms.create('unguard', { when: ch.guardUntil.newValue + 1000 });
 });
 badge();

@@ -698,3 +698,11 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   and the popup row has "Clean now". A 35/0, B0 35/0, B 10/25, C 8/27. Seen in B0: cleared once when switched on,
   before the trip; the copies saved during the trip then live until the next daily clearing, so the five cache rows
   stay tracked unless "Clean now" is pressed (C does that).
+- R3 sign-in guard. Found: the guard itself was right. It is armed in step 4 ("Sign in with Friendface") and ends
+  five minutes later, but the trip is over after 70 seconds, so it "still held at the end". The bug was after it:
+  what the guard had held was only done at the next quarter-hour sweep (seen in a real Chrome: the R1 question still
+  waited 78 s after the guard ended). Fixed with a wake-up at the guard's end; with the real five minutes the held
+  stop was carried out 3 s after. Ending the guard when the sign-in tab closes was not built: the five minutes after
+  are what protects a pop-up sign-in. The measurement now cuts the five minutes to two seconds (declared in
+  `misses.json`): A 35/0, B0 31/3 (1 more arrived but was not tied to her), B 10/25, C 8/27. In B0 Friendface is
+  stopped during step 5; after the restart of Chrome nothing arrives any more (before: 18 kinds still arriving).

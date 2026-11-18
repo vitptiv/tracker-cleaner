@@ -41,7 +41,7 @@ const KIND = { T9: 'storage', T11: 'storage', T12: 'storage', T13: 'storage', T1
 const OUTSIDE = ['T17', 'T18', 'T19', 'T20'];
 // rows the second look after cleaning can create again by just opening pages
 const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26', 'T28', 'T36'];
-const SIMULATED = { T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
+const SIMULATED = { guard: 'the five minutes the sign-in guard holds after step 4 are cut to two seconds', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
 async function run(name, cert, flags) {
   const set = SETTINGS[name], lab = await start({ port: PORT, tls: cert });
@@ -61,6 +61,8 @@ async function run(name, cert, flags) {
     out.canary = await E.kt.ev(`document.getElementById('canary').textContent`).catch(() => 'no answer');
     const personNow = () => { const a = lab.store.accounts.find((x) => x.email === MARA.email); return a ? lab.store.lookup(['acct:' + a.id]) : null; };
     for (const s of TRIP) { try { await within(W.steps[s.n](), 90000, `step ${s.n}`); } catch (e) { out.broken.push(`step ${s.n}: ${String(e.message || e).split('\n')[0]}`); }
+      // the trip takes a minute and the guard holds five after the sign-in of step 4: here they are cut to two seconds, and the extension's own wake-up does the rest
+      if (s.n === 4) { await E.b.popup.ev('chrome.storage.local.set({ guardUntil: Date.now() + 1000 })'); await sleep(4000); }
       await sleep(400); ends.push(lab.store.records.length); process.stdout.write(`${name}${s.n} `); }
     await sleep(1500);
     const k12 = await E.know().catch(() => null);
@@ -133,7 +135,7 @@ async function run(name, cert, flags) {
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
     testOnlyEntries: { how: 'B and C only, alive only while the script runs; no shipped file is edited', sessionRules: RULES, alwaysDeleteList: ALWAYS,
       notAdded: 'DOMAINS (cookies judged by tracker host) is a constant inside lists.js, so the always-delete list by cookie name stands in for it. Permanent storage and permission drops come only from the settings program on port 8088, which is not running and is not imitated: in C they are done by hand instead.' },
-    automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
+    simulated: SIMULATED.guard, automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
   for (const n of names) { result.runs[n] = await run(n, cert, flags); console.log(''); }
   const cell = (r) => r.status === 'not built' ? '-' : r.status + (r.cause ? `: ${r.cause}` : '');
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);
