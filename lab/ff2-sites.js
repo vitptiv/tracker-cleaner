@@ -29,7 +29,15 @@ function pages(c) {
       c.store.record(['ff2m:' + mid], 'F5', `click to ${to}.localhost`, c.host, 'the click recorded first-party before the meta jump'); }
     return page(site, 'Taking you on', `<p>Taking you to ${esc(SITES2[to])}…</p>`, `<meta http-equiv="refresh" content="0;url=${esc(onward)}">`); }
   if (site === 'ledger') {
-    if (p === '/') return page(site, 'Your budgets', `<p><a id="go-budget" href="/budget">Open this month’s budget</a></p>`);
+    if (p === '/') return page(site, 'Your budgets', `<p><a id="go-budget" href="/budget">Open this month’s budget</a></p>
+<p><a id="ff2-signin" href="/login?client_id=ledger-app&redirect_uri=%2Fbudget">Sign in to Ledger</a></p>`);
+    if (p === '/login') { const sid = c.cookies.SID || ('sess-' + Math.random().toString(16).slice(2, 12)), mid = url.searchParams.get('m') || '';
+      // F7: set the ID cookie under a KEEP_RE name on a sign-in-shaped URL (client_id+redirect_uri), inside the 5-minute
+      // hold the shipped guard arms for any such site; the cleaner spares a KEEP_RE-named cookie, so it is never deleted.
+      if (!c.cookies.SID) c.setCookie(`SID=${sid}; Path=/; Max-Age=31536000; SameSite=Lax`);
+      c.store.record(['ff2:' + c.host + ':' + (c.cookies.fp_id || sid), mid && 'ff2m:' + mid], 'F7', `SID=${sid}`, c.host, 'ID cookie set on a sign-in-shaped page, kept because its name is on the cleaner’s sign-in list');
+      const back = url.searchParams.get('redirect_uri') || '/';
+      return page(site, 'Signed in', `<p id="signed-in">Signed in to ${esc(SITES2[site])}. <a id="after-signin" href="${esc(/^\/[\w/-]*$/.test(back) ? back : '/')}">Continue</a></p>`); }
     if (p === '/budget') return page(site, 'October budget', `${filler(3)}${out('to-sundial', 'sundial', '/forecast', 'See the weather for your trips')}`);
   }
   if (site === 'sundial') {

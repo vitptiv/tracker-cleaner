@@ -1233,3 +1233,8 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   separately as `readpx`, which the shield DOES perturb per site when C32 is on; that is reported as a cleaner win.
   The collector records the code (F6) and joins every site reporting the same one. Tested in `test/ff2-fp.test.js`;
   the cross-site, shield-on stability is proven in the browser by `test/lab/ff2-trip.js` (F2-7).
+- F2-6 sign-in-window cookie (`/login` route in `ff2-sites.js`, sign-in link on the ledger home): an arbitrary site's
+  `/login?client_id=&redirect_uri=` page is treated by the shipped guard (guard.js `isSignIn`) as a sign-in, which
+  arms the 5-minute per-site hold; ff2 sets its ID cookie there under a KEEP_RE name (`SID`), so the cleaner spares
+  it. Recorded as F7. The regression test `test/ff2-signin.test.js` documents, against the unchanged guard.js, that
+  any site's URL shape arms the hold.
