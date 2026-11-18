@@ -27,17 +27,17 @@ test('it survives four minutes after that tab closes and goes at the first sweep
 });
 test('an OAuth-style navigation arms the guard for five minutes even after the tab moved on', async () => {
   const bg = await load(opt({ tabs: [{ id: 1, url: 'https://example.com/' }] }));
-  await bg.navigate(1, 'https://idp.test/authorize?client_id=a&redirect_uri=b'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
+  await bg.navigate(1, 'https://login.microsoftonline.com/common/oauth2/authorize?client_id=a&redirect_uri=b'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
   assert.equal(bg.state.storage.guardUntil, bg.now + 5 * MIN);
   await tracker(bg); assert.deepEqual(await bg.names(), ['x']);
-  bg.now += 3 * MIN; await bg.navigate(1, 'https://example.com/login'); await bg.navigate(1, 'https://example.com/app');   // a further sign-in step extends it
+  bg.now += 3 * MIN; await bg.navigate(1, 'https://github.com/login'); await bg.navigate(1, 'https://example.com/app');   // a further sign-in step extends it
   bg.now += 4 * MIN; await bg.alarm('sweep'); assert.deepEqual(await bg.names(), ['x']);
   bg.now += 2 * MIN; await bg.alarm('sweep'); assert.deepEqual(await bg.names(), []);
 });
 test('a /login tab parked in the background stops holding after five minutes; an active one keeps holding', async () => {
   for (const active of [false, true]) {
     const bg = await load(opt({ tabs: [{ id: 1, active: !active, url: 'https://example.com/' }] }));
-    await bg.openTab({ id: 2, active, url: 'https://example.com/login' }); await bg.settle();
+    await bg.openTab({ id: 2, active, url: 'https://github.com/login' }); await bg.settle();
     await tracker(bg);
     bg.now += 4 * MIN; await bg.alarm('proxy'); await bg.alarm('sweep'); assert.deepEqual(await bg.names(), ['x'], String(active));
     bg.now += 16 * MIN; await bg.alarm('proxy'); await bg.alarm('sweep');

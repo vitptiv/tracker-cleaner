@@ -10,11 +10,17 @@ const isSignIn = (url) => {
   return SIGNIN_HOSTS.includes(u.hostname) || (u.hostname === 'github.com' && seg[1] === 'sessions')
     || (u.searchParams.has('client_id') && u.searchParams.has('redirect_uri')) || seg.some((s) => SIGNIN_SEGMENTS.includes(s));
 };
+// Only a sign-in on one of these hosts (a name and its subdomains) holds everything (1.25, H2): the shipped sign-in hosts
+// and the big families people sign in with. A sign-in-looking address of any other site holds that site alone
+// (background.js `sguard`): a page must not be able to pause all cleaning by naming itself /login.
+const GUARD_HOSTS = [...SIGNIN_HOSTS, 'github.com', 'google.com', 'youtube.com', 'microsoft.com', 'live.com', 'microsoftonline.com', 'office.com', 'apple.com', 'icloud.com'];
+const isGuardHost = (h) => { h = String(h || '').toLowerCase(); return GUARD_HOSTS.some((d) => h === d || h.endsWith('.' + d)); };
+const isGuardSignIn = (url) => { try { return isSignIn(url) && isGuardHost(new URL(url).hostname); } catch { return false; } };
 // tab: a sign-in page is the active tab of its window right now. guard: that, or one was seen less than
 // GUARD_MS ago. A sign-in tab left in the background does not count (isSignIn is broad: any /login path),
 // it only has the GUARD_MS from when it navigated there.
 const holdNow = (stored, tabs, now) => {
-  const tab = (tabs || []).some((t) => t.active && isSignIn(t.url || t.pendingUrl));
+  const tab = (tabs || []).some((t) => t.active && isGuardSignIn(t.url || t.pendingUrl));
   return { paused: stored.pauseUntil > now, guard: tab || stored.guardUntil > now, tab };
 };
-if (typeof module !== 'undefined') module.exports = { GUARD_MS, SIGNIN_HOSTS, isSignIn, holdNow };
+if (typeof module !== 'undefined') module.exports = { GUARD_MS, SIGNIN_HOSTS, GUARD_HOSTS, isSignIn, isGuardHost, isGuardSignIn, holdNow };

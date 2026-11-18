@@ -65,7 +65,7 @@ test("postpone until 'restart' lasts until Chrome starts again", async () => {
 });
 test('a held auto item is queued and goes at the first sweep after the guard ends, without approval', async () => {
   const bg = await load({ storage: { master: true, cacheClearedAt: 1.8e12 }, tabs: [{ id: 1, active: true, url: 'https://example.com/' }] });
-  await bg.navigate(1, 'https://example.com/login'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
+  await bg.navigate(1, 'https://github.com/login'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
   await tracker(bg);
   assert.deepEqual(queued(bg, 'cookies').map((i) => i.name), ['x']); assert.equal(bg.badge.text, '1'); assert.deepEqual(bg.destructive(), []);
   bg.now += 4 * MIN; await bg.alarm('sweep'); assert.deepEqual(await bg.names(), ['x']);

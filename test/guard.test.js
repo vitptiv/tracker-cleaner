@@ -20,7 +20,7 @@ test('isSignIn: everything else is not sign-in', () => {
 const T = 1.8e12, tab = (url, active = true) => ({ id: 1, url, active });
 test('guard: an active sign-in tab holds regardless of the timestamp; pendingUrl counts', () => {
   assert.equal(holdNow({}, [tab('https://accounts.google.com/')], T).guard, true);
-  assert.equal(holdNow({ guardUntil: T - 1 }, [{ id: 2, active: true, pendingUrl: 'https://example.com/oauth/x' }], T).guard, true);
+  assert.equal(holdNow({ guardUntil: T - 1 }, [{ id: 2, active: true, pendingUrl: 'https://github.com/login/oauth/x' }], T).guard, true);
   assert.equal(holdNow({}, [tab('https://example.com/')], T).guard, false);
 });
 test('guard: a sign-in tab in the background does not hold by itself, only through guardUntil', () => {

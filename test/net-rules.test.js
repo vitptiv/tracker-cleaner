@@ -45,14 +45,14 @@ test('sign-in guard: the tab a sign-in page is seen in, and the tab that opened 
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://shop.example/' }] })); await bg.alarm('sweep');
   assert.equal(net(bg).length, 4); assert.equal(net(bg).some((r) => 'excludedTabIds' in r.condition), false);
   await bg.openTab({ id: 2, active: false, openerTabId: 1, url: 'https://accounts.google.com/o/oauth2/auth?client_id=a&redirect_uri=b' }); await bg.settle();
-  assert.deepEqual(net(bg).map((r) => r.condition.excludedTabIds), [[1, 2], [1, 2], [1, 2], [1, 2]]);
+  assert.deepEqual(net(bg).map((r) => r.condition.excludedTabIds), [[2], [2], [2], [2]]);   // not the tab that opened it: another site (1.25, H2)
   assert.equal(bg.state.rules.some((r) => r.action.type === 'allow'), false, 'a rule lets everything through in that tab'); assert.deepEqual(bg.state.rulesets, ['trackers', 'google-paths', 'url-params']);
   await bg.closeTab(2); bg.now += 5 * 60e3 + 2000; await bg.alarm('unguard');
   assert.equal(net(bg).some((r) => 'excludedTabIds' in r.condition), false); assert.deepEqual(bg.state.session.gtabs, []);
 });
 test('the guard cut short ends the skipping at once; with the guard switched off no tab is skipped', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://shop.example/' }] }));
-  await bg.navigate(1, 'https://shop.example/login'); await bg.settle(); await bg.navigate(1, 'https://shop.example/account'); await bg.settle();
+  await bg.navigate(1, 'https://github.com/login'); await bg.settle(); await bg.navigate(1, 'https://github.com/account'); await bg.settle();
   assert.deepEqual(net(bg)[0].condition.excludedTabIds, [1]);
   await bg.chrome.storage.local.set({ guardUntil: bg.now - 1 }); await bg.settle();
   assert.equal('excludedTabIds' in net(bg)[0].condition, false);

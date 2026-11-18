@@ -927,3 +927,10 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   learned at one sighting is only ever blocked. Only `hard` companies are judged like listed trackers
   (`core.js` EXTRA). The hourly limit is written after every stop inside the loop; tenants of one shared host count
   as one visited site.
+- H2 a page could arm the sign-in guard by its own address. Now only a sign-in on a shipped host holds everything
+  (`GUARD_HOSTS` in `guard.js`: accounts.google.com, accounts.youtube.com, login.microsoftonline.com, login.live.com,
+  appleid.apple.com, github.com, google.com, youtube.com, microsoft.com, live.com, microsoftonline.com, office.com,
+  apple.com, icloud.com; a name and its subdomains). A sign-in-looking page of any other site holds deleting for
+  that site alone (`sguard`), five minutes, at most once an hour per site; it never exempts a tab from the header
+  rules and never switches the shield off. The tab that opened a sign-in is skipped by the header rules only when
+  it is the same site.
