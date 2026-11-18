@@ -32,7 +32,7 @@
     const body = JSON.stringify({ m: mid, u: location.href, r: document.referrer, stores: { local: localStorage.getItem('ff2_id'), idb: await idb().catch(() => ''), cache: await cacheGet() }, respawned,
       fp: typeof window.ff2fp === 'function' ? await window.ff2fp() : null });
     await fetch('/f/hit?u=' + encodeURIComponent(location.href) + '&r=' + encodeURIComponent(document.referrer) + '&m=' + encodeURIComponent(mid), { method: 'POST', credentials: 'include', keepalive: true, body }).catch(() => {});
-    new Image().src = '/f/px.gif?t=' + Date.now();
+    new Image().src = '/f/px.gif';   // fixed URL so the browser revalidates with If-None-Match (F10)
     PROBE && fetch('/f/probe?ports=' + PROBE + '&m=' + encodeURIComponent(mid), { credentials: 'include' }).catch(() => {});
     // the URL chain (F2-3): carry the id on every outgoing hand-off link under a rotating ordinary-looking name
     if (typeof window.ff2chain === 'function') window.ff2chain(mid);

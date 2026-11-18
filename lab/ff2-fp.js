@@ -24,6 +24,8 @@
     let h = 0x811c9dc5; for (let i = 0; i < px.length; i += 97) { h ^= px[i]; h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); } catch { return 'none'; } };
 
   window.ff2fp = async () => { const fonts = fnv(fontSig()), media = fnv(mediaSig()), gl = fnv(glSig()), readpx = readpxSig();
-    // the join key uses only the unshielded surfaces, so it is stable even with the shield switched on
-    return { code: 'fp2-' + fnv([fonts, media, gl].join('~')), fonts, media, gl, readpx }; };
+    // the join key uses ONLY the surfaces the shield never touches -- installed fonts (measureText) and matchMedia/screen --
+    // so it is identical with the shield off and on. The WebGL vendor/renderer (gl) and readPixels (readpx) ARE perturbed by
+    // the shield when C32 is on; they are reported apart, not folded into the key, so the key stays stable.
+    return { code: 'fp2-' + fnv([fonts, media].join('~')), fonts, media, gl, readpx }; };
 })();

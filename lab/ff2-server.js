@@ -106,6 +106,7 @@ function start2({ port = 8300, logFile } = {}) {
       if (carried) { store.record(['ff2m:' + carried, 'ff2chain:' + c.host], 'F3', `ff2_id=${carried} carried to ${c.host}${url.pathname}`, c.host, 'carried in the address you clicked, rebuilt server-side'); c.seed = carried; }
       let html = pages(c);
       if (html === false) return c.send(404, 'text/html', `<!doctype html><title>Not found</title><p>No such page.</p>`);
+      if (html && html.json !== undefined) return c.send(200, 'application/json', JSON.stringify(html.json, null, 1));
       if (c.seed) html = html.replace('<script src="/f/kit.js">', `<script>window.__ff2seed=${JSON.stringify(c.seed)}</script><script src="/f/kit.js">`);
       c.send(200, 'text/html; charset=utf-8', html);
     } catch (e) { c.send(500, 'text/plain', String(e.stack || e)); } })();

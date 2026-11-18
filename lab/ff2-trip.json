@@ -1,0 +1,79 @@
+[
+ {
+  "n": 1,
+  "title": "Open Ledger, the budget site",
+  "kinds": [
+   "F1",
+   "F2",
+   "F8",
+   "F9"
+  ]
+ },
+ {
+  "n": 2,
+  "title": "Open this month's budget (the hand-off link is armed)",
+  "kinds": [
+   "F1",
+   "F2"
+  ]
+ },
+ {
+  "n": 3,
+  "title": "Follow the link to Sundial (scripted hand-off, id carried in the address)",
+  "kinds": [
+   "F3",
+   "F4",
+   "F5"
+  ]
+ },
+ {
+  "n": 4,
+  "title": "Open the forecast; the id is adopted first-party",
+  "kinds": [
+   "F1",
+   "F2"
+  ]
+ },
+ {
+  "n": 5,
+  "title": "Follow the link to Atlas (scripted hand-off)",
+  "kinds": [
+   "F3",
+   "F4",
+   "F5"
+  ]
+ },
+ {
+  "n": 6,
+  "title": "Open the guide; the meta hand-off back to Ledger is armed",
+  "kinds": [
+   "F1",
+   "F2"
+  ]
+ },
+ {
+  "n": 7,
+  "title": "Meta-refresh back to Ledger's budget",
+  "kinds": [
+   "F3",
+   "F4",
+   "F5"
+  ]
+ },
+ {
+  "n": 8,
+  "title": "Sign in to Ledger on a client_id+redirect_uri page",
+  "kinds": [
+   "F7"
+  ]
+ },
+ {
+  "n": 9,
+  "title": "Revisit the budget: the same id is still there",
+  "kinds": [
+   "F1",
+   "F2",
+   "F10"
+  ]
+ }
+]

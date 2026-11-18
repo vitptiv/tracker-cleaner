@@ -1238,3 +1238,20 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   arms the 5-minute per-site hold; ff2 sets its ID cookie there under a KEEP_RE name (`SID`), so the cleaner spares
   it. Recorded as F7. The regression test `test/ff2-signin.test.js` documents, against the unchanged guard.js, that
   any site's URL shape arms the hold.
+- F2-7 trip + parallel knows page (`lab/ff2-know.js` with the F1..F10 trace list, `/what-i-know(.json)` on every ff2
+  site; `lab/ff2-trip.json`; `test/lab/ff2-trip.js`; results to `lab/ff2-misses.json`). The trip drives the ff2 sites
+  with the shipped cleaner FULLY ON (master on, the fingerprint shield C32 switched on too) and every question
+  answered. Result: 10/10 ff2 kinds still tracked and tied to ONE cookie-less browser id; nothing was learned
+  (`stopped` empty), no question was ever raised; the fingerprint join key is identical across all three sites AND
+  equal to a cleaner-off baseline (the shield leaves fonts/matchMedia/screen untouched). The cleaner-off trip
+  (`test/lab/trip.js`) still tracks 35 of 36. CLEANER WINS, honestly, on two fingerprint surfaces only: with C32 on
+  the shield perturbs WebGL readPixels per site and spoofs the WebGL vendor/renderer (37445/37446); those are kept
+  out of the join key and reported in `ff2-misses.json` under `fingerprint.cleanerWinsOnReadPixels`.
+- Regression / limitation (extension unchanged in this batch, `test/ordering.test.js`): one-sighting learning reads a
+  third-party Set-Cookie in `noteAnswer` (sets `follow[host].ck`), but a single sighting raises NO question on its
+  own -- `followSweep` needs two visited sites or the handed-ID (`sent`) signal. KNOWN LIMITATION: the Set-Cookie
+  that `noteAnswer` reads is the same header C29 strips on a third-party response (net-rules.js), so whether e.ck can
+  ever be set on the wire depends on Chrome's DNR-vs-webRequest ordering, which the Node fake does not model; not
+  settled here, to be checked (and fixed if needed) in a later batch.
+- Cleanup for a later batch (not done now): `learn.js` exports `idInUrl`, which is no longer used by `background.js`
+  (an ID in a URL has not counted as evidence since F1); it can be removed.

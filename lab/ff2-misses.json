@@ -1,0 +1,161 @@
+{
+ "what": "Friendface 2 against the shipped cleaner v1.25, fully on (master on, fingerprint shield C32 on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on.",
+ "extension": "1.25",
+ "browser": "ff2m-1a1ee255a8fc94b2a",
+ "sites": [
+  "ledger.localhost",
+  "sundial.localhost",
+  "atlas.localhost"
+ ],
+ "headline": "10/10 ff2 kinds still tracked and tied to the browser with the cleaner fully on and answered; 6/10 still at the end",
+ "nothingLearned": true,
+ "questionsRaised": 0,
+ "fingerprint": {
+  "shieldOn": true,
+  "codeAcrossSites": [
+   "fp2-6544ca5f"
+  ],
+  "baselineCode": "fp2-6544ca5f",
+  "readpxAcrossSites": {
+   "ledger": "9ab63106",
+   "sundial": "68a50c01",
+   "atlas": "53671c9a"
+  },
+  "cleanerWinsOnReadPixels": true
+ },
+ "caveats": [
+  "Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.",
+  "The shield (C32) is off by default; here it is switched ON to prove the fonts/screen join key (F6) survives it. readPixels is perturbed by the shield when on — a cleaner win, reported under fingerprint.cleanerWinsOnReadPixels.",
+  "Every ff2 piece is served first-party through the visited site’s own /f/ path, so the structural rules (C29/C30/C31, all thirdParty) never match and the learning never raises a question."
+ ],
+ "rows": [
+  {
+   "id": "F1",
+   "type": "First-party reverse-proxy ID",
+   "mark": "tracked",
+   "value": "fp_id=fp-cbe4434fd4",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": true
+  },
+  {
+   "id": "F2",
+   "type": "Cookie-less first-party ID",
+   "mark": "tracked",
+   "value": "ff2_id=ff2m-1a1ee255a8fc94b2a (kept in localStorage, IndexedDB, cacheStorage, no cookie)",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": true
+  },
+  {
+   "id": "F3",
+   "type": "URL-ID chain across sites",
+   "mark": "tracked",
+   "value": "ff2_id=ff2m-1a1ee255a8fc94b2a carried to sundial.localhost/forecast",
+   "sites": [
+    "sundial.localhost",
+    "atlas.localhost",
+    "ledger.localhost"
+   ],
+   "ever": true,
+   "atEnd": false
+  },
+  {
+   "id": "F4",
+   "type": "Scripted / meta hand-off",
+   "mark": "tracked",
+   "value": "http://ledger.localhost:8300/budget to http://sundial.localhost:8300/forecast",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": false
+  },
+  {
+   "id": "F5",
+   "type": "First-party click record",
+   "mark": "tracked",
+   "value": "click to sundial",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": false
+  },
+  {
+   "id": "F6",
+   "type": "Unshielded fingerprint join key",
+   "mark": "tracked",
+   "value": "fp2-6544ca5f",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": true
+  },
+  {
+   "id": "F7",
+   "type": "Sign-in-window cookie",
+   "mark": "tracked",
+   "value": "SID=sess-76d15fe1d9",
+   "sites": [
+    "ledger.localhost"
+   ],
+   "ever": true,
+   "atEnd": false
+  },
+  {
+   "id": "F8",
+   "type": "First-party address and referrer",
+   "mark": "tracked",
+   "value": "http://ledger.localhost:8300/ (came from nowhere)",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": true
+  },
+  {
+   "id": "F9",
+   "type": "First-party loopback probe",
+   "mark": "tracked",
+   "value": "open: none; closed: none",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": true
+  },
+  {
+   "id": "F10",
+   "type": "First-party cache tag (ETag)",
+   "mark": "tracked",
+   "value": "ETag \"fp-cbe4434fd4\" on the site’s own image",
+   "sites": [
+    "ledger.localhost",
+    "sundial.localhost",
+    "atlas.localhost"
+   ],
+   "ever": true,
+   "atEnd": true
+  }
+ ]
+}
