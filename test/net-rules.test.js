@@ -30,9 +30,9 @@ test('installed as switched on; the exempt list is the sign-in hosts, the compan
   const rules = net(bg), ex = rules[0].condition.excludedRequestDomains;
   assert.deepEqual(rules.map((r) => r.id), [NET_BASE, NET_BASE + 1, NET_BASE + 2, NET_BASE + 3]);
   for (const h of [...SIGNIN_HOSTS, ...NEEDED, 'github.com', 'off.example']) assert.ok(ex.includes(h), h);
-  assert.deepEqual(removed(rules[0], 'requestHeaders'), ['cookie']);
+  assert.ok(removed(rules[0], 'requestHeaders').includes('cookie'));
   await bg.send({ type: 'setMode', group: 'othercookies', mode: 'off' }); await bg.settle();
-  assert.deepEqual(net(bg), []);
+  assert.equal(net(bg).some((r) => removed(r, 'requestHeaders').includes('cookie')), false);
 });
 test('none of it while paused or with cleaning switched off; back when resumed', async () => {
   const bg = await load(on()); await bg.alarm('sweep'); assert.equal(net(bg).length, 4);

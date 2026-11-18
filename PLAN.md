@@ -59,6 +59,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C27 | Clean a site that only passes you along (redirect): its cookies and storage, and the ID it added to the address | new in 1.24 | auto |
 | C28 | Empty what a listed or stopped tracker saved on its own site (service worker, storage) and block its notifications | new in 1.24 | auto |
 | C29 | No cookies for other companies: a request to another company carries none and may set none (rule, automatic) | new in 1.25 | auto |
+| C30 | No cache tags (If-None-Match, If-Modified-Since, ETag) and no referring page for other companies (rule, automatic) | new in 1.25 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -840,3 +841,9 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   are there). Checked in a real Chrome (run.js 10b): from example.com the cookie for example.org is not sent, the
   one for accounts.google.com is, and with the row off it is sent again. Not reached: what a frame of another
   company asks of its own company (to Chrome that is the same site asking itself).
+- S5 no cache tags and no referring page for other companies (C30, own row, automatic): the same rules as S4 also
+  remove `If-None-Match`, `If-Modified-Since` and `Referer` from the request and `ETag` from the answer; same
+  exceptions. On the referring page: Chrome by default already sends other sites only the site name
+  (strict-origin-when-cross-origin); removing the header also covers pages that ask for the full address to be sent,
+  and takes the site name away too. Setting a `Referrer-Policy` on every page instead would be gentler but would
+  rewrite each page's own headers, so it was not chosen.

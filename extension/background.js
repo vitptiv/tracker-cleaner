@@ -402,8 +402,8 @@ async function applyFeatures() {
     // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
     ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
       condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }]),
-    // S4: what other companies get less of (net-rules.js); left alone: sign-in hosts, the companies pages need, the sites cleaning is off for
-    ...netRules({ cookies: BLOCK && can('C29', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED, ...(cx.set.sitesOff || [])], self: chrome.runtime.id })]);
+    // S4, S5: what other companies get less of (net-rules.js); left alone: sign-in hosts, the companies pages need, the sites cleaning is off for
+    ...netRules({ cookies: BLOCK && can('C29', cx), tags: BLOCK && can('C30', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED, ...(cx.set.sitesOff || [])], self: chrome.runtime.id })]);
   await guardTabsRule();
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
