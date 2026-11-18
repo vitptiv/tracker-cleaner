@@ -1,6 +1,6 @@
-# Tracker Cleaner 1.23: real-browser checklist
+# Tracker Cleaner 1.24: real-browser checklist
 
-About 30 minutes, in Google Chrome. Tick each step. The 376 Node tests run against a stand-in for Chrome;
+About 30 minutes, in Google Chrome. Tick each step. The 444 Node tests run against a stand-in for Chrome;
 `npm run test:browser` (`test/browser/run.js`, 2026-11-15, Chrome 157 headless, fresh profile) ran the real thing:
 33 checks, all passed (24 from 1.22, and R1 to R9 for the report of 1.23).
 
@@ -52,6 +52,12 @@ All of these passed in a real Chrome, so the matching steps below are a second l
 - **Step 27**: the terminal command against your real profile (the automatic tests use a made-up one).
 - **Step 28** with Tor running: needs `sudo apt install tor`. Only "not running" was seen in a real Chrome; "routed"
   is covered by the stand-in alone.
+- **1.24, the repairs** (`PLAN.md`, "Repairs"; measured against the lab with `node test/lab/trip-cleaner.js`, never on
+  real sites): after a day of ordinary browsing, read the questions under "Waiting for your answer" in the report:
+  "X followed you on 3 sites. Stop it?", "X passed you on to another site without showing you a page. Delete what it
+  saved in your browser?". Is every X a company you would call a tracker? Press "Not now" on any that is not, and
+  note it. After an Approve: do the sites you use still work, and are you still signed in to Google (steps 4 and 5
+  again)? "Let it through again" under "Trackers you stopped" is the way back.
 
 If a step fails, note its number and what you saw, and copy any red line from the service worker
 console (step 14).
@@ -61,12 +67,12 @@ console (step 14).
 - [ ] **1. Load it.** Open `chrome://extensions`, switch on "Developer mode" (top right). Remove or
   switch off any other Tracker Cleaner already listed: two copies would fight over the same cookies.
   Press "Load unpacked" and choose the `extension/` folder. Pin the icon to the toolbar.
-  Look at: a card "Tracker Cleaner (local) 1.23" with no "Errors" button.
+  Look at: a card "Tracker Cleaner (local) 1.24" with no "Errors" button.
   Failure: Chrome refuses the folder, or shows "Errors" (press it and copy the text; a rule file is the likely cause).
 
 - [ ] **2. Fresh state.** Click the icon.
   Look at: "Cleaning is off until you turn it on." with a "Turn on" button, and under
-  "What gets cleaned" one row per group (13 rows).
+  "What gets cleaned" one row per group (16 rows).
   Failure: an empty popup, "Loading…" that stays, or "Tracker Cleaner did not answer".
 
 - [ ] **3. Turn on.** Press "Turn on".

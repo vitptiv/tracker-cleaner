@@ -42,7 +42,7 @@ const OUTSIDE = ['T17', 'T18', 'T19', 'T20'];
 // rows the second look after cleaning can create again by just opening pages
 const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26', 'T28', 'T36'];
 // what the report names as out of reach (report-view.js CANNOT), per row
-const SAID = { T18: 'cannot clean', T19: 'cannot clean' };
+const SAID = { T18: 'cannot clean', T19: 'cannot clean', T27: 'cannot stop', T31: 'cannot stop', T32: 'cannot stop', T33: 'cannot stop' };
 const SIMULATED = { guard: 'the five minutes the sign-in guard holds after step 4 are cut to two seconds', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
 async function run(name, cert, flags) {

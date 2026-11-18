@@ -118,6 +118,10 @@ const { buildReport, renderReport } = (() => {
 
   // ---- What no cleaning reaches: said plainly, one line each, instead of a button that would do nothing
   const CANNOT = [
+    ['An e-mail address you send to a site', 'Tracker Cleaner cannot stop this: once you send it, the site has your address and can hand it to anyone from its own computers.'],
+    ['A shop telling a tracker what you bought', "Tracker Cleaner cannot stop this: the shop's computer tells the tracker directly, and your browser is never asked."],
+    ['"Sign in with" another company', 'Tracker Cleaner cannot stop this: signing in that way tells that company which site you use, and both keep a record of it.'],
+    ["Like, share or comment on a tracker's own page", 'Tracker Cleaner cannot stop this: you are on its own site, and it sees what you press there.'],
     ['The list of pages you visited (history)', "Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that. Chrome's own \"Delete browsing data\" does it."],
     ['The small pictures of sites that Chrome saved (site icons)', "Tracker Cleaner cannot clean this: Chrome gives extensions no way to delete them. They go when Chrome's own \"Delete browsing data\" deletes the history."]];
   const buildReport = (state, tab) => {

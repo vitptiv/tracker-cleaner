@@ -347,7 +347,7 @@
      "records": 3,
      "linked": 3,
      "lastStep": 7,
-     "cause": "not recognised: the lab's names are on no list"
+     "cause": "not recognised: the lab's names are on no list; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
@@ -371,21 +371,21 @@
      "records": 2,
      "linked": 2,
      "lastStep": 6,
-     "cause": "not recognised: the lab's names are on no list"
+     "cause": "not recognised: the lab's names are on no list; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 4,
-     "cause": "no capability covers it (kept on purpose: a sign-in)"
+     "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 7,
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
      "status": "not built",
@@ -623,7 +623,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
@@ -647,21 +647,21 @@
      "records": 2,
      "linked": 2,
      "lastStep": 6,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 6"
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 6; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 4,
-     "cause": "no capability covers it (kept on purpose: a sign-in)"
+     "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 7,
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
      "status": "not built",
@@ -859,7 +859,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
@@ -883,21 +883,21 @@
      "records": 1,
      "linked": 1,
      "lastStep": 6,
-     "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)"
+     "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 4,
-     "cause": "no capability covers it (kept on purpose: a sign-in)"
+     "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 7,
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
      "status": "not built",
@@ -1235,7 +1235,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
@@ -1270,7 +1270,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
-     "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)"
+     "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
@@ -1280,7 +1280,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
-     "cause": "no capability covers it (kept on purpose: a sign-in)"
+     "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
      "status": "tracked",
@@ -1290,7 +1290,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
-     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
      "status": "not built",

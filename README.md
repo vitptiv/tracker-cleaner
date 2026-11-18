@@ -1,4 +1,4 @@
-# Tracker Cleaner 1.23
+# Tracker Cleaner 1.24
 
 A Chrome extension (Manifest V3) for this machine. It blocks requests to tracker domains, strips
 tracking parameters from links, and cleans tracking cookies. Unlike 1.20 it deletes nothing until you
