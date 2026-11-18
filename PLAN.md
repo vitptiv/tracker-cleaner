@@ -793,3 +793,5 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   (`spared`, used by the sweep, the cookie event and Approve) keeps the cookies of a stopped company whose site the
   user opens as a page; built-in list entries are judged as before. Not updated: the report still words such a
   cookie as "comes from a tracker's site".
+- F4 an update from before 1.25 made an install with cleaning on automatic without a word. It still does (the owner's
+  decision), and the popup now says so once: "New in 1.25: ...", with where to set it back; stored modes are kept.

@@ -153,7 +153,7 @@ async function state() {
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
-    ...((await chrome.storage.local.get('firstRun')).firstRun ? { firstRun: true } : {}),
+    ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
@@ -719,7 +719,10 @@ chrome.alarms.create('sweep', { periodInMinutes: 15 });
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); if (a.name === 'unguard') sweep('sign-in over'); });
 chrome.runtime.onInstalled.addListener(async (d) => {
   // 1.25: a new install is switched on, and the popup says once what now happens by itself and where the switch is
-  if (d && d.reason === 'install' && !('master' in await chrome.storage.local.get('master'))) await chrome.storage.local.set({ master: true, firstRun: true });
+  const { master } = await chrome.storage.local.get('master'), [a, b] = String((d || {}).previousVersion).split('.').map(Number);
+  if (d && d.reason === 'install' && master === undefined) await chrome.storage.local.set({ master: true, firstRun: true });
+  // an update from before 1.25 with cleaning on: four groups now run without asking, and the popup says that once
+  if (d && d.reason === 'update' && master === true && (a < 1 || (a === 1 && b < 25))) await chrome.storage.local.set({ firstRun: 'update' });
   // a fresh install has cleared nothing yet: count the 24 hours of C11 from now, so the first sweep does not offer it
   if (!('cacheClearedAt' in await chrome.storage.local.get('cacheClearedAt'))) await chrome.storage.local.set({ cacheClearedAt: Date.now() });
   return sweep('installed');
