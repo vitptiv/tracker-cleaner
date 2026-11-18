@@ -3,6 +3,8 @@
 // are logged on the audit server (logs/drops.jsonl) and can be made permanent. Never cookie values.
 // Since 1.21 it is one collapsed section of the popup, rendered by popup-view.js only when the server answered.
 const AUDIT = 'http://127.0.0.1:8088/audit';
+// a count that the settings program sent: shown only if it is a number (it was put into the page as it came, L10)
+const num = (x) => { const n = Number(x); return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0; };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const sec = (title, count, body, warn) => `<details${warn ? ' open' : ''}><summary><b>${title}</b> <span class="${warn ? 'bad' : 'm'}">${count}</span></summary>${body}</details>`;
 const attrs = (d) => Object.entries(d).filter(([, v]) => v != null).map(([k, v]) => `data-${k}="${esc(v)}"`).join(' ');
@@ -26,7 +28,7 @@ function renderBaddies(j) {
   for (const c of ok) (groups[c.allowed] ||= []).push(c);
   if (bad.length) look.push(`${bad.length} cookie(s)`);
   out.push(sec('Cookies', bad.length ? `${bad.length} NOT on your allow-list` : `✓ all ${ok.length} are allowed sign-ins`,
-    `<p class="m">${j.suspicious} of ${j.total} look suspicious by chrome-baddies' strict rules.</p>`
+    `<p class="m">${num(j.suspicious)} of ${num(j.total)} look suspicious by chrome-baddies' strict rules.</p>`
     + bad.map((c) => { const d = { kind: 'cookie', site: c.site, name: c.name }; return item(`${esc(c.site.replace(/^\./, ''))} · ${esc(c.name)}`, esc(c.reasons.join('; ')), !isGone(d), dropOrDone(d), isGone(d)); }).join('')
     + Object.entries(groups).map(([why, cs]) => `<div class="c"><b>✓ ${esc(why)}</b>${cs.map((c) => { const d = { kind: 'cookie', site: c.site, name: c.name }; return `<div class="h sub${isGone(d) ? ' gone' : ''}"><span>${esc(c.name)}</span>${dropOrDone(d, `signs you out (${why})`)}</div>`; }).join('')}</div>`).join(''), bad.length > 0));
 
@@ -43,7 +45,7 @@ function renderBaddies(j) {
     || '<p class="m">No site has asked for or been given a permission.</p>'));
   if (j.servers) {
     const t = j.servers.tracking || []; if (t.length) look.push(`${t.length} tracker server(s)`);
-    out.push(sec('Servers Chrome remembers', `${j.servers.count} servers${t.length ? `, ${t.length} look like trackers` : ''}`,
+    out.push(sec('Servers Chrome remembers', `${num(j.servers.count)} servers${t.length ? `, ${t.length} look like trackers` : ''}`,
       `<div class="h"><span class="m">Chrome's list of servers it talked to; forgotten every 15 min.</span>${dropOrDone({ kind: 'servers' })}</div>`
       + (j.servers.hosts || []).map((h) => `<div class="c ${t.includes(h) ? 'bad' : ''}">${esc(h)}${t.includes(h) ? ' · tracker' : ''}</div>`).join(''), t.length > 0));
   }
@@ -65,7 +67,7 @@ function renderBaddies(j) {
   // What the cleaner keeps deleting: Allow one if a site breaks without it (e.g. a login)
   if (j.recentlyRemoved) out.push(sec('Recently removed by the cleaner', `${j.recentlyRemoved.length} in the last hour`,
     '<p class="m">If a site breaks (e.g. a login fails), Allow what it needs; you can Revert any time below.</p>'
-    + j.recentlyRemoved.map((x) => item(`${esc(x.site)} · ${esc(x.name)}`, `removed ${x.count}×`, false,
+    + j.recentlyRemoved.map((x) => item(`${esc(x.site)} · ${esc(x.name)}`, `removed ${num(x.count)}×`, false,
       `<button class="allow" ${attrs({ decide: 'allow', kind: 'cookie', site: x.site, name: x.name })}>Allow</button>`)).join('') || '<p class="m">Nothing removed in the last hour.</p>'));
   // Every remembered decision, each revertible
   if (j.decisions || j.permanent) {

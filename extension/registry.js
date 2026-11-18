@@ -78,4 +78,20 @@ const GROUPS = [
   ['tor', 'Hiding your address from websites (Tor)', 'Chrome reaches websites through the Tor network, so they cannot see where you are.'],
   ['server', 'Reports to a server on this computer', 'A summary of what was cleaned is sent to a settings program on this computer, and its lists and switches are read from it; nothing goes anywhere else.']]
   .map(([id, title, says]) => ({ id, title, says, caps: CAPS.filter((c) => c.group === id && c.mode !== null).map((c) => c.id) }));
-if (typeof module !== 'undefined') module.exports = { CAPS, GROUPS, cap, mayRun, gate };
+// The limits file of the settings program on this computer (127.0.0.1:8088), checked before anything in it is used (L10):
+// only the known fields, each of the expected shape and size. Never a wildcard site, and of the things a site may do only
+// those that are safe to block for one site (never JavaScript, cookies or images, which would break the site).
+const LIMIT_PERMS = ['notifications', 'geolocation', 'camera', 'microphone', 'popups', 'automaticDownloads', 'clipboard', 'sensors'];
+const cleanLimits = (l) => {
+  if (!l || typeof l !== 'object' || Array.isArray(l)) return null;
+  const host = (h) => typeof h === 'string' && h.length <= 253 && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$/i.test(h), text = (s) => typeof s === 'string' && s.length > 0 && s.length <= 200;
+  const list = (x, max, ok, pick = (v) => v) => (Array.isArray(x) ? x : []).filter(ok).slice(0, max).map(pick), flag = (x) => x !== false;
+  return { enabled: flag(l.enabled), cookieClean: flag(l.cookieClean), ...('blocking' in l ? { blocking: flag(l.blocking) } : {}), ...('ytAds' in l ? { ytAds: flag(l.ytAds) } : {}), ...('drops' in l ? { drops: flag(l.drops) } : {}),
+    chromeTabs: Number.isInteger(l.chromeTabs) && l.chromeTabs > 0 && l.chromeTabs <= 500 ? l.chromeTabs : 0, preferSites: list(l.preferSites, 50, host),
+    cookieMode: l.cookieMode === 'allowlist' ? 'allowlist' : 'normal',
+    cookieBlacklist: list(l.cookieBlacklist, 500, (b) => b && host(b.h) && text(b.n), (b) => ({ h: b.h, n: b.n })),
+    storageBlacklist: list(l.storageBlacklist, 200, host),
+    permissionBlacklist: list(l.permissionBlacklist, 200, (p) => p && typeof p.site === 'string' && /^https?:\/\//.test(p.site) && host(p.site.replace(/^https?:\/\//, '')) && LIMIT_PERMS.includes(p.perm), (p) => ({ site: p.site, perm: p.perm })),
+    cookieAllow: list(l.cookieAllow, 200, (a) => a && host(a.site) && Array.isArray(a.names) && a.names.every(text), (a) => ({ site: a.site, names: a.names.slice(0, 100) })) };
+};
+if (typeof module !== 'undefined') module.exports = { CAPS, GROUPS, cap, mayRun, gate, cleanLimits };

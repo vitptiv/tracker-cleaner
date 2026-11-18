@@ -385,7 +385,7 @@ const STATE = () => ({ on: ON, cookies: S.CLEAN, blocking: BLOCK, yt: YT, drops:
 async function refreshBlacklist() {
   const cx = await context(); let l = null, back = false;   // back: the settings program's switches were just taken away
   // the settings program on this computer is asked only while its row (C15) is on; off, nothing it said counts any more
-  if (serverOn(cx)) try { l = await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json(); } catch {}
+  if (serverOn(cx)) try { l = cleanLimits(await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json()); } catch {}
   else { back = !S.CLEAN || S.MODE !== 'normal'; ON = BLOCK = YT = DROPS = S.CLEAN = true; S.MODE = 'normal'; S.ALLOW = []; SERVER_BLACK = []; }
   if (l) SERVER_BLACK = Array.isArray(l.cookieBlacklist) ? l.cookieBlacklist : [];
   // The blacklist: the user's own always-delete list (`always`, needs no server) and the server's when it has answered.
@@ -860,7 +860,7 @@ const blockPermission = (site, perm) => chrome.contentSettings[perm].set({ prima
 async function applyPermanentDrops(cx, wait) {
   const storage = verdict('C07', cx), perms = verdict('C09', cx);
   if (!DROPS || (storage === 'no' && perms === 'no')) return {};
-  let l; try { if (!serverOn(cx)) return {}; l = await (await fetch(LIMITS, { cache: 'no-store' })).json(); } catch { return {}; }
+  let l; try { if (!serverOn(cx)) return {}; l = cleanLimits(await (await fetch(LIMITS, { cache: 'no-store' })).json()); if (!l) return {}; } catch { return {}; }
   const done = [];
   for (const site of storage !== 'no' && Array.isArray(l.storageBlacklist) ? l.storageBlacklist : []) {
     const it = { cap: 'C07', kind: 'storage', site, name: 'storage', why: 'permanent drop', did: waitsAs(storage) };
@@ -960,7 +960,7 @@ chrome.runtime.onStartup.addListener(() => sweep('chrome-start'));
 // focused tab, then most recently used. chromeTabs 0 = off. If the audit server is down, nothing is closed.
 const LIMITS = 'http://127.0.0.1:8088/audit/limits.json';
 async function tabLimit() {
-  try { const l = await (await fetch(LIMITS, { cache: 'no-store' })).json();
+  try { const l = cleanLimits(await (await fetch(LIMITS, { cache: 'no-store' })).json()) || {};
     return Number.isInteger(l.chromeTabs) && l.chromeTabs > 0 ? { n: l.chromeTabs, prefer: Array.isArray(l.preferSites) ? l.preferSites : [] } : null; }
   catch { return null; }
 }

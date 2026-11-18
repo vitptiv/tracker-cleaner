@@ -1174,3 +1174,11 @@ other companies; the local network).
   pages", the first-run line, README's first paragraph and the manifest description say what happens now: nothing
   learned is blocked or deleted without a press; saved copies are cleared once a day and at most once an hour
   besides.
+- L10 the settings program on 127.0.0.1:8088: the counts it sends were put into the popup as they came (a "number"
+  could be a button that sends a message); `popup-audit.js` now shows a count only as a number, every other value
+  was already escaped. Its limits file is checked before use (`cleanLimits` in `registry.js`): only the known
+  fields; a site must be a plain host name (the wildcard `*` in the always-delete list is no longer taken); of the
+  things a site may do only notifications, geolocation, camera, microphone, popups, automaticDownloads, clipboard
+  and sensors can be blocked (never JavaScript, cookies or images); lists are cut at 500, 200, 200, 200 and 50
+  entries, the tab limit at 500. The popup still builds its page from text with every value escaped, not from
+  nodes: "textContent only" was not done for the whole popup.
