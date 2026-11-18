@@ -40,9 +40,23 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
       for (const id of s.kinds) done[id] = s.n; passed++; console.log(`ok   ff2 step ${s.n}: ${s.title} -> ${s.kinds.join(' ')}`); return k; };
     const questions = [];
 
+    // POSITIVE CONTROL (M7): the shipped cleaner MUST strip a genuine tracking parameter -- gclid, a real Google Ads
+    // click id -- from a top-level navigation (C23). If the cleaner were silently off or broken, gclid/utm_source would
+    // survive and the trip fails HERE, so a "stopped" result below cannot be a false pass from a disabled cleaner.
+    await t.go(at('ledger', '/?gclid=Cj0KCQ2024abcd&utm_source=newsletter&keep=1')); await sleep(500);
+    const control = await t.url();
+    ok(!/gclid=|utm_source=/.test(control) && /keep=1/.test(control), `POSITIVE CONTROL: the cleaner stripped the tracking params gclid/utm_source (landed ${control})`);
+
     // step 1-2: open Ledger and its budget. Dwell on each site >3 s so it enters the cleaner's `mine` (a user reads the
     // page; a page passed straight on does not count), which is what lets the cross-site-id counter-repair (C33) confirm.
-    await t.go(at('ledger')); await seeStep(TRIP[0]); questions.push(await answerAll()); await sleep(3500);
+    await t.go(at('ledger')); await seeStep(TRIP[0]); questions.push(await answerAll());
+    // F9 is a REAL server-side loopback probe (M7): call it with the lab's own probe ports and confirm it distinguishes
+    // the OPEN port (the lab opens +2) from the CLOSED one (+3) -- a genuine open-vs-closed network probe, not a stub.
+    // Done at step 1, before C33 blocks /f/; F9 is also stopped going forward (its /f/probe is under the blocked /f/).
+    const probe = await t.ev(`fetch('/f/probe?ports=${lab.probe.join(',')}').then((r) => r.json()).catch(() => null)`);
+    const states = probe && probe.probe ? probe.probe.map((x) => x[1]) : [];
+    ok(states.includes('open') && states.includes('closed'), `F9 is a real loopback probe: open vs closed distinguished (${JSON.stringify(probe && probe.probe)})`);
+    await sleep(3500);
     await t.clickAndLoad('#go-budget'); await seeStep(TRIP[1]);
     // step 3-4: scripted hand-off to Sundial (the link was rewritten by the kit to carry the id)
     await t.clickAndLoad('#to-sundial'); ok(new URL(await t.url()).host === `sundial.localhost:${PORT}`, 'landed on Sundial by a scripted jump'); await seeStep(TRIP[2]); await seeStep(TRIP[3]); await sleep(3500);

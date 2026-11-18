@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Three counts, of the 35 kinds built (one of 36, T34, is not built in the lab): arrived = it arrived at all, also tied to nobody. ever = it arrived, tied to her (in Q and C: after the answers or the cleaning, on the second look). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is A (the fresh install, no press) and Q (the same with every question answered yes).",
- "headline": "A (fresh install, nothing changed), of the 35 kinds built: 24 at the end; 26 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 21 at the end; 23 tied to her after the answers; 31 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 26 at the end; 28 arrived and tied to her; 29 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
+ "headline": "A (fresh install, nothing changed), of the 35 kinds built: 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 7 at the end; 9 tied to her after the answers; 25 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
  "caveats": [
   "Nothing is cut short in the measurement any more: there is no hold on everything (L4). The lab's own \"Sign in with\" page holds deleting for the network's own site for five minutes, as it would for a user.",
   "A is the fresh install with no press; Q is the same with every question the extension asks answered yes; since L1 a company on no list is not even blocked without such a press.",
@@ -220,7 +220,7 @@
     "guardHeldAtEnd": false,
     "stopped": [],
     "cutOff": [],
-    "removed": 6,
+    "removed": 5,
     "waiting": {
      "bounce": 2
     },
@@ -250,19 +250,17 @@
     "T3": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "read by the kit",
       "the cookie was gone; put back from local storage, IndexedDB, cache storage"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T4": {
      "status": "stopped",
@@ -289,19 +287,14 @@
      "cause": "capability exists but did not fire"
     },
     "T6": {
-     "status": "tracked",
+     "status": "unlinked",
      "records": 3,
-     "linked": 2,
-     "sites": [
-      "gazette.localhost"
-     ],
-     "via": [
-      "redirect from Pennant"
-     ],
-     "lastStep": 9,
-     "atEnd": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 9"
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), arrived tied to nobody"
     },
     "T7": {
      "status": "tracked",
@@ -330,32 +323,30 @@
     "T9": {
      "status": "tracked",
      "records": 11,
-     "linked": 11,
+     "linked": 6,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "read by the kit",
-      "Friendface frame inside the site"
+      "Friendface frame inside the site",
+      "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T10": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
      "cause": "no capability covers it (storage under the visited site's own name)"
@@ -363,39 +354,37 @@
     "T11": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T12": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T13": {
      "status": "tracked",
-     "records": 3,
-     "linked": 3,
+     "records": 2,
+     "linked": 2,
      "sites": [
       "friendface.localhost",
       "parcelpine.localhost"
@@ -411,32 +400,26 @@
     "T14": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "the browser's answer"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
-     "status": "tracked",
+     "status": "unlinked",
      "records": 4,
-     "linked": 4,
-     "sites": [
-      "gazette.localhost"
-     ],
-     "via": [
-      "the saved copy, given out once and not asked for again"
-     ],
-     "lastStep": 12,
-     "atEnd": true,
-     "ever": true,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T16": {
@@ -547,57 +530,49 @@
     "T23": {
      "status": "tracked",
      "records": 10,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "image",
       "kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T24": {
      "status": "tracked",
      "records": 19,
-     "linked": 15,
+     "linked": 5,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "the invisible image",
-      "a report from the kit",
-      "the like frame"
+      "the like frame",
+      "a report from the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12",
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11",
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "canvas 44b7a2c3, graphics de1a1cf2, audio 535cb46e, fonts bd8a2c56, traits 802,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas d7fe9b26, graphics de1a1cf2, audio c867c760, fonts bd8a2c56, traits 801,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 6ca7d3cc, graphics de1a1cf2, audio 7b9c177d, fonts bd8a2c56, traits 801,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas b82b7d88, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 798,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas d7567de0, graphics de1a1cf2, audio f40cbe0c, fonts bd8a2c56, traits 800,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T26": {
      "status": "stopped",
@@ -719,33 +694,32 @@
     "T36": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "asked from the page on 127.0.0.1"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     }
    },
    "counts": {
-    "tracked": 24,
-    "unlinked": 1,
+    "tracked": 22,
+    "unlinked": 3,
     "stopped": 8,
     "arrived": 27,
-    "ever": 26,
-    "atEnd": 24,
+    "ever": 24,
+    "atEnd": 22,
     "simulated": [],
     "own": [
      "T18",
      "T19"
     ],
-    "stillArrivingAfterRestart": 12
+    "stillArrivingAfterRestart": 10
    }
   },
   "Q": {
@@ -754,6 +728,20 @@
    "steps": {},
    "canary": "cleaner seems on",
    "answered": [
+    {
+     "when": "before step 2",
+     "kind": "tracker",
+     "site": "friendface.localhost",
+     "name": "followed you on 2 sites",
+     "done": 1
+    },
+    {
+     "when": "before step 3",
+     "kind": "used",
+     "site": "friendface.localhost",
+     "name": "what it keeps to follow you",
+     "done": 1
+    },
     {
      "when": "before step 4",
      "kind": "bounce",
@@ -784,15 +772,17 @@
    },
    "manual": {},
    "afterManual": {
-    "reidentified": true,
-    "historyStillShown": 5
+    "reidentified": false,
+    "historyStillShown": 0
    },
    "extension": {
     "master": true,
     "guardHeldAtEnd": false,
-    "stopped": [],
+    "stopped": [
+     "friendface.localhost"
+    ],
     "cutOff": [],
-    "removed": 10,
+    "removed": 14,
     "waiting": {},
     "blockRuleMatches": 0,
     "tagRuleMatches": 0,
@@ -801,68 +791,45 @@
    "rows": {
     "T1": {
      "status": "stopped",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "cookie sent with the like frame"
-     ],
-     "lastStep": 11,
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T2": {
      "status": "stopped",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "cookie sent with the like frame"
-     ],
-     "lastStep": 11,
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T3": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit",
-      "the cookie was gone; put back from local storage, IndexedDB, cache storage"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T4": {
      "status": "stopped",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "click ID given out in the feed"
-     ],
-     "lastStep": 7,
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
@@ -879,130 +846,88 @@
      "ever": false
     },
     "T6": {
-     "status": "unlinked",
-     "records": 4,
+     "status": "stopped",
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
      "duringTrip": "unlinked",
      "sameIdAfterCleaning": false,
-     "ever": false,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), arrived tied to nobody"
+     "ever": false
     },
     "T7": {
-     "status": "tracked",
-     "records": 4,
-     "linked": 4,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "cookie hidden from scripts, sent to metrics.parcelpine.localhost"
-     ],
-     "lastStep": 7,
-     "atEnd": true,
-     "duringTrip": "tracked",
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 7"
+     "ever": false
     },
     "T8": {
      "status": "stopped",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "per-site cookie sent from inside the site"
-     ],
-     "lastStep": 11,
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T9": {
-     "status": "tracked",
-     "records": 18,
-     "linked": 11,
-     "sites": [
-      "tidewater.localhost",
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "Friendface frame inside the site",
-      "read by the kit"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T10": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
      "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "no capability covers it (storage under the visited site's own name)"
+     "ever": false
     },
     "T11": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T12": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T13": {
      "status": "stopped",
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost",
-      "parcelpine.localhost"
+      "friendface.localhost"
      ],
      "via": [
       "the worker reported as it started"
@@ -1014,51 +939,37 @@
      "ever": false
     },
     "T14": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "the browser's answer"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "no capability covers it (an answer the browser gives)"
-    },
-    "T15": {
-     "status": "tracked",
-     "records": 9,
-     "linked": 3,
-     "sites": [
-      "tidewater.localhost",
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "the saved copy, given out once and not asked for again"
-     ],
-     "atEnd": true,
-     "duringTrip": "unlinked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
-    },
-    "T16": {
-     "status": "unlinked",
-     "records": 18,
+     "status": "stopped",
+     "records": 2,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
      "duringTrip": "unlinked",
-     "sameIdAfterCleaning": true,
-     "ever": false,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "sameIdAfterCleaning": false,
+     "ever": false
+    },
+    "T15": {
+     "status": "stopped",
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
+    },
+    "T16": {
+     "status": "stopped",
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T17": {
      "status": "tracked",
@@ -1075,7 +986,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "cause": "re-created after cleaning (new ID)"
     },
     "T18": {
      "status": "kept on purpose: your own history, readable by no website",
@@ -1128,13 +1039,13 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
-     "status": "tracked",
+     "status": "unlinked",
      "records": 2,
-     "linked": 2,
+     "linked": 1,
      "sites": [
       "friendface.test"
      ],
@@ -1142,11 +1053,11 @@
       "read back by asking over plain http"
      ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
+     "ever": false,
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -1166,79 +1077,48 @@
      "ever": false
     },
     "T23": {
-     "status": "tracked",
-     "records": 16,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "kit"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T24": {
-     "status": "tracked",
-     "records": 28,
-     "linked": 10,
-     "sites": [
-      "tidewater.localhost",
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "the like frame",
-      "a report from the kit"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11",
-     "simulated": "the second address is a forwarded-for header"
+     "status": "stopped",
+     "records": 4,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     },
     "T25": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "canvas 68cc5578, graphics de1a1cf2, audio 1dbfd467, fonts bd8a2c56, traits 799,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 0289200c, graphics de1a1cf2, audio e10a7d84, fonts bd8a2c56, traits 802,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas b6ee7476, graphics de1a1cf2, audio a1b2edbc, fonts bd8a2c56, traits 801,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas db6c13c2, graphics de1a1cf2, audio 1dbfd467, fonts bd8a2c56, traits 801,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
      "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "ever": false
     },
     "T26": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "reported by the kit"
-     ],
-     "atEnd": true,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), arrived tied to nobody"
+     "ever": false
     },
     "T27": {
      "status": "tracked",
@@ -1301,14 +1181,12 @@
     },
     "T31": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 1,
+     "linked": 1,
      "sites": [
-      "tidewater.localhost",
       "gazette.localhost"
      ],
      "via": [
-      "like button in a frame",
       "share link"
      ],
      "lastStep": 6,
@@ -1317,7 +1195,7 @@
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 6; the report says \"Tracker Cleaner cannot stop this\""
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 6; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
@@ -1372,37 +1250,30 @@
      "ever": false
     },
     "T36": {
-     "status": "tracked",
-     "records": 12,
-     "linked": 5,
-     "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
-     ],
-     "via": [
-      "asked from the page on 127.0.0.1"
-     ],
-     "lastStep": 11,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
+     "status": "stopped",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "unlinked",
+     "sameIdAfterCleaning": false,
+     "ever": false
     }
    },
    "counts": {
-    "tracked": 21,
-    "unlinked": 2,
-    "stopped": 10,
-    "arrived": 31,
-    "ever": 23,
-    "atEnd": 21,
+    "tracked": 7,
+    "unlinked": 1,
+    "stopped": 25,
+    "arrived": 25,
+    "ever": 9,
+    "atEnd": 7,
     "simulated": [],
     "own": [
      "T18",
      "T19"
     ],
-    "stillArrivingAfterRestart": 13
+    "stillArrivingAfterRestart": 0
    }
   },
   "B0": {
@@ -1433,51 +1304,37 @@
    },
    "rows": {
     "T1": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "gazette.localhost"
-     ],
-     "via": [
-      "cookie sent with the invisible image"
-     ],
-     "lastStep": 9,
-     "atEnd": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 9"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false
     },
     "T2": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "gazette.localhost"
-     ],
-     "via": [
-      "cookie sent with the invisible image"
-     ],
-     "lastStep": 9,
-     "atEnd": true,
-     "ever": true,
-     "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false
     },
     "T3": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "read by the kit",
       "the cookie was gone; put back from local storage, IndexedDB, cache storage"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T4": {
      "status": "stopped",
@@ -1504,19 +1361,14 @@
      "cause": "capability exists but did not fire"
     },
     "T6": {
-     "status": "tracked",
+     "status": "unlinked",
      "records": 3,
-     "linked": 2,
-     "sites": [
-      "gazette.localhost"
-     ],
-     "via": [
-      "redirect from Pennant"
-     ],
-     "lastStep": 9,
-     "atEnd": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 9"
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), arrived tied to nobody"
     },
     "T7": {
      "status": "tracked",
@@ -1545,32 +1397,30 @@
     "T9": {
      "status": "tracked",
      "records": 11,
-     "linked": 11,
+     "linked": 6,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "read by the kit",
-      "Friendface frame inside the site"
+      "Friendface frame inside the site",
+      "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T10": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
      "cause": "no capability covers it (storage under the visited site's own name)"
@@ -1578,34 +1428,32 @@
     "T11": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T12": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "read by the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T13": {
      "status": "tracked",
@@ -1626,33 +1474,27 @@
     "T14": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "the browser's answer"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
-     "status": "tracked",
+     "status": "unlinked",
      "records": 4,
-     "linked": 4,
-     "sites": [
-      "gazette.localhost"
-     ],
-     "via": [
-      "the saved copy, given out once and not asked for again"
-     ],
-     "lastStep": 12,
-     "atEnd": true,
-     "ever": true,
-     "cause": "re-created after cleaning (new ID)"
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false,
+     "cause": "fired too late (ID already sent)"
     },
     "T16": {
      "status": "unlinked",
@@ -1762,57 +1604,49 @@
     "T23": {
      "status": "tracked",
      "records": 10,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "image",
       "kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T24": {
      "status": "tracked",
      "records": 19,
-     "linked": 15,
+     "linked": 5,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "the invisible image",
-      "a report from the kit",
-      "the like frame"
+      "the like frame",
+      "a report from the kit"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12",
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11",
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "canvas 691a16cf, graphics de1a1cf2, audio e2fa6b06, fonts bd8a2c56, traits 798,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas c6570d0a, graphics de1a1cf2, audio 44ca0741, fonts bd8a2c56, traits 800,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas aeba49b9, graphics de1a1cf2, audio 17413ffb, fonts bd8a2c56, traits 798,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas b26c78d5, graphics de1a1cf2, audio ad6ff200, fonts bd8a2c56, traits 799,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas cb15463a, graphics de1a1cf2, audio d68c54b6, fonts bd8a2c56, traits 802,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T26": {
      "status": "stopped",
@@ -1934,33 +1768,32 @@
     "T36": {
      "status": "tracked",
      "records": 6,
-     "linked": 6,
+     "linked": 1,
      "sites": [
-      "gazette.localhost",
       "tidewater.localhost"
      ],
      "via": [
       "asked from the page on 127.0.0.1"
      ],
-     "lastStep": 12,
+     "lastStep": 11,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 12"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     }
    },
    "counts": {
-    "tracked": 26,
-    "unlinked": 1,
-    "stopped": 6,
-    "arrived": 29,
-    "ever": 28,
-    "atEnd": 26,
+    "tracked": 22,
+    "unlinked": 3,
+    "stopped": 8,
+    "arrived": 27,
+    "ever": 24,
+    "atEnd": 22,
     "simulated": [],
     "own": [
      "T18",
      "T19"
     ],
-    "stillArrivingAfterRestart": 14
+    "stillArrivingAfterRestart": 10
    }
   },
   "B": {

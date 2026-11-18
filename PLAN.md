@@ -1337,3 +1337,13 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   server case (e.g. the shop's own purchase beacon in the original Friendface trip, T33). Report-only, so no trip number
   changes. Proven by unit tests (own-address beacon recorded + never blocked + report note; a non-address first-party
   POST not flagged; a confirmed-collector endpoint blocked not flagged; C33 off records nothing).
+- M7 ff2 measurement honesty (lab only, no extension change). (a) F9 is a REAL server-side loopback probe: `probePort`
+  in the frozen ff2-server does an actual http.get to 127.0.0.1:port, and start2 opens probe port +2 and leaves +3
+  closed; ff2-trip now asserts the recorded F9 value distinguishes the open port from the closed one, so the F9 tick
+  is a genuine open-vs-closed probe, not a stub. (b) POSITIVE CONTROL: ff2-trip navigates to a loopback URL carrying a
+  genuine tracking parameter (gclid, a Google Ads click id, plus utm_source) and asserts the shipped cleaner strips
+  them (C23) while keeping an ordinary param -- if the cleaner were silently off or broken the trip fails there, so a
+  "stopped going forward" result below cannot be a false pass from a disabled cleaner. (c) The EXTENSION frozen baseline
+  for the ff2 work is the last pre-ff2 commit 8546f73 (the parent of F2-1 eb07e24), correcting the earlier 85303003
+  reference; the ff2/FF1 lab server, site and kit files are frozen from the ff2 batch onward, and only
+  test/lab/ff2-trip.js and lab/ff2-misses.json are edited by the M batch.
