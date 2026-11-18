@@ -724,3 +724,7 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   a tab. A 33/2, B0 28/6, B 9/26, C 7/28: no change, because the trip keeps Friendface open in a tab from start to
   end, and its "Allow" is a grant over the control channel that no extension setting overrides. Checked apart in
   a real Chrome: worker 1 -> 0 after Approve, and a notification right stored as a user's own goes granted -> denied.
+- R7 history and saved icons: not built, on purpose. Single sites can be taken out of the history only with the
+  `history` permission ("read and change your browsing history"), and nothing deletes icons; without it an
+  extension can only delete all history of a period. The report now says so under "What Tracker Cleaner cannot do".
+  A 33/2, B0 28/6, B 9/26, C 7/28: no change.

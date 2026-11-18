@@ -116,6 +116,10 @@ const { buildReport, renderReport } = (() => {
       asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it) })),
       items: (g.items || []).filter((it) => !ASKS[it.kind]).map(waitItem) }; });
 
+  // ---- What no cleaning reaches: said plainly, one line each, instead of a button that would do nothing
+  const CANNOT = [
+    ['The list of pages you visited (history)', "Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that. Chrome's own \"Delete browsing data\" does it."],
+    ['The small pictures of sites that Chrome saved (site icons)', "Tracker Cleaner cannot clean this: Chrome gives extensions no way to delete them. They go when Chrome's own \"Delete browsing data\" deletes the history."]];
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;
     core.S.EXTRA = (s.stopped || []).map(String);   // companies the user stopped count as trackers
@@ -125,6 +129,7 @@ const { buildReport, renderReport } = (() => {
       // what the user chose to always delete on this site, also when the cookie is not there right now
       stoppedTrackers: (s.stopped || []).map(String), cut: (s.params || []).map(String),
       always: host ? (s.always || []).filter((a) => under(host, String(a.site)) || under(String(a.site), host)) : [],
+      cannot: CANNOT.map(([what, why]) => ({ what, why })),
       stopped: (s.hold || {}).paused ? 'paused' : s.master === false ? 'switched off' : '' };   // deleting would be refused
   };
 
@@ -187,7 +192,9 @@ const { buildReport, renderReport } = (() => {
       `<div class="c" data-wait="${esc(w.id)}"><div>${esc(w.line)}</div><div class="b">${w.button ? btn(esc(w.button), { type: 'approve', group: w.id }, ' class="go"' + off) : ''}`
       + `${btn('Postpone 1 hour', { type: 'postpone', group: w.id, minutes: 60 })}</div>` + (w.note ? `<div class="m">${w.note}</div>` : '')
       + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? ` (the newest ${w.items.length} of ${w.n})` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`)).join('')) + stoppedList();
-    return topLine() + page() + waits() + '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored();
+    const cannot = () => !(r.cannot || []).length ? '' : `<h2>What Tracker Cleaner cannot do</h2><details id="cannot"><summary>Show the ${r.cannot.length} things</summary>`
+      + r.cannot.map((x) => `<div class="c"><b>${esc(x.what)}</b><div class="m">${esc(x.why)}</div></div>`).join('') + '</details>';
+    return topLine() + page() + waits() + '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored() + cannot();
   };
   return { buildReport, renderReport };
 })();

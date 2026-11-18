@@ -41,6 +41,8 @@ const KIND = { T9: 'storage', T11: 'storage', T12: 'storage', T13: 'storage', T1
 const OUTSIDE = ['T17', 'T18', 'T19', 'T20'];
 // rows the second look after cleaning can create again by just opening pages
 const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26', 'T28', 'T36'];
+// what the report names as out of reach (report-view.js CANNOT), per row
+const SAID = { T18: 'cannot clean', T19: 'cannot clean' };
 const SIMULATED = { guard: 'the five minutes the sign-in guard holds after step 4 are cut to two seconds', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
 async function run(name, cert, flags) {
@@ -120,6 +122,7 @@ async function run(name, cert, flags) {
         row.cause = !back.length ? 'fired too late (ID already sent)'
           : `re-created after cleaning (${via ? via.replace('the cookie was gone; ', '') : sameId ? 'same ID again' : 'new ID'}${survivors(last).filter((x) => x !== id).length ? `; re-linked by ${survivors(last).filter((x) => x !== id).join(' ')}` : ''})`; }
       if (caps.includes('C27') && out.extension.cutOff.length && !set.entries) row.cause = `learned at the first pass and handled from then on (cut off: ${out.extension.cutOff.join(', ')}); last arrived in step ${row.lastStep}`;
+      if (SAID[id]) row.cause += `; the report says "Tracker Cleaner ${SAID[id]} this"`;
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
     out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep >= 9).length;   // steps 9 to 12 open the same sites again

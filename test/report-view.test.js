@@ -430,3 +430,13 @@ test('R6: one question per stopped company and one for the listed trackers', () 
   assert.ok(t.includes('trk.example is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?ApproveNot now'));
   assert.ok(t.includes('Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?ApproveNot now'));
 });
+
+// ---- 1.24, R7: history and saved icons are not cleaned, and the report says so with the reason
+test('R7: history and site icons are named as things Tracker Cleaner cannot clean, with the reason, collapsed', () => {
+  const r = buildReport(state(), tab()), html = renderReport(r), t = text(html);
+  assert.deepEqual(r.cannot.slice(0, 2).map((x) => x.what), ['The list of pages you visited (history)', 'The small pictures of sites that Chrome saved (site icons)']);
+  for (const x of r.cannot.slice(0, 2)) assert.match(x.why, /^Tracker Cleaner cannot clean this: /);
+  assert.ok(html.includes('<h2>What Tracker Cleaner cannot do</h2><details id="cannot">'));
+  assert.ok(t.includes('Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that.'));
+  assert.equal(JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../extension/manifest.json'), 'utf8')).permissions.includes('history'), false);
+});

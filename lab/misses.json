@@ -280,14 +280,14 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "no capability covers it (icons go only with the history)"
+     "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "no capability covers it (history is left alone by decision)"
+     "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "tracked",
@@ -559,14 +559,14 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "no capability covers it (icons go only with the history)"
+     "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "no capability covers it (history is left alone by decision)"
+     "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "tracked",
@@ -807,14 +807,14 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "no capability covers it (icons go only with the history)"
+     "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 8,
-     "cause": "no capability covers it (history is left alone by decision)"
+     "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "stopped",
@@ -1166,7 +1166,7 @@
      "lastStep": 8,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
-     "cause": "no capability covers it (icons go only with the history)"
+     "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
      "status": "tracked",
@@ -1175,7 +1175,7 @@
      "lastStep": 8,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
-     "cause": "no capability covers it (history is left alone by decision)"
+     "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "stopped",
