@@ -3,13 +3,13 @@ const test = require('node:test'), assert = require('node:assert'), load = requi
 const { renderPopup } = require('../extension/popup-view.js'), { mayRun } = require('../extension/registry.js');
 const update = async (storage, previousVersion = '1.24') => { const bg = await load({ storage }); await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion }); await bg.settle(); return bg; };
 
-test('a profile that had cleaning on and no modes stored: after the update four groups run by themselves, and the popup says so once', async () => {
+test('a profile that had cleaning on and no modes stored: after the update the popup says once what is new; until it is answered the four groups ask as before (1.25, H8)', async () => {
   const bg = await update({ master: true, cacheClearedAt: 1.8e12 });
-  for (const id of ['C11', 'C25', 'C27', 'C28']) assert.equal(mayRun(id, bg.state.storage), 'run', id);
+  for (const id of ['C11', 'C25', 'C27', 'C28']) assert.equal(mayRun(id, bg.state.storage), 'ask', id);
   const s = await bg.send({ type: 'state' }); assert.equal(s.firstRun, 'update');
-  const html = renderPopup(s, null);
-  assert.match(html, /New in 1\.25: Tracker Cleaner now also stops companies that follow you without asking first, and deletes what they saved\. To have it ask again, choose .Ask first. in the rows below; to turn it off, untick .On. above\./);
-  await bg.send({ type: 'seen' }); assert.equal(renderPopup(await bg.send({ type: 'state' }), null).includes('New in 1.25'), false);
+  assert.ok(renderPopup(s, null).includes('New: Tracker Cleaner now cleans by itself.'));
+  await bg.send({ type: 'seen', auto: true }); assert.equal(renderPopup(await bg.send({ type: 'state' }), null).includes('New: Tracker Cleaner'), false);
+  for (const id of ['C11', 'C25', 'C27', 'C28']) assert.equal(mayRun(id, bg.state.storage), 'run', id);
 });
 test('a mode the user chose before is kept; no line when cleaning was never on, when it is off, or when 1.25 was there already', async () => {
   const kept = await update({ master: true, cacheClearedAt: 1.8e12, modes: { C25: 'ask', C11: 'off' } });

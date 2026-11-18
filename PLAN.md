@@ -973,3 +973,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
 - H7 saved copies: all of them are cleared at most once a day (C11) and once when a tracker is cleaned out (H1's
   hard half); not a minute later, not when Chrome starts, not when the extension is loaded again (this takes back
   S2a's wake-up and start clearing). The row's sentence says so.
+- H8 update: an install updated from before 1.25 with cleaning on gets the four groups that are new to "by itself"
+  (C11, C25, C27, C28) stored as "Ask first" unless the user had chosen a mode (`held125`); blocking and the rules
+  that delete nothing start at once. The popup's one-time line "New: Tracker Cleaner now cleans by itself." has two
+  answers: OK takes those stored modes away again (by itself from then on), Keep asking leaves them.

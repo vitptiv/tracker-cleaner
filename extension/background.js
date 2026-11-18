@@ -297,7 +297,16 @@ async function stored(m) {
   try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
     return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
 }
-const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), histOn: (m) => histOn(m.on), clearBrowsing, unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
+const NEW_AUTO = ['C11', 'C25', 'C27', 'C28'];
+// the one-time line was answered. auto true = "OK": the modes the update stored as "Ask first" are taken away again
+async function lineSeen(m) {
+  const { held125 = [], modes = {} } = await chrome.storage.local.get(['held125', 'modes']);
+  if (m.auto === true && held125.length) await chrome.storage.local.set({ modes: Object.fromEntries(Object.entries(modes).filter(([id, v]) => !(held125.includes(id) && v === 'ask'))) });
+  await chrome.storage.local.remove(['firstRun', 'held125']);
+  if (m.auto === true) await sweep('settings');
+  return { ok: true };
+}
+const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), histOn: (m) => histOn(m.on), clearBrowsing, unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -903,8 +912,11 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   // 1.25: a new install is switched on, and the popup says once what now happens by itself and where the switch is
   const { master } = await chrome.storage.local.get('master'), [a, b] = String((d || {}).previousVersion).split('.').map(Number);
   if (d && d.reason === 'install' && master === undefined) await chrome.storage.local.set({ master: true, firstRun: true });
-  // an update from before 1.25 with cleaning on: four groups now run without asking, and the popup says that once
-  if (d && d.reason === 'update' && master === true && (a < 1 || (a === 1 && b < 25))) await chrome.storage.local.set({ firstRun: 'update' });
+  // an update from before 1.25 with cleaning on (H8): the four groups that 1.25 lets run by themselves are stored as "Ask
+  // first", as they were, unless the user had chosen a mode; the popup's one-time line then offers OK (by itself from now
+  // on) or Keep asking. Blocking and the rules that delete nothing start at once.
+  if (d && d.reason === 'update' && master === true && (a < 1 || (a === 1 && b < 25))) { const { modes = {} } = await chrome.storage.local.get('modes'), held = NEW_AUTO.filter((id) => !(id in modes));
+    await chrome.storage.local.set({ firstRun: 'update', held125: held, modes: { ...modes, ...Object.fromEntries(held.map((id) => [id, 'ask'])) } }); }
   // a fresh install has cleared nothing yet: count the 24 hours of C11 from now, so the first sweep does not offer it
   if (!('cacheClearedAt' in await chrome.storage.local.get('cacheClearedAt'))) await chrome.storage.local.set({ cacheClearedAt: Date.now() });
   return sweep('installed');
