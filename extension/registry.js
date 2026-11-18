@@ -29,6 +29,7 @@ const CAPS = [
   C('C25', 'Stop unknown trackers', 'unknown', 'ask', true),
   C('C26', 'Block pings that tell which link was followed', 'blocking', 'auto', false),
   C('C27', 'Clean sites that only pass you along', 'bounce', 'ask', true),
+  C('C28', "Empty what a tracker saved on its own site", 'own', 'ask', true),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.
@@ -58,6 +59,7 @@ const GROUPS = [
   ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
   ['unknown', 'Trackers that are on no list', 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.'],
   ['bounce', 'Sites that only pass you along', 'A site that sends you straight on to another site without showing you anything has what it saved deleted, and the tag it added to the address is cut off.'],
+  ['own', 'What trackers saved on their own sites', 'What a tracker you stopped has left on its own site (a background program, saved data, the right to send notifications) is taken away once a day; on Automatic also for the trackers on the built-in list.'],
   ['storage', 'Data that sites keep (site storage)', 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.'],
   ['wifi', 'Remembered Wi-Fi networks', 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.'],
   ['permissions', 'What sites may do (site permissions)', 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.'],

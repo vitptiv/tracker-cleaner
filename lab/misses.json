@@ -119,6 +119,7 @@
   "params",
   "unknown",
   "bounce",
+  "own",
   "storage",
   "permissions",
   "cache"
@@ -241,10 +242,10 @@
     },
     "T13": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 3,
+     "linked": 3,
      "lastStep": 7,
-     "cause": "not recognised: the lab's names are on no list"
+     "cause": "capability exists but did not fire"
     },
     "T14": {
      "status": "tracked",
@@ -309,7 +310,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
-     "cause": "not recognised: the lab's names are on no list",
+     "cause": "capability exists but did not fire",
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
@@ -432,7 +433,7 @@
     "cutOff": [
      "ffclid"
     ],
-    "removed": 10,
+    "removed": 12,
     "waiting": {},
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
@@ -464,7 +465,7 @@
      "records": 3,
      "linked": 3,
      "lastStep": 4,
-     "cause": "capability exists but did not fire"
+     "cause": "learned at the first pass and handled from then on (cut off: ffclid); last arrived in step 4"
     },
     "T5": {
      "status": "stopped",
@@ -520,10 +521,10 @@
     },
     "T13": {
      "status": "tracked",
-     "records": 2,
+     "records": 1,
      "linked": 1,
      "lastStep": 2,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 2"
+     "cause": "capability exists but did not fire"
     },
     "T14": {
      "status": "tracked",
@@ -587,7 +588,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 7",
+     "cause": "capability exists but did not fire",
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
@@ -706,7 +707,7 @@
     "cutOff": [
      "ffclid"
     ],
-    "removed": 13,
+    "removed": 15,
     "waiting": {
      "storage": 1
     },
@@ -779,7 +780,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 2,
-     "cause": "capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)"
+     "cause": "capability exists but did not fire"
     },
     "T14": {
      "status": "stopped",
@@ -830,7 +831,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
-     "cause": "capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)",
+     "cause": "capability exists but did not fire",
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
@@ -1029,7 +1030,7 @@
     "cutOff": [
      "ffclid"
     ],
-    "removed": 25,
+    "removed": 27,
     "waiting": {
      "storage": 1
     },

@@ -3,7 +3,7 @@
 const test = require('node:test'), assert = require('node:assert');
 const { buildReport, renderReport } = require('../extension/report-view.js'), { GROUPS } = require('../extension/registry.js');
 const NOW = new Date(2026, 10, 15, 14, 5).getTime();   // 15 Nov 2026, 14:05 local
-const MODE = { signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
+const MODE = { signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
 const NO_ASK = ['signin', 'blocking', 'params', 'server'];
 const groups = (over = {}) => GROUPS.map((g) => ({ id: g.id, title: g.title, says: g.says, ask: !NO_ASK.includes(g.id), mode: MODE[g.id], pending: 0, items: [], ...over[g.id] }));
 const state = (o = {}, over = {}) => ({ now: NOW, master: true, hold: {}, groups: groups(over), allow: [], always: [], sitesOff: [], history: { days: {}, cookies: {} }, ...o });
@@ -20,6 +20,7 @@ const SAYS = {
   params: 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.',
   unknown: 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.',
   bounce: 'A site that sends you straight on to another site without showing you anything has what it saved deleted, and the tag it added to the address is cut off.',
+  own: 'What a tracker you stopped has left on its own site (a background program, saved data, the right to send notifications) is taken away once a day; on Automatic also for the trackers on the built-in list.',
   storage: 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.',
   wifi: 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.',
   permissions: 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.',
@@ -420,4 +421,12 @@ test('R5: two questions about a site that passed the user on, each with its own 
   assert.ok(t.includes('hop.example added "xclid" to the address of the page it sent you to, so that page can recognise you. Cut it off from now on?ApproveNot now'));
   assert.ok(html.includes('{&quot;type&quot;:&quot;approve&quot;,&quot;group&quot;:&quot;bounce&quot;,&quot;site&quot;:&quot;hop.example&quot;,&quot;name&quot;:&quot;xclid&quot;}'));
   assert.ok(t.includes('Tags you chose to cut off addresses (1)oldidStop cutting it off'));
+});
+
+// ---- 1.24, R6: what a tracker saved on its own site
+test('R6: one question per stopped company and one for the listed trackers', () => {
+  const items = ['trk.example', 'the listed trackers'].map((site) => ({ cap: 'C28', kind: 'own', site, name: 'what it saved on its own site' }));
+  const t = text(renderReport(buildReport(state({}, { own: { pending: 2, items } }), tab())));
+  assert.ok(t.includes('trk.example is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?ApproveNot now'));
+  assert.ok(t.includes('Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?ApproveNot now'));
 });

@@ -36,7 +36,7 @@ const { buildReport, renderReport } = (() => {
       : 'Routed over Tor: yes, websites see an address of the Tor network, not yours')
     : t.wanted && t.running === false ? 'Tor is not running on this computer; nothing is routed' : 'Routed over Tor: no';
   // what a group's removal is called: "4 deleted today"
-  const DID = { unknown: 'stopped', bounce: 'cleaned', cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
+  const DID = { unknown: 'stopped', bounce: 'cleaned', own: 'emptied', cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
   // Blocked and cleaned links are those of this tab (Chrome counts them per tab). Deleted today and waiting are those
   // of the whole group, on all sites. For the groups that delete cookies and nothing else, the history's per-cookie
   // counters also give this site's share of today (history.js: d and g), for the site and the sites above and below it.
@@ -103,6 +103,8 @@ const { buildReport, renderReport } = (() => {
   // things asked one by one, in one sentence each, with Approve and Not now
   const ASKS = { tracker: (it) => `${it.site} ${it.name}. Stop it?`,
     bounce: (it) => `${it.site} passed you on to another site without showing you a page. Delete what it saved in your browser?`,
+    own: (it) => it.site === 'the listed trackers' ? 'Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?'
+      : `${it.site} is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?`,
     param: (it) => `${it.site} added "${it.name}" to the address of the page it sent you to, so that page can recognise you. Cut it off from now on?` };
   const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
     : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (its site keeps putting it back)' : '');

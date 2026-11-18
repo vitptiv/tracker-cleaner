@@ -108,6 +108,7 @@ async function carry(it, cookies, tabs, cx) {
   if (it.kind === 'tracker') return stopTracker(it.site);
   if (it.kind === 'bounce') return cleanBounce(it.site);
   if (it.kind === 'param') return stripParam(it.name);
+  if (it.kind === 'own') return cleanOwn(it.site, cx);
   if (it.kind === 'storage') await dropStorage(it.site);
   else if (it.kind === 'permission') await blockPermission(it.site, it.name);
   else if (it.kind === 'cache') await clearCache();
@@ -404,7 +405,7 @@ async function sweepOnce(cause) {
   const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
-  await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait);
+  await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait); await ownSweep(cx, wait);
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
   await report({ reason: cause, scanned: all.length, removed, kept, ...rest });
@@ -425,7 +426,7 @@ async function learnedRules(want) {
 const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());
 async function notNow(m) {
   const g = GROUPS.find((x) => x.id === m.group), now = Date.now();
-  if (!g || !isHost(m.site)) return { ok: false };
+  if (!g || typeof m.site !== 'string' || !m.site) return { ok: false };
   const old = Object.entries((await chrome.storage.local.get('later')).later || {}).filter(([, t]) => t > now);
   await chrome.storage.local.set({ later: Object.fromEntries([...old, ...g.caps.map((id) => [`${id} ${m.site}${typeof m.name === 'string' ? ' ' + m.name : ''}`, now + LATER_MS])]) });
   await sweep('settings');
@@ -529,6 +530,33 @@ async function unparam(name) {
     await chrome.storage.local.set({ params, bounce }); });
   await sweep('settings');
   return { ok: true, params };
+}
+
+// ---- What a tracker saved on its own site (C28). A tracker is also a site: there it can leave a program that runs
+// in the background (service worker), its own storage, and the right to send notifications. For every company the
+// user stopped (C25) that is emptied and its notifications are blocked: after one question each, and from then on
+// once a day without asking ({ own: { '<site>': { ok, at } } }). The built-in list as a whole is done only on
+// Automatic: a standing question about 65 sites that are hardly ever visited would be noise. Never while the
+// tracker's own site is open in a tab. Chrome does not tell an extension whether anything was there.
+const OWN = 'what it saved on its own site', LISTED = 'the listed trackers';
+async function ownSweep(cx, wait) {
+  const v = verdict('C28', cx), done = [], now = Date.now();
+  if (v === 'no') return;
+  const { own = {} } = await chrome.storage.local.get('own');
+  for (const site of [...(cx.set.stopped || []), ...(mayRun('C28', cx.set) === 'run' ? [LISTED] : [])]) { const e = own[site] || {};
+    if (e.at > now - CACHE_MS || later(cx, 'C28', site, OWN) || (site !== LISTED && cx.hosts.some((h) => under(h, site)))) continue;
+    const it = { cap: 'C28', kind: 'own', site, name: OWN, why: 'a tracker', did: waitsAs(v) };
+    if (v === 'run' || (v === 'ask' && e.ok && !cx.hold.guard && !cx.hold.paused && cx.set.master === true)) { if (await cleanOwn(site, cx).catch(() => false)) done.push(it); }
+    else wait.push(it); }
+  await logged(done, 'removed');
+}
+async function cleanOwn(site, cx) {
+  const { own = {}, follow = {} } = await chrome.storage.local.get(['own', 'follow']);
+  const sites = site === LISTED ? DOMAINS.filter((d) => !cx.hosts.some((h) => under(h, d))) : [site];
+  await dropStorage([...new Set(sites.flatMap((s) => [s, 'www.' + s, ...((follow[s] || {}).hosts || [])]))]);
+  for (const s of sites) await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${s}/*`, setting: 'block' });
+  await chrome.storage.local.set({ own: { ...own, [site]: { ok: true, at: Date.now() } } });
+  return true;
 }
 
 // ---- Saved Wi-Fi networks (C24). Chrome cannot see them: a local program (wifi-helper/, started by Chrome through

@@ -8,7 +8,7 @@ const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
 const HOSTS = ['friendface', 'hop', 'pennant', 'gazette', 'parcelpine', 'metrics.parcelpine', 'tidewater', 'loopreel'].map((h) => h + '.localhost');
-const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'unknown', 'bounce', 'storage', 'permissions', 'cache'];
+const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'unknown', 'bounce', 'own', 'storage', 'permissions', 'cache'];
 
 // ---- the lab's test-only entries. None of them is in a shipped list; they exist only while this script runs.
 // 1. Two session rules, added through the extension's own popup page, shaped like the shipped ones (rules.json rule 1, rules-params.json).
@@ -30,8 +30,8 @@ const NOT_SET = { tor: 'would send requests off this computer', tabs: 'would clo
   server: 'only reports and self-update', wifi: 'never automatic; touches this computer\'s saved networks, so it is not approved either' };
 
 // ---- which capability is aimed at each kind (journal page, chapter 4), and the thing it would have to remove
-const COVER = { T1: ['C01', 'C07'], T2: [], T3: ['C07'], T4: ['C23', 'C07', 'C27'], T5: ['C07', 'C27'], T6: ['C01', 'C07'], T7: ['C07'], T8: ['C01', 'C07'], T9: ['C06'], T10: [], T11: ['C06'], T12: ['C06'], T13: ['C06'],
-  T14: [], T15: ['C11'], T16: ['C11'], T17: ['C11'], T18: [], T19: [], T20: ['C11'], T21: ['C11'], T22: ['C09'], T23: ['C01'], T24: ['C01'], T25: ['C01'], T26: ['C01'], T27: ['C01'], T28: ['C01', 'C26'],
+const COVER = { T1: ['C01', 'C07'], T2: [], T3: ['C07'], T4: ['C23', 'C07', 'C27'], T5: ['C07', 'C27'], T6: ['C01', 'C07'], T7: ['C07'], T8: ['C01', 'C07'], T9: ['C06'], T10: [], T11: ['C06'], T12: ['C06'], T13: ['C06', 'C28'],
+  T14: [], T15: ['C11'], T16: ['C11'], T17: ['C11'], T18: [], T19: [], T20: ['C11'], T21: ['C11'], T22: ['C09', 'C28'], T23: ['C01'], T24: ['C01'], T25: ['C01'], T26: ['C01'], T27: ['C01'], T28: ['C01', 'C26'],
   T29: ['C26'], T30: [], T31: ['C01'], T32: [], T33: [], T35: ['C01'], T36: ['C01'] };
 const WHY_NONE = { T2: 'kept on purpose: a sign-in cookie', T32: 'kept on purpose: a sign-in', T33: 'the browser is not involved', T10: 'storage under the visited site\'s own name', T14: 'an answer the browser gives',
   T18: 'icons go only with the history', T19: 'history is left alone by decision', T29: 'first-party ping on the network\'s own page', T30: 'the redirector is the page in front' };
@@ -119,6 +119,7 @@ async function run(name, cert, flags) {
       else { const back = all.filter((r) => r.t > last && linked.has(r)), sameId = back.some((r) => all.some((x) => x.t <= last && x.value === r.value)), via = (back.find((r) => /put back from/.test(r.via)) || {}).via;
         row.cause = !back.length ? 'fired too late (ID already sent)'
           : `re-created after cleaning (${via ? via.replace('the cookie was gone; ', '') : sameId ? 'same ID again' : 'new ID'}${survivors(last).filter((x) => x !== id).length ? `; re-linked by ${survivors(last).filter((x) => x !== id).join(' ')}` : ''})`; }
+      if (caps.includes('C27') && out.extension.cutOff.length && !set.entries) row.cause = `learned at the first pass and handled from then on (cut off: ${out.extension.cutOff.join(', ')}); last arrived in step ${row.lastStep}`;
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
     out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep >= 9).length;   // steps 9 to 12 open the same sites again
