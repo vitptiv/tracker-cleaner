@@ -170,12 +170,12 @@ async function main() {
     await check(3, 'Popup on a fresh profile: switched on, and it says once what now happens by itself', async (ok, see) => {
       await until(async () => (await P.state()).master === true, 8000); await P.reopen();
       const text = await P.text(), [red, audit] = redLines(x.popup), rows = await x.popup.ev(`document.querySelectorAll('[data-group]').length`);
-      ok(text.includes('Tracker Cleaner is on. By itself it now stops companies that follow you from site to site and deletes what they saved. To turn it off, untick "On" above.'), `popup text: ${text.slice(0, 200)}`);
+      ok(text.includes('Tracker Cleaner is on. By itself it now: blocks trackers;') && text.includes('To turn it off, untick "On" above.'), `popup text: ${text.slice(0, 200)}`);
       ok(/Pause 10 min/.test(text), 'no "Pause 10 min" button');
       ok(await P.click('OK') && await until(async () => !(await P.text()).includes('By itself it now')), 'the first-run line does not go away at OK');
       ok(rows === GROUP_ROWS, `${rows} group rows, expected ${GROUP_ROWS}`);
       ok(!red.length, `popup console errors: ${brief(red)}`);
-      see(`"Tracker Cleaner is on. By itself it now stops ..." with OK, gone after OK, ${rows} group rows, ${red.length} console errors`
+      see(`"Tracker Cleaner is on. By itself it now: blocks trackers; ..." with OK, gone after OK, ${rows} group rows, ${red.length} console errors`
         + (audit.length ? ` (plus ${audit.length} red line for the audit server)` : ''));
     });
 

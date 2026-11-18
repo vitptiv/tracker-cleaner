@@ -17,7 +17,7 @@ test('a fresh install is switched on and says so once; an update changes nothing
   const bg = await fresh();
   assert.equal(bg.state.storage.master, true); assert.equal((await bg.send({ type: 'state' })).firstRun, true);
   const html = renderPopup(await bg.send({ type: 'state' }), null);
-  assert.match(html, /Tracker Cleaner is on\. By itself it now stops companies that follow you from site to site and deletes what they saved\. To turn it off, untick .On. above\./);
+  assert.match(html, /Tracker Cleaner is on\. By itself it now: blocks trackers; .* To turn it off, untick .On. above\./);
   await bg.send({ type: 'seen' });
   assert.equal((await bg.send({ type: 'state' })).firstRun, undefined);
   const old = await load({ storage: { cacheClearedAt: 5 } }); await old.chrome.runtime.onInstalled.fire({ reason: 'update' }); await old.settle();

@@ -442,9 +442,9 @@ test('R7: history and site icons are named as things Tracker Cleaner cannot clea
   const r = buildReport(state(), tab()), html = renderReport(r), t = text(html);
   const two = r.cannot.filter((x) => /history|site icons/.test(x.what));
   assert.deepEqual(two.map((x) => x.what), ['The list of pages you visited (history)', 'The small pictures of sites that Chrome saved (site icons)']);
-  for (const x of two) assert.match(x.why, /^Tracker Cleaner cannot clean this: /);
+  assert.match(two[0].why, /^Tracker Cleaner does not clean this by itself: /); assert.match(two[1].why, /^Tracker Cleaner cannot clean this: /);   // 1.25, H10: the history can be cleared at a press
   assert.ok(html.includes('<h2>What Tracker Cleaner cannot do</h2><details id="cannot">'));
-  assert.ok(t.includes('Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that unless you press'));   // 1.25, S11: optional, at a press
+  assert.ok(t.includes('Tracker Cleaner does not clean this by itself: it is your own record, and no website can read it.'));   // 1.25, H10
   assert.equal(JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../extension/manifest.json'), 'utf8')).permissions.includes('history'), false);
 });
 

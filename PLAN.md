@@ -983,3 +983,8 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   are noted per visited site in an hour; "Clear my browsing history" shows a second, separate button that can be
   pressed only a second later; neither history clearing empties `mine` any more (takes back that part of F5), and
   the popup says so; a cleaned-out tracker's background program is removed even while its site is open (H1).
+- H10 words: the manifest description (132 characters at most, so it names what touches every page: blocking,
+  cookies and the referring page for other companies, the script in every page, rewritten links), the first-run
+  line and README's first paragraph (both name everything, including that request addresses and contents are read
+  in memory to spot trackers). README no longer says "1.21 has not been run"; the report no longer says the history
+  cannot be cleaned.

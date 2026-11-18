@@ -1,11 +1,24 @@
 # Tracker Cleaner 1.25
 
-A Chrome extension (Manifest V3) for this machine. It blocks requests to tracker domains, strips
-tracking parameters from links, and cleans tracking cookies. Since 1.25 a new install is switched on, and
-the groups that only touch what follows you run without asking; the popup says so once, and each group
-can be set to off, asked about first (Approve / Postpone in the popup) or automatic. Everything is held
-while you sign in somewhere, and for 10 minutes a removed cookie can be put back with Undo; emptied
-storage and cleared saved copies cannot be put back.
+A Chrome extension (Manifest V3) for this machine. Everything it does, since 1.25 without asking on a new
+install (the popup says so once; each row can be set to off, ask first or automatic):
+
+- it blocks requests to listed trackers, and to companies it learns are following you (seen on two sites
+  you visit, or handed a site's own ID); a learned company is only blocked, and what it keeps is cleaned
+  out only after two sites and when you do not use its site, or after one question;
+- it deletes tracking cookies, clears the saved copies of pages once a day, and strips tracking
+  parameters from links;
+- from every request a page makes to another company it removes cookies, cache tags and the referring
+  page, and it stops pages from calling this computer and the home network;
+- it runs a small script in every page that blurs what makes the browser recognisable (pictures and
+  sound read back, the graphics chip's name, the saved amount);
+- it rewrites links to known pass-through sites so that they go straight to their destination;
+- to spot trackers it reads the addresses and contents of what pages send, and whether an answer sets an
+  ID cookie, in memory on this computer only: nothing of it is stored or sent anywhere.
+
+Everything is held while you sign in with Google, Microsoft, Apple or GitHub (another site's sign-in page
+holds that site only). For 10 minutes a removed cookie can be put back with Undo; emptied storage and
+cleared saved copies cannot be put back.
 
 ## Layout
 
@@ -40,8 +53,7 @@ This writes `rules.json`, `rules-google.json`, `rules-params.json` and `lists.js
 ## Load it
 
 Open `chrome://extensions`, switch on "Developer mode", remove or switch off any other copy of Tracker
-Cleaner, press "Load unpacked" and choose `extension/`. Then follow `TESTING.md`: 1.21 has not been
-run in a browser yet. `extension/pack.sh` makes a signed `.crx` when the key
+Cleaner, press "Load unpacked" and choose `extension/`. Then follow `TESTING.md` (its by-hand steps were written for 1.24 and are not yet brought up to 1.25; `test/browser/run.js` drives 1.25 in a real Chrome). `extension/pack.sh` makes a signed `.crx` when the key
 `~/.config/tracker-cleaner/key.pem` exists, and prints these steps when it does not.
 
 ## See what Chrome has stored
