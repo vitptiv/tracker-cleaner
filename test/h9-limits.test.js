@@ -5,16 +5,6 @@ const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12,
 const enc = encodeURIComponent, ID = 'h-77ab12cd34ef';
 const req = async (bg, url, page) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script' }); await bg.settle(); };
 
-test('the group button never answers a "cut this off addresses" question; its own button does', async () => {
-  const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] }));
-  await bg.redirect({ url: `https://hop.example/r?to=${enc('https://blog.example/post')}`, redirectUrl: `https://blog.example/post?hid=${ID}`, type: 'main_frame' }); await bg.settle();
-  const waiting = () => ((bg.state.storage.pending || {}).bounce || { items: [] }).items.map((i) => [i.kind, i.name]);
-  const BOTH = [['bounce', 'passed you on without showing a page'], ['param', 'hid']];
-  assert.deepEqual(waiting(), BOTH);
-  await bg.send({ type: 'approve', group: 'bounce' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.params || [], []); assert.deepEqual(waiting(), BOTH);
-  await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'hid' }); assert.deepEqual(bg.state.storage.params, ['hid']);
-});
 test('names that sound like a sign-in or a key are never offered: token, reset, code, key, auth, session, sig, anywhere in the name', () => {
   const names = ['resetToken', 'reset_code', 'apikey', 'auth_id', 'sessionId', 'sig2', 'pwd_reset', 'x_token_y', 'KEY', 'signature', 'authcode'];
   assert.deepEqual(bounceAdded(`https://hop.example/r?to=${enc('https://blog.example/p')}`, `https://blog.example/p?${names.map((n) => `${n}=${ID}`).join('&')}&hid=${ID}`), ['hid']);

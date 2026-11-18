@@ -53,7 +53,7 @@ test('a site that passes you along is never cleaned by itself (1.25, J1): one qu
   const cookies = [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }];
   let bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.redirect(hop); await bg.settle();
-  assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['passed you on without showing a page', 'hid']);   // two questions, nothing by itself
+  assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['passed you on without showing a page']);   // a question, nothing by itself
   await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'passed you on without showing a page' }); await bg.settle(); assert.deepEqual(await bg.names(), []);
   bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.opens('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();

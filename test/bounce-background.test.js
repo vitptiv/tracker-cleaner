@@ -16,27 +16,21 @@ test('what a passing site added: only what was not in the address it was asked t
   assert.deepEqual(bounceAdded(HOP, 'https://elsewhere.example/?xclid=c-1a2b3c4d5e'), []);
   assert.deepEqual(bounceAdded('nonsense', DEST), []);
 });
-test('passed through once: two questions wait, nothing is deleted or changed', async () => {
+test('passed through once: one question waits, nothing is deleted or changed; no question about what it added to the address (1.25, L3)', async () => {
   const bg = await load(on()); await pass(bg);
-  assert.deepEqual(queued(bg), ASK); assert.deepEqual(bg.destructive(), []); assert.equal(rule(bg), undefined);
+  assert.deepEqual(queued(bg), [ASK[0]]); assert.deepEqual(bg.destructive(), []); assert.equal(rule(bg), undefined);
 });
-test('Approve the first: its cookies and storage go, the sign-in cookie stays. Approve the second: the tag is cut off every address but a sign-in', async () => {
+test('Remove: its cookies and storage go, the sign-in cookie stays; the next pass asks again about what it saved this time', async () => {
   const bg = await load(on()); await pass(bg);
   assert.deepEqual(await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: ASK[0][2] }), { ok: true, done: 1, of: 1 }); await bg.settle();
   assert.deepEqual(await bg.names(), ['SID', 'own']);
   assert.deepEqual(bg.called('browsingData.remove').map((c) => c.args[0].origins), [['https://hop.example', 'http://hop.example']]);
-  assert.deepEqual(queued(bg), [ASK[1]]); assert.equal(rule(bg), undefined);
-  await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'xclid' }); await bg.settle();
-  const r = rule(bg);
-  assert.deepEqual([r.action.redirect.transform.queryTransform.removeParams, r.condition.resourceTypes], [['xclid'], ['main_frame']]);
-  assert.ok(r.condition.excludedRequestDomains.includes('accounts.google.com'));
-  assert.deepEqual(queued(bg), []); assert.deepEqual((await bg.send({ type: 'state' })).params, ['xclid']);
-  await pass(bg); assert.deepEqual(queued(bg), [ASK[0]]);          // the next pass asks about what it saved this time
-  assert.deepEqual(await bg.send({ type: 'unparam', name: 'xclid' }), { ok: true, params: [] }); await bg.settle(); assert.equal(rule(bg), undefined);
+  assert.deepEqual(queued(bg), []); assert.equal(rule(bg), undefined);
+  await pass(bg); assert.deepEqual(queued(bg), [ASK[0]]);
 });
-test('automatic: still nothing by itself (1.25, F2 and J1): both are questions', async () => {
+test('automatic: still nothing by itself (1.25, J1): a question', async () => {
   const bg = await load(on({ storage: { modes: { C27: 'auto' } } })); await pass(bg);
-  assert.deepEqual(await bg.names(), ['hop_id', 'SID', 'own']); assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg), [['bounce', 'hop.example', 'passed you on without showing a page'], ['param', 'hop.example', 'xclid']]);
+  assert.deepEqual(await bg.names(), ['hop_id', 'SID', 'own']); assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg), [['bounce', 'hop.example', 'passed you on without showing a page']]);
 });
 test('left alone: a sign-in on the way, a sign-in going on, a site open in a tab, the same site, a frame, the group off', async () => {
   const bg = await load(on());

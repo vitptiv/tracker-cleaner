@@ -1138,3 +1138,6 @@ other companies; the local network).
   offered and refused for a host whose site the user opens as a page: on, the host is judged like a listed tracker
   (cookies as they come back, own storage daily, notifications blocked); off, that ends and its notification
   setting is put back to "ask" for that host alone.
+- L3 the learned "cut this off addresses" questions are gone entirely (page text was rendered inside the question;
+  SAMLRequest and otp were offered): no names a redirect adds are kept, no question, no rule, no `params` list, no
+  `unparam` message. Only the shipped list of tracking tags (`rules-params.json`) is cut.

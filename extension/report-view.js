@@ -108,7 +108,7 @@ const { buildReport, renderReport } = (() => {
     bounce: (it) => `${it.site} passed you on to another site without showing you a page. Delete what it saved in your browser?`,
     own: (it) => it.site === 'the listed trackers' ? 'Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?'
       : `${it.site} is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?`,
-    param: (it) => `${it.site} added "${it.name}" to the address of the page it sent you to, so that page can recognise you. Cut it off from now on?` };
+ };
   const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
     : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (its site keeps putting it back)' : '');
   const waiting = (s) => (s.groups || []).filter((g) => Number(g.pending) > 0).map((g) => { const n = Number(g.pending), [verb, thing] = DOES[g.id] || ['Remove', 'item'], until = g.postponedUntil;
@@ -135,7 +135,7 @@ const { buildReport, renderReport } = (() => {
       features: (s.groups || []).map((g) => ({ id: g.id, title: g.title, says: g.says, state: word(g, s), count: counted(g, s, tab) })),
       cookies: host && Array.isArray(tab.cookies) ? { n: tab.cookies.length, rows: tab.cookies.map((c) => cookieRow(c, s, host)) } : null,
       // what the user chose to always delete on this site, also when the cookie is not there right now
-      stoppedTrackers: (s.stopped || []).map(String), stoppedUsed: (s.stoppedUsed || []).map(String), keeps: (s.hard || []).map(String), cut: (s.params || []).map(String), skipped: (s.skipped || []).map(String),
+      stoppedTrackers: (s.stopped || []).map(String), stoppedUsed: (s.stoppedUsed || []).map(String), keeps: (s.hard || []).map(String), skipped: (s.skipped || []).map(String),
       always: host ? (s.always || []).filter((a) => under(host, String(a.site)) || under(String(a.site), host)) : [],
       cannot: CANNOT.map(([what, why]) => ({ what, why })),
       stopped: (s.hold || {}).paused ? 'paused' : s.master === false ? 'switched off' : '' };   // deleting would be refused
@@ -196,8 +196,6 @@ const { buildReport, renderReport } = (() => {
       + r.stoppedTrackers.map((x) => `<div class="c"><div class="h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unstop', site: x })}</div>`
         // never offered for a host whose site the user opens as a page
         + ((r.stoppedUsed || []).includes(x) ? '' : `<label><input type="checkbox" data-msg="${esc(JSON.stringify({ type: 'keepRemoving', site: x }))}"${(r.keeps || []).includes(x) ? ' checked' : ''}> Keep removing what ${esc(x)} saves</label>`) + '</div>').join('') + '</details>')
-      + (!(r.cut || []).length ? '' : `<details id="cut"><summary>Tags you chose to cut off addresses (${r.cut.length})</summary>`
-      + r.cut.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Stop cutting it off', { type: 'unparam', name: x })}</div>`).join('') + '</details>')
       + (!(r.skipped || []).length ? '' : `<details id="skipped"><summary>Sites that are skipped (${r.skipped.length})</summary><div class="m">These sites only passed you along, so their links now take you straight to the page they name.</div>`
       + r.skipped.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unskip', site: x })}</div>`).join('') + '</details>');
     const waits = () => '<h2>Waiting for your answer</h2>' + (!(r.waiting || []).length ? '<p class="m">Nothing is waiting for your answer.</p>' : r.waiting.map((w) => (w.asks || []).map((a) => ask(w, a)).join('') + (!w.items.length && (w.asks || []).length ? '' :
