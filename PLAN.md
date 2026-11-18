@@ -1071,3 +1071,9 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   background worker, where no page script runs; read a frame it created before this script was put into it;
   measure fonts, the screen, time zone, language and hardware counts, none of which is covered; notice that
   the shield is there (a picture read twice in two loads differs; the chip's name is the general one).
+- J6 limits: over 300 candidates the least evidence goes first, so junk never pushes out a candidate with more
+  evidence (H9; tested again); at 300 blocked companies the block made longest ago is dropped for the new one, with
+  what was kept about it (learning no longer ends there); every clearing of all saved copies that starts by itself
+  around a block or a clean-out shares one budget of once an hour (`softClearAt`; ten clean-outs caused ten
+  clearings), the daily clearing and "Clean now" apart; a page reached by a number instead of a name is never put
+  on the list of sites the user opens (`mine`).

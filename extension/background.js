@@ -537,6 +537,7 @@ async function notePage(d) {
   if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300) || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
   const site = siteOf(u.hostname);
+  if (/^[0-9.]+$/.test(u.hostname) || u.hostname.includes(':') || u.hostname.includes('[')) return;   // a number, not a name: never on the list (J6)
   if (/^https?:$/.test(u.protocol)) setTimeout(async () => {
     const tab = await chrome.tabs.get(d.tabId).catch(() => null);
     if (!tab || siteOf(hostOf(tab.url)) !== site) return;
@@ -638,9 +639,8 @@ async function followSweep(cx, all, wait) {
       if (recent.length >= STOPS_HOUR) { wait.push({ ...it, did: 'queued' }); continue; }   // too many in an hour to be an accident: the user is asked
       if (!(await stopTracker(site))) continue;
       recent.push(now); await chrome.storage.local.set({ stops: recent }); await logged([{ ...it, kind: 'blocked' }], 'removed');
-      // a saved copy can carry the ID past the block: all saved copies are cleared once, at most once an hour in total (I1)
-      const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt');
-      if (!(softClearAt > now - 3600e3) && can('C11', cx)) { await chrome.storage.local.set({ softClearAt: now }); await copiesNow(cx); } }
+      // a saved copy can carry the ID past the block: all saved copies are cleared once (copiesNow: at most once an hour in total)
+      await copiesNow(cx); }
     // deleting anything of a learned company is never done by itself (J1): one question, once, answered by the user's own press
     if (!hard.includes(site) && !later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: String(e.on.length), did: 'queued' }); }
   if (stops.length !== n) await chrome.storage.local.set({ stops: recent });
@@ -648,7 +648,11 @@ async function followSweep(cx, all, wait) {
 async function stopTracker(site) {
   if (!isHost(site)) return false;
   const { stopped = [] } = await chrome.storage.local.get('stopped');
-  if (!stopped.includes(site)) { if (stopped.length >= STOPPED_MAX) return false; await chrome.storage.local.set({ stopped: [...stopped, site] }); }
+  // at the cap the block made longest ago is dropped for the new one (J6): learning never ends, and the list stays bounded
+  if (!stopped.includes(site)) { const next = [...stopped, site].slice(-STOPPED_MAX), gone = stopped.filter((s) => !next.includes(s)), { hard = [], own = {} } = await chrome.storage.local.get(['hard', 'own']);
+    if (gone.some((s) => own[s])) try { await chrome.contentSettings.notifications.clear({}); } catch {}   // its notification block goes with it; the others are set again at the next sweep
+    await chrome.storage.local.set({ stopped: next, hard: hard.filter((s) => next.includes(s)),
+      ...(gone.some((s) => own[s]) ? { own: Object.fromEntries(Object.entries(own).filter(([s]) => !gone.includes(s)).map(([s, e]) => [s, { ...e, at: 0, mute: false }])) } : {}) }); }
   await applyFeatures();
   return true;
 }
@@ -874,7 +878,13 @@ async function copiesOf(hosts, cx) {
   try { await chrome.browsingData.remove({ origins: due.flatMap((h) => [`https://${h}`, `http://${h}`]) }, { cache: true }); } catch {}
 }
 const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
-const copiesNow = async (cx) => { if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
+// Every clearing of all saved copies that the extension starts by itself around a block or a clean-out shares one budget:
+// once an hour in total (`softClearAt`), however many blocks or clean-outs there are (J6). The daily clearing and the
+// user's own "Clean now" are not counted against it.
+const copiesNow = async (cx) => { const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt'), now = Date.now();
+  if (softClearAt > now - 3600e3 || !can('C11', cx)) return;
+  await chrome.storage.local.set({ softClearAt: now });
+  try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
 // (1.25, H7 and I1: all saved copies are cleared at most once a day, once at a clean-out, and once after a stop that only
 // blocks, that last one at most once an hour in total; never a minute later and never at a start of Chrome)
 async function forgetServers(cx, wait) {

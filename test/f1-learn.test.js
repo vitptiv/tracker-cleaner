@@ -55,6 +55,7 @@ test('never more than 300 stopped companies, and what is kept about them is boun
   const stopped = Array.from({ length: 300 }, (_, i) => `old${i}.example`);
   const bg = await load(on({ cookies: [cookie('.trk.example')], storage: { stopped, own: { 'gone.example': { ok: true, at: 1 } } } }));
   await three(bg, 'https://trk.example/p.gif'); await bg.alarm('sweep');
-  assert.equal(bg.state.storage.stopped.length, 300); assert.equal(bg.state.storage.stopped.includes('trk.example'), false);
+  assert.equal(bg.state.storage.stopped.length, 300); assert.equal(bg.state.storage.stopped.includes('trk.example'), true);   // 1.25, J6: the oldest block makes room
+  assert.equal(bg.state.storage.stopped.includes('old0.example'), false);
   assert.deepEqual(await bg.names(), ['uid']); assert.equal('gone.example' in (bg.state.storage.own || {}), false);
 });

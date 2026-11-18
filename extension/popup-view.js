@@ -103,7 +103,7 @@ const renderPopup = (state, tab) => {
     + '<div class="m">The list of sites you use, which keeps their cookies safe from cleaning, is not cleared.</div>'
     // a second, separate button that popup.js shows at the press and makes pressable a second later: not a double click
     + `<div class="b"><button data-reveal="confirm-browsing">Clear my browsing history</button> <span id="confirm-browsing" hidden>This clears all of it and cannot be put back. <button data-wait="1000" disabled ${msg({ type: 'clearBrowsing' })}>Yes, clear all of my browsing history</button></span></div></div>`;
-  const full = () => (s.stopped || []).length < 300 ? '' : '<p class="c">300 companies are stopped, the most Tracker Cleaner keeps, so new ones are not stopped. In the report you can let some through again.</p>';
+  const full = () => (s.stopped || []).length < 300 ? '' : '<p class="c">300 companies are blocked, the most Tracker Cleaner keeps: when a new one is blocked, the one blocked longest ago is let through again.</p>';
   return status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + browsing() + exceptions() + audit();
 };
 const hhmm = (t) => new Date(t).toTimeString().slice(0, 5);

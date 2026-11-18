@@ -36,10 +36,10 @@ test('the switch: only true or false is taken; the popup offers it with what Chr
   assert.ok(html.includes('Pages on trackers&#39; own addresses are taken out of your history once a day.')); assert.match(html, /<button data-perm-off="history"/);
   assert.equal(left(bg).includes('https://trk.example/a?b=1'), false, 'switching it on did not clean at once');
 });
-test('carried over: with 300 companies stopped the popup says that new ones are not stopped', () => {
+test('carried over, as changed by J6: with 300 companies blocked the popup says that the oldest block makes room for a new one', () => {
   const s = { now: 1, master: true, hold: {}, groups: [], stopped: Array.from({ length: 300 }, (_, i) => `t${i}.example`) };
-  assert.ok(renderPopup(s, null).includes('300 companies are stopped, the most Tracker Cleaner keeps, so new ones are not stopped.'));
-  assert.equal(renderPopup({ ...s, stopped: s.stopped.slice(1) }, null).includes('300 companies are stopped'), false);
+  assert.ok(renderPopup(s, null).includes('300 companies are blocked, the most Tracker Cleaner keeps: when a new one is blocked, the one blocked longest ago is let through again.'));
+  assert.equal(renderPopup({ ...s, stopped: s.stopped.slice(1) }, null).includes('300 companies are blocked'), false);
 });
 test('carried over: the report does not say "deleted automatically" for a cookie of a stopped company that is kept', async () => {
   const { buildReport } = require('../extension/report-view.js');
