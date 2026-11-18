@@ -68,7 +68,8 @@ const { buildReport, renderReport } = (() => {
     const on = (list) => (list || []).some((a) => a.site === site && a.name === c.name), mine = on(s.always) ? 'always' : on(s.allow) ? 'keep' : '';
     const found = (s.groups || []).find((x) => x.id === (mine === 'always' ? 'storage' : r === 'google' ? 'google' : 'cookies')) || {};
     const g = mine === 'always' && found.mode !== 'off' ? { ...found, mode: 'auto' } : found;
-    const what = mine !== 'always' && signin ? 'keeps you signed in, kept' + (core.isTrackerHost(real) ? " even though it comes from a tracker's site" : '')
+    const what = c.used === true && mine !== 'always' ? 'comes from a company that was stopped, kept because you may be signed in there'
+      : mine !== 'always' && signin ? 'keeps you signed in, kept' + (core.isTrackerHost(real) ? " even though it comes from a tracker's site" : '')
       : mine !== 'always' && !r ? 'on no tracker list, kept'
       : `${mine === 'always' ? 'on your always-delete list' : WHY[r]}, ` + ((s.sitesOff || []).some((x) => under(real, x)) ? 'kept because you told it not to clean this site'
         : mine === 'keep' ? 'kept because you chose Keep'
@@ -122,7 +123,7 @@ const { buildReport, renderReport } = (() => {
     ['A shop telling a tracker what you bought', "Tracker Cleaner cannot stop this: the shop's computer tells the tracker directly, and your browser is never asked."],
     ['"Sign in with" another company', 'Tracker Cleaner cannot stop this: signing in that way tells that company which site you use, and both keep a record of it.'],
     ["Like, share or comment on a tracker's own page", 'Tracker Cleaner cannot stop this: you are on its own site, and it sees what you press there.'],
-    ['The list of pages you visited (history)', "Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that. Chrome's own \"Delete browsing data\" does it."],
+    ['The list of pages you visited (history)', "Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that unless you press \"Also remove trackers' pages from my history\" in its window; even then only trackers' own pages go. Chrome's own \"Delete browsing data\" does the rest."],
     ['The small pictures of sites that Chrome saved (site icons)', "Tracker Cleaner cannot clean this: Chrome gives extensions no way to delete them. They go when Chrome's own \"Delete browsing data\" deletes the history."]];
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;

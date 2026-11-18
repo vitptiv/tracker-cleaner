@@ -813,3 +813,15 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   A 7 at the end, 28 ever; B0 7 / 28; B 7 / 9; C 6 / 7. At the end in A: T18, T19 (history permission), T22 (the lab's
   grant over the control channel), T27, T33 (the shop's own server), T31 (the tracker's own page), T32 (a sign-in the
   user chose).
+
+### Batch 2: S11, S15, S4, S5, S8
+
+- S11 history (T19; icons T18 go with it only as Chrome decides): `optional_permissions: ["history"]`, asked by the
+  popup's button "Also remove trackers' pages from my history" at a press; while that switch (`histOn`) is on, once
+  a day the pages on the own addresses of stopped and listed trackers are deleted (`history.search` by site name,
+  each address compared and deleted or left, kept nowhere); never a site the user opens as a page. In the trip it
+  is "by hand only": in headless Chrome a real press on the button leaves Chrome's own question unanswered (tried:
+  the right stays not granted). And it cannot empty T19 in the lab anyway: that row is every lab address in the
+  History file, most of them pages of the sites she visited, which this must not touch. Carried over into this
+  commit: at 300 stopped companies the popup says new ones are not stopped; the report words a kept cookie of a
+  stopped company as kept.

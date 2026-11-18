@@ -54,6 +54,9 @@ async function auditClick(b) {
 }
 out.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.copy) return navigator.clipboard.writeText(b.dataset.copy).then(() => { note.textContent = 'Copied. Paste it into a terminal opened in the Tracker Cleaner folder.'; }, () => { note.textContent = `Could not copy. The command is: ${b.dataset.copy}`; });
+  // Chrome shows its own question for the history right, and only straight from a press
+  if (b.dataset.perm === 'history') return chrome.permissions.request({ permissions: ['history'] }).then((ok) => ok ? send({ type: 'histOn', on: true }).then(() => show()) : show('Chrome did not allow it, so nothing changed.'), () => show('That did not work.'));
+  if (b.dataset.permOff === 'history') return send({ type: 'histOn', on: false }).then(() => chrome.permissions.remove({ permissions: ['history'] })).then(() => show(), () => show());
   if (b.dataset.msg) { b.disabled = true; act(b); } else auditClick(b).catch(() => { note.textContent = '✗ no answer from the audit server'; }); });
 out.addEventListener('change', (e) => { const el = e.target; if (el.dataset.msg) act(el, el.tagName === 'SELECT' ? { mode: el.value } : { on: el.checked }); });
 (async () => {

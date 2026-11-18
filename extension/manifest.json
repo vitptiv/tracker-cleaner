@@ -17,6 +17,9 @@
   "nativeMessaging",
   "sidePanel"
  ],
+ "optional_permissions": [
+  "history"
+ ],
  "host_permissions": [
   "<all_urls>"
  ],

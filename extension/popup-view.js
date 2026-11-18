@@ -93,7 +93,13 @@ const renderPopup = (state, tab) => {
   const audit = () => !s.audit || !Array.isArray(s.audit.cookies) ? ''
     : `<details id="audit"><summary><b>Audit from the local server</b></summary>${renderBaddies(s.audit)}</details>`;
 
-  return status() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + exceptions() + audit();
+  // S11: asked for at a press only; popup.js asks Chrome for the right and then sends { type: 'histOn' }
+  const history = () => `<div class="c" data-row="history"><b>Trackers' pages in your history</b>` + (s.histOn
+    ? `<div class="m">Pages on trackers' own addresses are taken out of your history once a day. Pages of other sites stay.</div><div class="b"><button data-perm-off="history">Stop removing them</button></div>`
+    : `<div class="m">Chrome will ask you to let Tracker Cleaner read your history. Only pages on trackers' own addresses are removed; nothing of your history is kept or sent anywhere.</div>`
+      + `<div class="b"><button data-perm="history">Also remove trackers' pages from my history</button></div>`) + '</div>';
+  const full = () => (s.stopped || []).length < 300 ? '' : '<p class="c">300 companies are stopped, the most Tracker Cleaner keeps, so new ones are not stopped. In the report you can let some through again.</p>';
+  return status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + exceptions() + audit();
 };
 const hhmm = (t) => new Date(t).toTimeString().slice(0, 5);
 const dayAt = (t, now) => `${new Date(t).toDateString() === new Date(now).toDateString() ? 'today' : 'tomorrow'} at ${hhmm(t)}`;   // t is at most 24 hours ahead

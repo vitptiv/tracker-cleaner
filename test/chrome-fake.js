@@ -20,7 +20,7 @@ module.exports = function makeChrome(init = {}) {
   const calls = [];
   const state = { cookies: [], tabs: (init.tabs || []).map((t) => ({ windowId: 1, ...t })), storage: { ...init.storage }, alarms: {},
     rulesets: ((init.manifest || {}).declarative_net_request || { rule_resources: [{ id: 'trackers', enabled: true }] }).rule_resources.filter((r) => r.enabled).map((r) => r.id),
-    scripts: [], proxy: null, dynamic: [], session: {}, sync: {} };
+    scripts: [], proxy: null, dynamic: [], session: {}, sync: {}, rules: [], history: (init.history || []).map((url) => ({ url })), granted: [...(init.granted || [])] };
   const badge = { text: '', color: null };
   // rec wraps an API function: logs the call, returns a promise like the real MV3 APIs
   const rec = (api, fn) => async (...args) => { calls.push({ api, args }); return fn(...args); };
@@ -99,6 +99,12 @@ module.exports = function makeChrome(init = {}) {
     // any permission name works: chrome.contentSettings.camera.set(...)
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), clear: rec('contentSettings.clear', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },
+    // optional permissions: init.granted = those the user allowed. history: init.history = the addresses in Chrome's history;
+    // search finds text anywhere in an address, as Chrome does
+    permissions: { contains: rec('permissions.contains', (p) => (p.permissions || []).every((x) => state.granted.includes(x))) },
+    history: { search: rec('history.search', (q) => { if (!state.granted.includes('history')) throw new Error('no permission');
+        return state.history.filter((h) => h.url.includes(q.text)).slice(0, q.maxResults || 100).map((h) => ({ ...h })); }),
+      deleteUrl: rec('history.deleteUrl', (d) => { state.history = state.history.filter((h) => h.url !== d.url); }) },
     proxy: { settings: { set: rec('proxy.settings.set', (d) => { state.proxy = d.value; }), clear: rec('proxy.settings.clear', () => { state.proxy = null; }),
       get: rec('proxy.settings.get', () => ({ value: JSON.parse(JSON.stringify(state.proxy || { mode: 'system' })), levelOfControl: state.proxy ? 'controlled_by_this_extension' : 'controllable_by_this_extension' })) } },
     // As Chrome: the function goes to the page as text (so it can use nothing from around it) and runs among the

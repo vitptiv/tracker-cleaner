@@ -17,7 +17,7 @@ const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCor
 // mine, salt, later, firstRun. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
-  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params', 'mine', 'salt']), now = Date.now();
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params', 'mine', 'salt', 'histOn']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
   if (mayRun('C19', set) !== 'run') hold.guard = false;
   // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
@@ -159,7 +159,7 @@ async function state() {
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
-    ...(serverOff().length ? { serverOff: serverOff() } : {}),
+    ...(serverOff().length ? { serverOff: serverOff() } : {}), histOn: set.histOn === true,
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
@@ -237,8 +237,9 @@ const CUT = 24;
 const siteCookies = async (host) => (await allCookies()).filter((c) => under(host, bare(c.domain)) || under(bare(c.domain), host));
 async function cookiesOf(host) {
   if (!isHost(host)) return { ok: false };
+  const cx = await context();   // used: a cookie of a stopped company that is kept because the user may be signed in there
   return { ok: true, cookies: (await siteCookies(host.toLowerCase())).map((c) => ({ domain: c.domain, name: c.name, value: c.value.slice(0, CUT), long: c.value.length > CUT,
-    session: c.session, expirationDate: c.expirationDate })) };
+    session: c.session, expirationDate: c.expirationDate, ...(usedSite(c, cx) ? { used: true } : {}) })) };
 }
 // The whole of what one cookie holds, for "Show all of it" and "Copy": read now, answered, kept nowhere.
 async function cookieValue(site, name) {
@@ -277,7 +278,7 @@ async function stored(m) {
   try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
     return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
 }
-const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), histOn: (m) => histOn(m.on), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -427,7 +428,7 @@ async function sweepOnce(cause) {
   const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
-  await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait); await ownSweep(cx, wait);
+  await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait); await ownSweep(cx, wait); await historySweep(cx);
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
   await report({ reason: cause, scanned: all.length, removed, kept, ...rest });
@@ -628,6 +629,25 @@ async function cleanOwn(site, cx) {
   await chrome.storage.local.set({ own: { ...own, [site]: { ...own[site], ok: true, at: Date.now(), ...(site === LISTED ? {} : { mute: true }) } } });
   return true;
 }
+
+// ---- Trackers' pages in Chrome's history (S11). Only with the optional `history` permission, which the popup asks for
+// at a press of its button, and only while the user's switch (`histOn`) is on: once a day the pages on the own
+// addresses of stopped and listed trackers are taken out of the history. Chrome is asked for the entries that name a
+// tracker's site; each address is compared with that site and deleted or left, and is kept nowhere. Never a site the
+// user opens as a page or has open, never while paused, off or during a sign-in.
+async function historySweep(cx) {
+  if (cx.set.histOn !== true || cx.set.master !== true || cx.hold.paused || cx.hold.guard) return;
+  const { histAt = 0, stopped = [] } = await chrome.storage.local.get(['histAt', 'stopped']), done = [];
+  if (histAt > Date.now() - CACHE_MS) return;
+  try { if (!(await chrome.permissions.contains({ permissions: ['history'] }))) return;
+    for (const site of [...stopped, ...DOMAINS]) { if (visited(cx, siteOf(site)) || cx.hosts.some((h) => under(h, site))) continue;
+      let n = 0;
+      for (const h of await chrome.history.search({ text: site, startTime: 0, maxResults: 1000 })) if (under(hostOf(h.url), site)) { await chrome.history.deleteUrl({ url: h.url }); n++; }
+      if (n) done.push({ cap: 'C28', kind: 'history', site, name: 'pages in your history' }); }
+    await chrome.storage.local.set({ histAt: Date.now() }); } catch {}
+  await logged(done, 'removed');
+}
+const histOn = async (on) => { if (typeof on !== 'boolean') return { ok: false }; await chrome.storage.local.set({ histOn: on }); if (on) await sweep('settings'); return { ok: true }; };
 
 // ---- Saved Wi-Fi networks (C24). Chrome cannot see them: a local program (wifi-helper/, started by Chrome through
 // native messaging) lists the stale ones and removes those it is sent. Never automatic (noAuto in registry.js), so
