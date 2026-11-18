@@ -84,5 +84,5 @@ test('nothing about Tor is kept or reported: no storage entry, and the port chec
   const bg = await load(on({ tor: true, storage: { modes: { C14: 'auto' } } }));
   await bg.alarm('proxy'); await bg.send({ type: 'state' });
   assert.equal(JSON.stringify(bg.state.storage).includes('9050'), false);
-  assert.deepEqual([...new Set(bg.asked)].sort(), ['http://127.0.0.1:8088/audit/limits.json', 'http://127.0.0.1:9050/']);
+  assert.deepEqual([...new Set(bg.asked)].sort(), ['http://127.0.0.1:9050/']);
 });

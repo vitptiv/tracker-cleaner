@@ -143,7 +143,7 @@ test('the always-delete list is stopped only by its group set to Off or the main
   assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => i.name), ['theme']);
 });
 test('the always-delete list of the 8088 server still follows its group: while that asks first, its cookie waits, and yours beside it goes', async () => {
-  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'other.test', n: 'other' }] }, cookies: mine(), storage: { modes: { C03: 'ask' }, always: [{ site: 'shop.example.com', name: 'cart' }] } }));
+  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'other.test', n: 'other' }] }, cookies: mine(), storage: { modes: { C03: 'ask', C15: 'auto' }, always: [{ site: 'shop.example.com', name: 'cart' }] } }));
   await bg.alarm('sweep');
   assert.deepEqual(await bg.names(), ['SID', 'theme', '_ga', 'other']);
   assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => `${i.site} ${i.name}`), ['other.test other']);
@@ -157,7 +157,7 @@ test('Always delete after Keep takes the cookie off the keep list; "Stop always 
   for (const m of [{}, { site: 'example.com' }, { site: 'a b', name: 'x' }, { site: 5, name: 'x' }]) assert.deepEqual(await bg.send({ type: 'always', ...m }), { ok: false });
 });
 test('the always-delete list of the 8088 server is added to the local one when the server answers', async () => {
-  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'other.test', n: 'other' }] }, cookies: mine(), storage: { modes: { C07: 'auto', C03: 'ask' }, always: [{ site: 'shop.example.com', name: 'cart' }] } }));
+  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'other.test', n: 'other' }] }, cookies: mine(), storage: { modes: { C07: 'auto', C03: 'ask', C15: 'auto' }, always: [{ site: 'shop.example.com', name: 'cart' }] } }));
   await bg.alarm('sweep');
   assert.deepEqual(await bg.names(), ['SID', 'theme', '_ga']);
   bg.limits = undefined; await bg.setCookie({ url: 'https://shop.example.com/', name: 'cart' });   // the server went away: the local list still counts

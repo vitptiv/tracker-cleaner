@@ -27,7 +27,7 @@ test('approve removes exactly the queued cookies, not one set afterwards, and em
   assert.equal(bg.badge.text, '1');
 });
 test('approve skips a cookie that has gone or is no longer a candidate, without error', async () => {
-  const bg = await load(ask({ limits: {}, cookies: cookies() }));
+  const bg = await load(ask({ limits: {}, cookies: cookies(), storage: { modes: { C15: 'auto' } } }));
   await bg.alarm('sweep');
   await bg.chrome.cookies.remove({ url: 'https://example.com/', name: '_ga' });
   bg.limits = { cookieClean: false }; await bg.alarm('proxy');      // the server switch now says: keep cookies
@@ -83,7 +83,7 @@ test('storage and permission drops, cache clear and tab closing are queued in as
   const limits = { chromeTabs: 1, storageBlacklist: ['bad.test'], permissionBlacklist: [{ site: 'https://bad.test', perm: 'camera' }],
     cookieBlacklist: [{ h: 'google.com', n: 'SID' }] };
   const tabs = [{ id: 1, url: 'https://a.test/', lastAccessed: 1 }, { id: 2, url: 'https://b.test/x', lastAccessed: 2 }, { id: 3, url: 'https://c.test/', lastAccessed: 3 }];
-  const bg = await load({ limits, tabs, cookies: [{ name: 'SID', domain: '.google.com' }], storage: { master: true, modes: { C13: 'ask' } } });
+  const bg = await load({ limits, tabs, cookies: [{ name: 'SID', domain: '.google.com' }], storage: { master: true, modes: { C13: 'ask', C15: 'auto' } } });
   await bg.alarm('sweep'); await bg.alarm('sweep');
   assert.deepEqual(bg.destructive(), []);
   const all = Object.entries(bg.state.storage.pending).flatMap(([g, q]) => q.items.map((i) => [g, i.cap, i.kind, i.site, i.name].join(' ')));

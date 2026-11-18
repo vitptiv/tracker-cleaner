@@ -68,6 +68,6 @@ const GROUPS = [
   ['allowlist', 'Keep only the cookies you list', 'Every small file that sites save to recognise you is deleted, except the ones on your own list.'],
   ['tabs', 'Limit how many tabs stay open', 'When more tabs are open than the number you set, the ones you used least are closed.'],
   ['tor', 'Hiding your address from websites (Tor)', 'Chrome reaches websites through the Tor network, so they cannot see where you are.'],
-  ['server', 'Reports to a server on this computer', 'A summary of what was cleaned is sent to a program on this computer, and nowhere else.']]
+  ['server', 'Reports to a server on this computer', 'A summary of what was cleaned is sent to a settings program on this computer, and its lists and switches are read from it; nothing goes anywhere else.']]
   .map(([id, title, says]) => ({ id, title, says, caps: CAPS.filter((c) => c.group === id && c.mode !== null).map((c) => c.id) }));
 if (typeof module !== 'undefined') module.exports = { CAPS, GROUPS, cap, mayRun, gate };

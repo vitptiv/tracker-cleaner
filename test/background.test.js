@@ -47,7 +47,7 @@ test('master on and a group set to auto: that group acts, with the lists the ser
   assert.ok(bg.reports.length > 0); assert.ok(bg.called('runtime.requestUpdateCheck').length > 0);
 });
 test('allow-list mode deletes unlisted cookies only when C12 is set to auto', async () => {
-  const bg = await load({ limits: GREEDY, cookies: cookies(), storage: { master: true, modes: { C12: 'auto' } } });
+  const bg = await load({ limits: GREEDY, cookies: cookies(), storage: { master: true, modes: { C12: 'auto', C15: 'auto' } } });   // C15: the settings program is asked (1.25, F6)
   await bg.alarm('sweep');
   assert.deepEqual(await bg.names(), []);
 });

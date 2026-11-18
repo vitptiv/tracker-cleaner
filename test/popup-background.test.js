@@ -55,7 +55,7 @@ test('allow: the cookie leaves the queue and is never removed or queued again; r
 });
 test('allow does not protect a blacklisted cookie', async () => {
   const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'example.com', n: '_ga' }] }, cookies: ga(),
-    storage: { modes: { C07: 'auto' }, allow: [{ site: 'example.com', name: '_ga' }, { site: 'other.test', name: '_ga' }] } }));
+    storage: { modes: { C07: 'auto', C15: 'auto' }, allow: [{ site: 'example.com', name: '_ga' }, { site: 'other.test', name: '_ga' }] } }));
   await bg.alarm('sweep');
   assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => c.domain), ['.other.test']);
 });
@@ -124,5 +124,5 @@ test('state: whether the 8088 server answered, and when the cache is next due; n
   const cache = down.groups.find((g) => g.id === 'cache');
   assert.equal(cache.nextAt, 1.8e12 + 23 * 3600e3); assert.equal('size' in cache, false);
   assert.equal(down.groups.filter((g) => 'nextAt' in g).length, 1);
-  assert.equal((await (await load({ limits: {} })).send({ type: 'state' })).server, true);
+  assert.equal((await (await load({ limits: {}, storage: { modes: { C15: 'auto' } } })).send({ type: 'state' })).server, true);
 });

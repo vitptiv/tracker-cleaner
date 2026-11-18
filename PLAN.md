@@ -799,3 +799,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   install (`salt`), emptied by "Clear history"; a page counts only when its tab is still on that site 3 seconds later.
   For sign-ins older than the list: a stop, the sweeps after it and the cleaning of a passing site never delete a
   cookie that looks like a sign-in (HttpOnly and Secure, or a `KEEP_RE` name) of a company on no built-in list.
+- F6 the settings program on 127.0.0.1:8088 was asked for its limits file with its row (C15) off, and could switch
+  cleaning off without a word. Now it is asked only while that row is on (default off); switching the row off takes
+  its switches and lists away at once; while it has something switched off the popup says which, in one line. The
+  cookie blacklist, tab limit and permanent drops it supplies therefore need that row on.

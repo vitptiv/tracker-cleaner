@@ -21,7 +21,7 @@ test('stripParams: an OAuth redirect keeps state, code and the rest', () => {
   assert.equal(stripParams(u), u); assert.equal(stripParams(u + '&utm_campaign=x'), u);
 });
 test('the url-params ruleset is on by default, follows C23 alone, and is off while paused', async () => {
-  const bg = await load({ limits: { blocking: false } });
+  const bg = await load({ limits: { blocking: false }, storage: { modes: { C15: 'auto' } } });
   assert.deepEqual(bg.state.rulesets, ['url-params']);               // the server's blocking switch is not its switch
   const b2 = await load();
   assert.deepEqual(b2.state.rulesets, ALL);

@@ -156,6 +156,7 @@ async function state() {
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
+    ...(serverOff().length ? { serverOff: serverOff() } : {}),
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
@@ -329,17 +330,22 @@ chrome.runtime.onMessage.addListener((m, from, reply) => {
 });
 // Switches on 127.0.0.1:8088/tracker-cleaner (sent in limits.json). ON false = the whole extension does nothing.
 let ON = true, BLOCK = true, YT = true, DROPS = true, SERVER = false, SERVER_BLACK = [];   // SERVER_BLACK: the server's always-delete list, as it last answered
+const serverOn = (cx) => mayRun('C15', cx.set) === 'run';
+// what the settings program has switched off, in the popup's words
+const serverOff = () => SERVER ? [!S.CLEAN && 'deleting cookies', !BLOCK && 'blocking', !YT && 'the YouTube ad remover', !DROPS && 'your own lists'].filter(Boolean) : [];
 const STATE = () => ({ on: ON, cookies: S.CLEAN, blocking: BLOCK, yt: YT, drops: DROPS, v: chrome.runtime.getManifest().version });
 async function refreshBlacklist() {
-  const cx = await context(); let l = null;
-  try { l = await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json(); } catch {}
+  const cx = await context(); let l = null, back = false;   // back: the settings program's switches were just taken away
+  // the settings program on this computer is asked only while its row (C15) is on; off, nothing it said counts any more
+  if (serverOn(cx)) try { l = await (await fetch('http://127.0.0.1:8088/audit/limits.json', { cache: 'no-store' })).json(); } catch {}
+  else { back = !S.CLEAN || S.MODE !== 'normal'; ON = BLOCK = YT = DROPS = S.CLEAN = true; S.MODE = 'normal'; S.ALLOW = []; SERVER_BLACK = []; }
   if (l) SERVER_BLACK = Array.isArray(l.cookieBlacklist) ? l.cookieBlacklist : [];
   // The blacklist: the user's own always-delete list (`always`, needs no server) and the server's when it has answered.
   // A list counts only while its capability runs; otherwise the normal rules judge the cookie.
   // The blacklist also counts while C07 asks or is held, so its cookies can be queued (see judge); allow-list
   // mode does not: asking about every cookie of every site would only fill the queue.
   const next = verdict('C07', cx) !== 'no' ? [...(cx.set.always || []).map((a) => ({ h: a.site, n: a.name })), ...SERVER_BLACK] : [];
-  let again = next.some((b) => !S.BLACK.some((x) => x.h === b.h && x.n === b.n)); S.BLACK = next;
+  let again = back || next.some((b) => !S.BLACK.some((x) => x.h === b.h && x.n === b.n)); S.BLACK = next;
   S.EXTRA = mayRun('C25', cx.set) !== 'no' ? cx.set.stopped || [] : [];
   if (l) {
     const mode = can('C12', cx) && l.cookieMode === 'allowlist' && Array.isArray(l.cookieAllow) && l.cookieAllow.length ? 'allowlist' : 'normal';   // never delete everything by mistake
@@ -657,7 +663,7 @@ const blockPermission = (site, perm) => chrome.contentSettings[perm].set({ prima
 async function applyPermanentDrops(cx, wait) {
   const storage = verdict('C07', cx), perms = verdict('C09', cx);
   if (!DROPS || (storage === 'no' && perms === 'no')) return {};
-  let l; try { l = await (await fetch(LIMITS, { cache: 'no-store' })).json(); } catch { return {}; }
+  let l; try { if (!serverOn(cx)) return {}; l = await (await fetch(LIMITS, { cache: 'no-store' })).json(); } catch { return {}; }
   const done = [];
   for (const site of storage !== 'no' && Array.isArray(l.storageBlacklist) ? l.storageBlacklist : []) {
     const it = { cap: 'C07', kind: 'storage', site, name: 'storage', why: 'permanent drop', did: waitsAs(storage) };
@@ -752,7 +758,7 @@ async function tabLimit() {
 const tabHost = (t) => { try { return new URL(t.url || t.pendingUrl).host || t.url; } catch { return '?'; } };
 async function enforceTabs(cx, wait) {
   const tabs = await chrome.tabs.query({ windowType: 'normal' }), v = verdict('C13', cx), host = tabHost;
-  const limit = v !== 'no' ? await tabLimit() : null;
+  const limit = v !== 'no' && serverOn(cx) ? await tabLimit() : null;
   if (limit === null) return { tabs: tabs.length };
   const focused = (await chrome.windows.getLastFocused().catch(() => null))?.id;
   const score = (t) => (t.audible ? 4e15 : 0) + (t.active && t.windowId === focused ? 2e15 : 0) + (t.lastAccessed || 0);

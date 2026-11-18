@@ -8,7 +8,7 @@ const kept = (bg) => (bg.state.session.undo || []).map((e) => e.c.name);
 
 test('a cookie removed because of the blacklist is not kept for undo: no count, nothing in Restore all', async () => {
   const cookies = [{ name: 'sid', domain: '.example.com' }, { name: '_ga', domain: '.example.com' }];
-  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'example.com', n: 'sid' }, { h: '*', n: 'live' }] }, cookies, storage: { modes: { C07: 'auto' } } }));
+  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'example.com', n: 'sid' }, { h: '*', n: 'live' }] }, cookies, storage: { modes: { C07: 'auto', C15: 'auto' } } }));
   await bg.alarm('sweep'); await bg.setCookie({ url: 'https://a.test/', name: 'live' });
   assert.deepEqual(await bg.names(), []); assert.deepEqual(kept(bg), ['_ga']);
   assert.deepEqual(log(bg), ['C07 cookie example.com sid removed', 'C03 cookie example.com _ga removed', 'C07 cookie a.test live removed']);
@@ -17,7 +17,7 @@ test('a cookie removed because of the blacklist is not kept for undo: no count, 
   assert.deepEqual(await bg.send({ type: 'restoreAll' }), { ok: true, restored: 1 }); assert.deepEqual(await bg.names(), ['_ga']);
 });
 test('a blacklisted cookie removed on approval is not kept either', async () => {
-  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'example.com', n: 'sid' }] }, cookies: [{ name: 'sid', domain: '.example.com' }] }));
+  const bg = await load(on({ limits: { cookieBlacklist: [{ h: 'example.com', n: 'sid' }] }, cookies: [{ name: 'sid', domain: '.example.com' }], storage: { modes: { C15: 'auto' } } }));
   await bg.alarm('sweep'); assert.deepEqual(await bg.send({ type: 'approve', group: 'storage' }), { ok: true, done: 1, of: 1 });
   assert.deepEqual(await bg.names(), []); assert.deepEqual(kept(bg), []);
 });

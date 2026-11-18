@@ -28,7 +28,7 @@ const SAYS = {
   allowlist: 'Every small file that sites save to recognise you is deleted, except the ones on your own list.',
   tabs: 'When more tabs are open than the number you set, the ones you used least are closed.',
   tor: 'Chrome reaches websites through the Tor network, so they cannot see where you are.',
-  server: 'A summary of what was cleaned is sent to a program on this computer, and nowhere else.' };
+  server: 'A summary of what was cleaned is sent to a settings program on this computer, and its lists and switches are read from it; nothing goes anywhere else.' };
 
 test('every group has one plain sentence, and the row carries it with the title', () => {
   assert.deepEqual(Object.fromEntries(GROUPS.map((g) => [g.id, g.says])), SAYS);
