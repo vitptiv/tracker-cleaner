@@ -970,3 +970,6 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   msftauth.net, sharepoint.com; Apple: apple.com, icloud.com, cdn-apple.com; Wikimedia: wikipedia.org,
   wikimedia.org, wiktionary.org, wikidata.org, mediawiki.org, wikibooks.org, wikiquote.org, wikisource.org,
   wikinews.org, wikiversity.org, wikivoyage.org. This replaces the list written under batch 3.
+- H7 saved copies: all of them are cleared at most once a day (C11) and once when a tracker is cleaned out (H1's
+  hard half); not a minute later, not when Chrome starts, not when the extension is loaded again (this takes back
+  S2a's wake-up and start clearing). The row's sentence says so.

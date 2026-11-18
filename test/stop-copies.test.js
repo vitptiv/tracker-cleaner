@@ -8,18 +8,19 @@ const on = (o = {}) => ({ cookies: [ID], ...o, storage: { master: true, cacheCle
 const clears = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length;
 const blocked = (bg, site = 'trk.example') => bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern === `*://*.${site}/*` && c.args[0].setting === 'block').length;
 
-test('a stop clears the saved copies, sets one wake-up a minute later, and that clears them once more', async () => {
+test('H7: all saved copies are cleared once when a tracker is cleaned out, and at most once a day otherwise: no wake-up a minute later, nothing when Chrome starts or the extension is loaded again', async () => {
   const bg = await load(on()); await three(bg);
-  assert.equal(clears(bg), 1); assert.equal(bg.state.alarms.copies.when, bg.now + 60e3);
-  await bg.alarm('copies'); assert.equal(clears(bg), 2);
+  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.equal(clears(bg), 1); assert.equal('copies' in bg.state.alarms, false);
+  await bg.chrome.runtime.onStartup.fire(); await bg.settle(); await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle();
+  for (let i = 0; i < 4; i++) { bg.now += 15 * 60e3; await bg.alarm('sweep'); }
+  assert.equal(clears(bg), 1, 'cleared again within the day');
+  bg.now += 24 * 3600e3; await bg.alarm('sweep'); assert.equal(clears(bg), 2, 'the daily clearing');
 });
-test('when Chrome starts the saved copies are cleared if a tracker is stopped, and not otherwise; never while a sign-in is in front or cleaning is off', async () => {
-  const start = async (o) => { const bg = await load(o); await bg.chrome.runtime.onStartup.fire(); await bg.settle(); return clears(bg); };
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } })), 1);
-  assert.equal(await start(on()), 0);
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] })), 0);
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'], master: false } })), 0);
-  assert.equal(await start(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'], modes: { C11: 'off' } } })), 0);
+test('H7: twenty starts of Chrome with a tracker stopped clear nothing; the row says what really happens', async () => {
+  const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } }));
+  for (let i = 0; i < 20; i++) { await bg.chrome.runtime.onStartup.fire(); await bg.settle(); }
+  assert.equal(clears(bg), 0);
+  assert.equal(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and once more when a tracker is cleaned out; pages then load a little slower the first time.');
 });
 test("a stopped tracker's notifications are blocked once even while its own page is open; its cookies and what it saved there stay", async () => {
   const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }],
@@ -34,13 +35,6 @@ test("a stopped tracker's notifications are blocked once even while its own page
 test('notifications are not blocked on "Ask first" before the answer, nor while cleaning is switched off', async () => {
   for (const storage of [{ stopped: ['trk.example'], hard: ['trk.example'], modes: { C28: 'ask' } }, { stopped: ['trk.example'], hard: ['trk.example'], master: false }]) {
     const bg = await load(on({ storage })); await bg.alarm('sweep'); assert.equal(blocked(bg), 0); }
-});
-test('when the extension itself is loaded again (an update): the wake-up set before is gone, so the saved copies are cleared then too', async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } }));
-  await bg.chrome.runtime.onInstalled.fire({ reason: 'update' }); await bg.settle();
-  assert.equal(clears(bg), 1);
-  const none = await load(on()); await none.chrome.runtime.onInstalled.fire({ reason: 'update' }); await none.settle();
-  assert.equal(clears(none), 0);
 });
 test('a block this extension set can be gone when Chrome starts or the extension is loaded again: it is set again then', async () => {
   for (const ev of ['onStartup', 'onInstalled']) {

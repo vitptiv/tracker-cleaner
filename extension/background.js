@@ -651,7 +651,7 @@ async function hardClean(site) {
   try { await chrome.browsingData.remove({ origins: [...new Set([site, 'www.' + site, ...((follow[site] || {}).hosts || [])])].flatMap((h) => [`https://${h}`, `http://${h}`]) }, { serviceWorkers: true }); } catch {}
   // a saved copy can carry the ID and bring it back: all saved copies go once with the clean
   // (clearing them for the tracker's addresses alone was tried in a real Chrome: it leaves the compiled copy of its script and the remembered server)
-  await copiesNow(cx); chrome.alarms.create('copies', { when: Date.now() + 60e3 });   // once more a minute later: pages still open may have saved new ones
+  await copiesNow(cx);
   return true;
 }
 // "Let it through again": the block goes, and it is not offered again for a while
@@ -858,11 +858,7 @@ async function copiesOf(hosts, cx) {
 }
 const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
 const copiesNow = async (cx) => { if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
-// a minute after a stop, and when Chrome starts while a tracker is stopped
-const copiesAgain = async () => { await ready; const cx = await context(); if ((cx.set.stopped || []).length) await copiesNow(cx); };
-chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'copies') copiesAgain(); });
-chrome.runtime.onStartup.addListener(copiesAgain);
-chrome.runtime.onInstalled.addListener(copiesAgain);   // loaded again: Chrome drops the wake-up set before
+// (1.25, H7: all saved copies are cleared at most once a day, and once at a clean-out; no longer a minute after it or at every start of Chrome)
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
   if (v === 'no' || cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};
