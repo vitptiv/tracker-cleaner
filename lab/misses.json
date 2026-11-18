@@ -154,8 +154,8 @@
    "rows": {
     "T1": {
      "status": "tracked",
-     "records": 29,
-     "linked": 29,
+     "records": 28,
+     "linked": 28,
      "lastStep": 12,
      "cause": "not recognised: the lab's names are on no list"
     },
@@ -175,9 +175,9 @@
     },
     "T4": {
      "status": "tracked",
-     "records": 21,
-     "linked": 21,
-     "lastStep": 12,
+     "records": 12,
+     "linked": 12,
+     "lastStep": 11,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T5": {
@@ -346,18 +346,14 @@
      "cause": "not recognised: the lab's names are on no list"
     },
     "T28": {
-     "status": "tracked",
-     "records": 19,
-     "linked": 19,
-     "lastStep": 12,
-     "cause": "not recognised: the lab's names are on no list"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
     },
     "T29": {
-     "status": "tracked",
-     "records": 2,
-     "linked": 2,
-     "lastStep": 7,
-     "cause": "no capability covers it (first-party ping on the network's own page)"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
     },
     "T30": {
      "status": "tracked",
@@ -407,10 +403,10 @@
     }
    },
    "counts": {
-    "tracked": 35,
+    "tracked": 33,
     "unlinked": 0,
-    "stopped": 0,
-    "stillArrivingAfterRestart": 18
+    "stopped": 2,
+    "stillArrivingAfterRestart": 17
    }
   },
   "B0": {
@@ -459,10 +455,10 @@
     },
     "T4": {
      "status": "tracked",
-     "records": 6,
-     "linked": 6,
-     "lastStep": 5,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5"
+     "records": 3,
+     "linked": 3,
+     "lastStep": 4,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T5": {
      "status": "tracked",
@@ -625,18 +621,14 @@
      "cause": "no capability covers it (sent by the shop's server, not by the browser)"
     },
     "T28": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 5,
-     "lastStep": 5,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
     },
     "T29": {
-     "status": "tracked",
-     "records": 2,
-     "linked": 2,
-     "lastStep": 7,
-     "cause": "no capability covers it (first-party ping on the network's own page)"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
     },
     "T30": {
      "status": "tracked",
@@ -684,9 +676,9 @@
     }
    },
    "counts": {
-    "tracked": 31,
+    "tracked": 29,
     "unlinked": 1,
-    "stopped": 3,
+    "stopped": 5,
     "stillArrivingAfterRestart": 0
    }
   },
@@ -867,11 +859,9 @@
      "linked": 0
     },
     "T29": {
-     "status": "tracked",
-     "records": 2,
-     "linked": 2,
-     "lastStep": 7,
-     "cause": "no capability covers it (first-party ping on the network's own page)"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
     },
     "T30": {
      "status": "tracked",
@@ -917,9 +907,9 @@
     }
    },
    "counts": {
-    "tracked": 10,
+    "tracked": 9,
     "unlinked": 0,
-    "stopped": 25,
+    "stopped": 26,
     "stillArrivingAfterRestart": 0
    }
   },
@@ -1244,14 +1234,12 @@
      "sameIdAfterCleaning": false
     },
     "T29": {
-     "status": "tracked",
-     "records": 2,
-     "linked": 2,
-     "lastStep": 7,
-     "duringTrip": "tracked",
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
-     "note": "not repeated after cleaning: what was sent during the trip stays sent",
-     "cause": "no capability covers it (first-party ping on the network's own page)"
+     "note": "not repeated after cleaning: what was sent during the trip stays sent"
     },
     "T30": {
      "status": "tracked",
@@ -1314,9 +1302,9 @@
     }
    },
    "counts": {
-    "tracked": 8,
+    "tracked": 7,
     "unlinked": 0,
-    "stopped": 27,
+    "stopped": 28,
     "stillArrivingAfterRestart": 0
    }
   }

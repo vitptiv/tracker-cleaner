@@ -27,6 +27,7 @@ const CAPS = [
   C('C23', 'Strip tracking URL parameters', 'params', 'auto', false),
   C('C24', 'Remove unused Wi-Fi networks', 'wifi', 'ask', true, true),
   C('C25', 'Stop unknown trackers', 'unknown', 'ask', true),
+  C('C26', 'Block pings that tell which link was followed', 'blocking', 'auto', false),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.

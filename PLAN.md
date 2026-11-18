@@ -55,8 +55,9 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C23 | Strip tracking parameters from URLs (`gclid`, `fbclid`, `utm_*`) | new | auto |
 | C24 | Remove saved Wi-Fi networks unused for 30+ days (local helper, `nmcli`) | new | ask |
 | C25 | Stop a company on no list that is seen on 3+ sites with an ID (learned locally) | new in 1.24 | ask |
+| C26 | Block pings that tell someone which link was followed or how long a page was read | new in 1.24 | auto |
 
-Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C22, C23, C25, C06,
+Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
 
 ## Rules for every chunk
@@ -706,3 +707,7 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   are what protects a pop-up sign-in. The measurement now cuts the five minutes to two seconds (declared in
   `misses.json`): A 35/0, B0 31/3 (1 more arrived but was not tied to her), B 10/25, C 8/27. In B0 Friendface is
   stopped during step 5; after the restart of Chrome nothing arrives any more (before: 18 kinds still arriving).
+- R4 pings (C26, part of blocking, automatic): requests of the kind "ping" to another company are blocked (one
+  dynamic rule, never on sign-in hosts), and `no-ping.js` takes a link's own ping address off as the link is pressed,
+  which is what stops the lab's ping (it goes to Friendface from Friendface's own page). A 33/2, B0 29/5, B 9/26,
+  C 7/28: the click ping and the page-close beacon are stopped in every setting, also on a fresh install.

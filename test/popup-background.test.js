@@ -66,7 +66,7 @@ test('siteOff: an allowAllRequests and an allow rule per host above the block ru
   await bg.send({ type: 'siteOff', host: 'example.com', on: true }); await bg.send({ type: 'siteOff', host: 'b.test', on: true }); await bg.settle();
   assert.deepEqual(bg.state.storage.sitesOff, ['example.com', 'b.test']); assert.deepEqual(queued(bg), ['other.test _ga']);
   // two rules per host: allowAllRequests for pages loaded from now on, and allow for what the page already open requests
-  assert.deepEqual(bg.state.dynamic, ['example.com', 'b.test'].flatMap((h, i) => [{ id: 2 * i + 1, priority: 2, action: { type: 'allowAllRequests' },
+  assert.deepEqual(bg.state.dynamic.filter((r) => r.id < 100000), ['example.com', 'b.test'].flatMap((h, i) => [{ id: 2 * i + 1, priority: 2, action: { type: 'allowAllRequests' },
     condition: { requestDomains: [h], resourceTypes: ['main_frame', 'sub_frame'] } }, { id: 2 * i + 2, priority: 2, action: { type: 'allow' }, condition: { initiatorDomains: [h] } }]));
   // found in the browser run: the page that was open when the box was ticked must get its requests through without a reload
   assert.equal(bg.passes('example.com'), true); assert.equal(bg.passes('www.example.com'), true); assert.equal(bg.passes('other.test'), false);
@@ -74,7 +74,7 @@ test('siteOff: an allowAllRequests and an allow rule per host above the block ru
   await bg.send({ type: 'setMode', group: 'cookies', mode: 'auto' }); await bg.alarm('sweep'); await set(bg, 'shop.example.com', '_gid');
   assert.deepEqual(await bg.names(), ['_ga', '_gid']); assert.deepEqual(queued(bg), []);
   assert.deepEqual(await bg.send({ type: 'siteOff', host: 'example.com', on: false }), { ok: true, sitesOff: ['b.test'] });
-  assert.deepEqual(bg.state.dynamic.map((r) => [r.id, (r.condition.requestDomains || r.condition.initiatorDomains)[0]]), [[1, 'b.test'], [2, 'b.test']]);
+  assert.deepEqual(bg.state.dynamic.filter((r) => r.id < 100000).map((r) => [r.id, (r.condition.requestDomains || r.condition.initiatorDomains)[0]]), [[1, 'b.test'], [2, 'b.test']]);
   assert.equal(bg.passes('example.com'), false); assert.equal(bg.passes('example.com', { reloaded: true }), false);
   await bg.alarm('sweep'); assert.deepEqual(await bg.names(), []);
   for (const host of [undefined, '', 'a b', '<x>', 7]) assert.deepEqual(await bg.send({ type: 'siteOff', host, on: true }), { ok: false });

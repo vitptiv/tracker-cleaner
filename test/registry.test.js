@@ -6,14 +6,14 @@ const table = fs.readFileSync(path.join(__dirname, '../PLAN.md'), 'utf8').split(
   .map((m) => ({ id: m[1], mode: m[2] === 'n/a' ? null : m[2] }));
 
 test('every capability of PLAN.md is registered once, with the planned default mode', () => {
-  assert.equal(table.length, 23);
+  assert.equal(table.length, 24);
   assert.deepEqual(CAPS.map((c) => c.id), table.map((t) => t.id));
   for (const t of table) assert.equal(cap(t.id).mode, t.mode, t.id);
 });
 test('each entry has a name, a group and a destructive flag', () => {
   for (const c of CAPS) { assert.ok(c.name && c.group, c.id); assert.equal(typeof c.destructive, 'boolean', c.id); }
   for (const id of ['C03', 'C04', 'C06', 'C07', 'C09', 'C11', 'C12', 'C13', 'C14', 'C24', 'C25']) assert.equal(cap(id).destructive, true, id);
-  for (const id of ['C01', 'C02', 'C05', 'C23']) assert.equal(cap(id).destructive, false, id);
+  for (const id of ['C01', 'C02', 'C05', 'C23', 'C26']) assert.equal(cap(id).destructive, false, id);
 });
 test('no stored setting means no destructive action', () => {
   for (const set of [undefined, null, {}, { modes: {} }])

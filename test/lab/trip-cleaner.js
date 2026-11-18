@@ -31,8 +31,8 @@ const NOT_SET = { tor: 'would send requests off this computer', tabs: 'would clo
 
 // ---- which capability is aimed at each kind (journal page, chapter 4), and the thing it would have to remove
 const COVER = { T1: ['C01', 'C07'], T2: [], T3: ['C07'], T4: ['C23', 'C07'], T5: ['C07'], T6: ['C01', 'C07'], T7: ['C07'], T8: ['C01', 'C07'], T9: ['C06'], T10: [], T11: ['C06'], T12: ['C06'], T13: ['C06'],
-  T14: [], T15: ['C11'], T16: ['C11'], T17: ['C11'], T18: [], T19: [], T20: ['C11'], T21: ['C11'], T22: ['C09'], T23: ['C01'], T24: ['C01'], T25: ['C01'], T26: ['C01'], T27: ['C01'], T28: ['C01'],
-  T29: [], T30: [], T31: ['C01'], T32: [], T33: [], T35: ['C01'], T36: ['C01'] };
+  T14: [], T15: ['C11'], T16: ['C11'], T17: ['C11'], T18: [], T19: [], T20: ['C11'], T21: ['C11'], T22: ['C09'], T23: ['C01'], T24: ['C01'], T25: ['C01'], T26: ['C01'], T27: ['C01'], T28: ['C01', 'C26'],
+  T29: ['C26'], T30: [], T31: ['C01'], T32: [], T33: [], T35: ['C01'], T36: ['C01'] };
 const WHY_NONE = { T2: 'kept on purpose: a sign-in cookie', T32: 'kept on purpose: a sign-in', T33: 'the browser is not involved', T10: 'storage under the visited site\'s own name', T14: 'an answer the browser gives',
   T18: 'icons go only with the history', T19: 'history is left alone by decision', T29: 'first-party ping on the network\'s own page', T30: 'the redirector is the page in front' };
 const LIST_BASED = ['C01', 'C03', 'C06', 'C07', 'C09', 'C23'];

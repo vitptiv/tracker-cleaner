@@ -344,20 +344,26 @@ async function refreshBlacklist() {
 
 // Tracker blocking (rules.json) and the YouTube ad remover follow their switches.
 const YT_JS = { id: 'yt-adfree', matches: ['*://*.youtube.com/*'], js: ['yt-adfree.js'], runAt: 'document_start', world: 'MAIN', allFrames: true };
+// Link pings (C26): no-ping.js takes the ping address off a link as it is pressed; never on the sign-in hosts
+const NO_PING = { id: 'no-ping', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['no-ping.js'], runAt: 'document_start', allFrames: true };
 const YT_CSS = { id: 'yt-adfree-css', matches: ['*://*.youtube.com/*'], css: ['yt-adfree.css'], runAt: 'document_start', allFrames: true };
 async function applyFeatures() {
-  const cx = await context(), yt = YT && can('C05', cx);
+  const cx = await context(), yt = YT && can('C05', cx), pings = BLOCK && can('C26', cx);
   // url-params (C23) is not request blocking: the server's blocking switch does not reach it
   const want = { trackers: BLOCK && can('C01', cx), 'google-paths': BLOCK && can('C02', cx), 'url-params': can('C23', cx) };
   try { const on = await chrome.declarativeNetRequest.getEnabledRulesets(), ids = Object.keys(want);
     const enableRulesetIds = ids.filter((id) => want[id] && !on.includes(id)), disableRulesetIds = ids.filter((id) => !want[id] && on.includes(id));
     if (enableRulesetIds.length || disableRulesetIds.length) await chrome.declarativeNetRequest.updateEnabledRulesets({ enableRulesetIds, disableRulesetIds }); } catch {}
   const stopped = BLOCK && mayRun('C25', cx.set) !== 'no' && !cx.hold.paused ? cx.set.stopped || [] : [];
-  await learnedRules(!stopped.length ? [] : [{ id: LEARNED + 1, priority: 1, action: { type: 'block' },
-    condition: { requestDomains: stopped, domainType: 'thirdParty', resourceTypes: TYPES, excludedInitiatorDomains: SIGNIN_HOSTS } }]);
+  await learnedRules([...(!stopped.length ? [] : [{ id: LEARNED + 1, priority: 1, action: { type: 'block' },
+    condition: { requestDomains: stopped, domainType: 'thirdParty', resourceTypes: TYPES, excludedInitiatorDomains: SIGNIN_HOSTS } }]),
+    // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
+    ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
+      condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }])]);
   try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
-    if (yt && !have.includes(YT_JS.id)) await chrome.scripting.registerContentScripts([YT_JS, YT_CSS].filter((x) => !have.includes(x.id)));
-    if (!yt && have.length) await chrome.scripting.unregisterContentScripts({ ids: have.filter((id) => id.startsWith('yt-adfree')) }); } catch {}
+    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
+    if (add.length) await chrome.scripting.registerContentScripts(add);
+    if (drop.length) await chrome.scripting.unregisterContentScripts({ ids: drop }); } catch {}
 }
 
 // undo false: a blacklisted cookie is not kept for Undo, restoring it would only see it removed again

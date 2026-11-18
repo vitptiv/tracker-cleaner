@@ -298,7 +298,7 @@ async function main() {
       ok(Number(count) >= 1, `blocked-request count in the popup: ${count === undefined ? 'no line' : count}`);
       ok(await P.click("Don't clean on this site"), 'no "Don\'t clean on this site" box');
       ok(await until(async () => (await P.state()).sitesOff.includes('example.com')), 'example.com did not get into sitesOff');
-      const dyn = await sw(`return chrome.declarativeNetRequest.getDynamicRules();`);
+      const dyn = (await sw(`return chrome.declarativeNetRequest.getDynamicRules();`)).filter((d) => d.id < 100000);   // above that: rules the extension made for itself (ping block, stopped trackers)
       ok(dyn.length === 2 && dyn.map((d) => d.action.type).sort().join() === 'allow,allowAllRequests', `dynamic rules: ${JSON.stringify(dyn).slice(0, 300)}`);
       const r2 = await requestTracker(site);   // the page as it is, loaded before the box was ticked
       await x.go(site, 'https://example.com/');

@@ -129,12 +129,12 @@ test('state message: settings, hold state, and per group its mode, pending count
 });
 test('setMode sets every capability of the group and takes effect at once; bad input is refused', async () => {
   const bg = await load({ storage: { master: true } });
-  assert.deepEqual(await bg.send({ type: 'setMode', group: 'blocking', mode: 'off' }), { ok: true, modes: { C01: 'off', C02: 'off', C05: 'off' } });
+  assert.deepEqual(await bg.send({ type: 'setMode', group: 'blocking', mode: 'off' }), { ok: true, modes: { C01: 'off', C02: 'off', C05: 'off', C26: 'off' } });
   await bg.settle(); assert.deepEqual(bg.state.rulesets, ['url-params']);   // C23 has its own row
   assert.deepEqual(await bg.send({ type: 'setMode', group: 'blocking', mode: 'sometimes' }), { ok: false });
   assert.deepEqual(await bg.send({ type: 'setMode', group: 'control', mode: 'off' }), { ok: false });
   await bg.send({ type: 'setMaster', on: true }); await bg.send({ type: 'setMode', group: 'cookies', mode: 'ask' });
-  assert.deepEqual(bg.state.storage.modes, { C01: 'off', C02: 'off', C05: 'off', C03: 'ask' });
+  assert.deepEqual(bg.state.storage.modes, { C01: 'off', C02: 'off', C05: 'off', C26: 'off', C03: 'ask' });
 });
 test('20 cookie changes at once, not awaited, leave 20 items queued: queue writes go one after the other', async () => {
   const bg = await load(ask());

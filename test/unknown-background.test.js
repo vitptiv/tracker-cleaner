@@ -74,6 +74,6 @@ test('a stopped company counts as a tracker from then on: its new cookie goes, b
   await bg.setCookie({ url: 'https://www.trk.example/', name: 'mine', value: 'u-77aa88bb99' });
   assert.deepEqual(await bg.names(), ['mine']);
   await bg.send({ type: 'siteOff', host: 'news.example', on: true }); await bg.settle();
-  assert.ok(rule(bg)); assert.equal(bg.state.dynamic.length, 3);
+  assert.ok(rule(bg)); assert.equal(bg.state.dynamic.length, 4);
   await bg.send({ type: 'setMaster', on: false }); await bg.settle(); assert.equal(rule(bg), undefined);
 });
