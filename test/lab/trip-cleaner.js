@@ -23,7 +23,7 @@ const ALWAYS = [['friendface', 'ff_uid'], ['friendface', 'ff_frame'], ['hop', 'h
   ...['gazette', 'tidewater', 'parcelpine'].flatMap((s) => [[s, '_ffp'], [s, '_ffc']])].map(([s, name]) => ({ site: s + '.localhost', name }));
 const SETTINGS = {
   A: { says: 'fresh install defaults, nothing approved, no lab entries', entries: false, auto: false, manual: false },
-  Q: { says: 'as A, then every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press and nothing else by hand; then the sites again', entries: false, auto: false, manual: false, answers: true },
+  Q: { says: 'as A, and every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press, when a user would see it: at the start of the step after the one in which it appeared (the badge is up by then), and once more after the last step; nothing else by hand; then the sites again', entries: false, auto: false, manual: false, answers: true },
   B0: { says: 'main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google\'s identity cookies, storage and permissions of the user\'s own lists); no lab entries (the lab is on no list)', entries: false, auto: true, manual: false },
   B: { says: 'as B0, with the lab\'s test-only entries', entries: true, auto: true, manual: false },
   C: { says: 'as B, then every manual action at the end (approve all, drop each lab site\'s cookies and storage, block the permission, clear the cache), then the sites again', entries: true, auto: true, manual: true } };
@@ -66,7 +66,13 @@ async function run(name, set, cert, flags, chance = {}) {
     await E.open();
     out.canary = await E.kt.ev(`document.getElementById('canary').textContent`).catch(() => 'no answer');
     const personNow = () => { const a = lab.store.accounts.find((x) => x.email === MARA.email); return a ? lab.store.lookup(['acct:' + a.id]) : null; };
-    for (const s of TRIP) { try { await within(W.steps[s.n](), 90000, `step ${s.n}`); } catch (e) { out.broken.push(`step ${s.n}: ${String(e.message || e).split('\n')[0]}`); }
+    // K2: every question that waits is answered with its yes, each by its own press (no group button answers them)
+    const answered = out.answered = [];
+    const answerAll = async (when) => { const st = await E.b.msg({ type: 'state' }).catch(() => ({ groups: [] }));
+      for (const g of st.groups || []) for (const it of (g.items || []).filter((x) => ['used', 'bounce', 'param', 'skip', 'tracker'].includes(x.kind))) {
+        const r = await E.b.msg({ type: 'approve', group: g.id, site: it.site, name: it.name }).catch((e) => String(e.message)); answered.push({ when, kind: it.kind, site: it.site, name: it.name, done: r && r.done }); } };
+    for (const s of TRIP) { if (set.answers && s.n > 1) await answerAll(`before step ${s.n}`);
+      try { await within(W.steps[s.n](), 90000, `step ${s.n}`); } catch (e) { out.broken.push(`step ${s.n}: ${String(e.message || e).split('\n')[0]}`); }
       // the trip takes a minute and the guard holds five after the sign-in of step 4: here they are cut to two seconds, and the extension's own wake-up does the rest
       if (s.n === 4) { await E.b.popup.ev('chrome.storage.local.set({ guardUntil: Date.now() + 1000 })'); await sleep(4000); }
       await sleep(400); ends.push(lab.store.records.length); process.stdout.write(`${name}${s.n} `); }
@@ -77,9 +83,8 @@ async function run(name, set, cert, flags, chance = {}) {
     const mark = lab.store.records.length, tMark = Date.now(), before = lab.store.records.slice();
     const second = set.manual || set.answers;
     if (second) { const st = await E.b.msg({ type: 'state' }), did = out.manual = {};
-      // every question the extension asks is answered with its yes; no group button answers them, so each gets its own press (Q and C)
-      for (const g of st.groups) for (const it of (g.items || []).filter((x) => ['used', 'bounce', 'param', 'skip', 'tracker'].includes(x.kind)))
-        did[`yes to: ${it.kind} ${it.site} ${it.name}`] = await E.b.msg({ type: 'approve', group: g.id, site: it.site, name: it.name }).catch((e) => String(e.message));
+      // what still waits after the last step is answered too (Q: the rest; C: all of them here)
+      await answerAll('after the trip');
       if (set.manual) {
       for (const g of st.groups.filter((x) => x.id !== 'wifi' && x.pending)) did[`approve ${g.id}`] = await E.b.msg({ type: 'approve', group: g.id }).catch((e) => String(e.message));
       for (const h of [...HOSTS, 'friendface.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));

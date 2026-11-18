@@ -1103,3 +1103,6 @@ on the shipped lists; for anything learned it needs the user's press on one plai
 
 - K1 the press on Remove clears all saved copies whatever the hour's budget says: the budget (J6) bounds what a page
   can cause, and a press is the user's own. Blocks still share one clearing an hour.
+- K2 measuring side: in Q each question is answered with its yes at the start of the step after the one in which it
+  appeared, and what still waits after the last step then; `answered` in each run of `misses.json` lists every
+  press with its moment. A is unchanged; C answers after the trip as before.
