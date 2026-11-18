@@ -359,22 +359,7 @@ async function restore(pick) {
 // Only the extension's own pages are answered (the popup, a page of ours open in a tab): not a content script, whose
 // sender carries the web page's address, and not another extension. Nobody else can read the history or change a switch.
 const ownPage = (from) => !!from && from.id === chrome.runtime.id && String(from.url || '').startsWith(chrome.runtime.getURL(''));
-// The one message taken from a page script (shield-seed.js): "this page's shield key". Nothing the script says is used:
-// the site is that of the tab's address as Chrome reports it. One key of 128 random bits per site, kept in memory
-// storage for this run of Chrome (at most SKEYS sites, the oldest go); `off` = leave the page alone (the row off, a pause,
-// a sign-in going on, a site cleaning is switched off for).
-const SKEYS = 300;
-async function shieldKey(from) {
-  const host = hostOf((from.tab || {}).url), site = siteOf(host), cx = await context();
-  if (!site || !can('C32', cx) || cx.hold.guard || isSignIn(from.tab.url) || (cx.set.sitesOff || []).some((s) => under(host, s))) return { off: true };
-  let key;
-  await serial(async () => { const { skeys = {} } = await chrome.storage.session.get('skeys');
-    if (!(key = skeys[site])) { key = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('');
-      await chrome.storage.session.set({ skeys: Object.fromEntries([...Object.entries(skeys).slice(-(SKEYS - 1)), [site, key]]) }); } });
-  return key ? { key } : { off: true };
-}
 chrome.runtime.onMessage.addListener((m, from, reply) => {
-  if (m && m.type === 'shieldKey' && from && from.id === chrome.runtime.id && from.tab && Number.isInteger(from.tab.id) && !ownPage(from)) { shieldKey(from).then(reply, () => reply({ off: true })); return true; }
   if (!ownPage(from) || !m || !Object.hasOwn(MESSAGES, m.type)) return false;
   MESSAGES[m.type](m).then(reply, () => reply({ ok: false }));
   return true;   // the reply comes later
@@ -415,9 +400,11 @@ const YT_JS = { id: 'yt-adfree', matches: ['*://*.youtube.com/*'], js: ['yt-adfr
 const NO_PING = { id: 'no-ping', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['no-ping.js'], runAt: 'document_start', allFrames: true };
 // Known passing sites are skipped (S2c): skip.js changes a pressed link to the address it names; never on the sign-in hosts
 const SKIP = { id: 'skip', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['guard.js', 'learn.js', 'skip.js'], runAt: 'document_start', allFrames: true };
-// Page shield (S7): shield.js in the page's own world, shield-seed.js beside it in the extension's; never on the sign-in hosts
-const SHIELD = [{ id: 'shield', js: ['shield.js'], world: 'MAIN' }, { id: 'shield-seed', js: ['shield-seed.js'] }]
-  .map((x) => ({ ...x, matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), runAt: 'document_start', allFrames: true, matchOriginAsFallback: true }));
+// Page shield (S7, J5; experimental, off unless switched on): shield.js alone, in the page's own world. It takes no message,
+// so the only switch is whether it is put into a page: never on the sign-in hosts or on a site cleaning is switched off
+// for, and into no new page while paused or while a sign-in holds everything.
+const SHIELD = (off) => ({ id: 'shield', js: ['shield.js'], world: 'MAIN', matches: ['http://*/*', 'https://*/*'], runAt: 'document_start', allFrames: true, matchOriginAsFallback: true,
+  excludeMatches: [...SIGNIN_HOSTS, ...off].flatMap((h) => SIGNIN_HOSTS.includes(h) ? [`*://${h}/*`] : [`*://${h}/*`, `*://*.${h}/*`]) });
 const YT_CSS = { id: 'yt-adfree-css', matches: ['*://*.youtube.com/*'], css: ['yt-adfree.css'], runAt: 'document_start', allFrames: true };
 async function applyFeatures() {
   const cx = await context(), yt = YT && can('C05', cx), pings = BLOCK && can('C26', cx);
@@ -451,10 +438,11 @@ async function applyFeatures() {
   // J4: only the shipped redirectors and the hosts the user chose with "Skip it next time?" (`skipok`); never one that was only learned
   const skip = { sites: can('C27', cx) ? [...new Set([...PASSERS, ...skipok])].filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
   if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
-  try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
-    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(mayRun('C32', cx.set) === 'run' && !cx.hold.paused ? SHIELD : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
-    if (add.length) await chrome.scripting.registerContentScripts(add);
-    if (drop.length) await chrome.scripting.unregisterContentScripts({ ids: drop }); } catch {}
+  try { const there = await chrome.scripting.getRegisteredContentScripts(), have = there.map((x) => x.id);
+    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(can('C32', cx) && !cx.hold.guard ? [SHIELD((cx.set.sitesOff || []).filter(isHost))] : [])], same = (x) => there.some((y) => y.id === x.id && JSON.stringify(y.excludeMatches || []) === JSON.stringify(x.excludeMatches || [])),
+      drop = have.filter((id) => !want.some((x) => x.id === id && same(x))), add = want.filter((x) => !same(x));   // one whose left-alone list changed is put in anew
+    if (drop.length) await chrome.scripting.unregisterContentScripts({ ids: drop });
+    if (add.length) await chrome.scripting.registerContentScripts(add); } catch {}
 }
 
 // undo false: a blacklisted cookie is not kept for Undo, restoring it would only see it removed again

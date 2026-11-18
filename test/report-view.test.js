@@ -27,7 +27,7 @@ const SAYS = {
   othercookies: 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.',
   othertags: 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.',
   local: 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.',
-  shield: 'Pages that measure your browser to recognise it without cookies (how it draws a picture, plays a sound, names its graphics chip, how much it has saved) get slightly different answers on every site.',
+  shield: 'Experimental. Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.',
   cache: 'All copies of pages that Chrome saved to load them faster are thrown away once a day, once more when a tracker is cleaned out, and at most once an hour when a new tracker is blocked; pages then load a little slower the first time.',
   allowlist: 'Every small file that sites save to recognise you is deleted, except the ones on your own list.',
   tabs: 'When more tabs are open than the number you set, the ones you used least are closed.',

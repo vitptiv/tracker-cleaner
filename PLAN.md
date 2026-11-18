@@ -61,7 +61,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C29 | No cookies for other companies: a request to another company carries none and may set none (rule, automatic) | new in 1.25 | auto |
 | C30 | No cache tags (If-None-Match, If-Modified-Since, ETag) and no referring page for other companies (rule, automatic) | new in 1.25 | auto |
 | C31 | A page may not ask this computer or the home network (loopback and private addresses; rule, automatic) | new in 1.25 | auto |
-| C32 | Page shield: canvas, sound, graphics-chip name and saved-amount readings differ a little per site (page script, automatic) | new in 1.25 | auto |
+| C32 | Page shield, experimental: canvas, sound, graphics-chip name and saved-amount readings changed a little (page script, off unless switched on) | new in 1.25 | off |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -1055,3 +1055,19 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   conditions hold: two destinations, an added ID, not a site the user opens). No group button answers it; "Let it
   through again" works for both kinds. Never skipped, more words: sign_out, signout, logout, logoff, wsignout,
   unsub, cart, checkout, pay, wp-login, adfs, as a part of the path or as a value handed over.
+- J5 page shield, downgraded honestly: off unless its row is switched on; the row is titled "Blur browser recognition
+  (experimental)" and says "Makes it harder to recognise this browser by its drawing and sound; a determined site
+  can undo it." `shield-seed.js`, the `shieldKey` message, the keys in `storage.session` and every event between
+  the two worlds are gone: the key is 128 random bits made inside `shield.js` for each page that is loaded, in a
+  closure. So a site no longer reads the same changes all through a run of Chrome; each loaded page has its own.
+  Every tool the script uses is captured in its first lines (Math.imul and the other Math functions, Number,
+  Reflect.apply, Object.defineProperty and getOwnPropertyDescriptor, crypto.getRandomValues, the typed arrays'
+  length and kind getters, the canvas width, height and ImageData getters, WeakMap, WeakSet and Promise methods)
+  and only those copies are used afterwards. A replacement has the name and length of Chrome's own, no prototype,
+  and "native code" as its text. It takes no message, so it is switched off for a site only by not being put into
+  its pages (the sign-in hosts, sites cleaning is off for; into no new page during a pause or a global sign-in).
+  What a page can still do: read the same drawing several times, each shifted a little, and take the most frequent
+  value per dot; ignore the lowest step of every colour value (the changes are in that step only); draw in a
+  background worker, where no page script runs; read a frame it created before this script was put into it;
+  measure fonts, the screen, time zone, language and hardware counts, none of which is covered; notice that
+  the shield is there (a picture read twice in two loads differs; the chip's name is the general one).

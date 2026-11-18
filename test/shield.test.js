@@ -1,6 +1,6 @@
 // S7: the page shield (shield.js in the page's own world, shield-seed.js beside it) and how background.js sets it up.
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), path = require('path'), load = require('./load-background.js');
-const { blurPixels, blurFloats, roundEstimate, hex, words, unseal } = require('../extension/shield.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
+const { blurPixels, blurFloats, roundEstimate } = require('../extension/shield.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
 const src = (f) => fs.readFileSync(path.join(__dirname, '../extension', f), 'utf8');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const picture = () => Uint8ClampedArray.from({ length: 4 * 300 * 150 }, (_, i) => (i * 7) % 256);
@@ -21,14 +21,9 @@ test('H3: which values change depends on what was drawn: an empty picture tells 
   assert.ok(shared(blank.map((i) => i % (4 * 150 * 75)), small) <= 2);
   const one = picture(); one[5000] ^= 0x10; assert.ok(shared(where(() => one.slice()), drawn) <= 2, 'one changed dot leaves the places as they were');
 });
-test('H3: the key is 128 bits and each part matters; the sealed message opens only with the token, and all zero means "leave alone"', () => {
+test('the key is 128 bits and each part matters', () => {
   const p = () => moved(blurPixels(picture(), KEY), picture()).map(([i]) => i).join();
   for (let w = 0; w < 4; w++) { const k = Uint32Array.from(KEY); k[w] ^= 1; assert.notEqual(moved(blurPixels(picture(), k), picture()).map(([i]) => i).join(), p(), 'part ' + w); }
-  const token = Uint32Array.from([11, 22, 33, 44]), seal = (k) => hex(k.map((x, i) => x ^ token[i]));
-  assert.deepEqual([...unseal(seal(KEY), token)], [...KEY]); assert.deepEqual([...unseal(hex(token), token)], [0, 0, 0, 0]);
-  assert.notDeepEqual([...unseal(seal(KEY), Uint32Array.from([11, 22, 33, 45]))], [...KEY]);
-  for (const bad of ['', '0', 'zz'.repeat(16), 'A'.repeat(32), '0'.repeat(33), 12, null]) assert.equal(unseal(bad, token), null, String(bad));
-  assert.deepEqual([...words(hex(KEY))], [...KEY]);
 });
 test('sound values: the same per key, different across keys, each moved by at most a hundred-thousandth', () => {
   const wave = () => Float32Array.from({ length: 4096 }, (_, i) => Math.sin(i / 10)), a = blurFloats(wave(), KEY), b = blurFloats(wave(), KEY2), w = wave();
@@ -42,43 +37,39 @@ test('how much is saved: the room is rounded to 10 GB, the used amount down to w
   assert.deepEqual(roundEstimate({ quota: 296630877388, usage: 123457 }), roundEstimate({ quota: 296630877000, usage: 999 }));
   assert.deepEqual(roundEstimate({ quota: 5, usage: 3.5 * GB }), { quota: 10 * GB, usage: 3 * GB }); assert.deepEqual(roundEstimate(undefined), { quota: 10 * GB, usage: 0 });
 });
-test('shield.js is small and closed: under 80 lines, no network, no storage, nothing of the extension, nothing left on the page to call', () => {
+test('J5: shield.js is small and closed: under 80 lines, no network, no storage, no message or event in or out, nothing of the extension, nothing left on the page to call', () => {
   const s = src('shield.js'), code = s.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
   assert.ok(s.split('\n').length < 80);
-  for (const bad of [/fetch\s*\(/, /XMLHttpRequest/, /WebSocket/, /sendBeacon/, /\bimport\s*\(/, /\beval\b/, /new Function/, /localStorage|sessionStorage|indexedDB|document\.cookie/, /chrome\./, /innerHTML/, /window\.[A-Za-z_$]+\s*=[^=]/, /globalThis\.[A-Za-z_$]+\s*=[^=]/, /postMessage/])
+  for (const bad of [/fetch\s*\(/, /XMLHttpRequest/, /WebSocket/, /sendBeacon/, /\bimport\s*\(/, /\beval\b/, /new Function/, /localStorage|sessionStorage|indexedDB|document\.cookie/, /chrome\./, /innerHTML/, /window\.[A-Za-z_$]+\s*=[^=]/,
+    /globalThis\.[A-Za-z_$]+\s*=[^=]/, /postMessage/, /addEventListener|dispatchEvent|CustomEvent|sendMessage/, /location/])
     assert.equal(bad.test(code), false, String(bad));
   assert.match(code, /^\(\(\) => \{/); assert.match(code.trim(), /\}\)\(\);$/);
-  assert.ok(code.indexOf('Reflect.apply') < code.indexOf('wrap(p,'), "Chrome's own functions are taken hold of before anything is replaced");
-  const seedJs = src('shield-seed.js').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-  for (const bad of [/fetch\s*\(/, /XMLHttpRequest/, /innerHTML/, /chrome\.storage/, /document\.cookie/, /location/]) assert.equal(bad.test(seedJs), false, String(bad));
+  assert.equal(fs.existsSync(path.join(__dirname, '../extension/shield-seed.js')), false, 'the second script is still there');
 });
-test('its own row, on by default; both scripts are registered for every page and frame at the start, never on the sign-in hosts', async () => {
-  assert.deepEqual([cap('C32').group, cap('C32').mode, cap('C32').destructive], ['shield', 'auto', false]); assert.equal(mayRun('C32', { master: true }), 'run');
-  assert.equal(GROUPS.find((g) => g.id === 'shield').title, 'Blur what makes this browser recognisable');
-  const bg = await load(on()); await bg.alarm('sweep');
-  const [a, b] = ['shield', 'shield-seed'].map((id) => bg.state.scripts.find((s) => s.id === id));
-  assert.deepEqual([a.world, a.js, a.runAt, a.allFrames, a.matchOriginAsFallback], ['MAIN', ['shield.js'], 'document_start', true, true]);
-  assert.deepEqual([b.world, b.js, b.runAt, b.allFrames], [undefined, ['shield-seed.js'], 'document_start', true]);
-  for (const s of [a, b]) { assert.deepEqual(s.matches, ['http://*/*', 'https://*/*']); assert.ok(s.excludeMatches.includes('*://accounts.google.com/*') && s.excludeMatches.includes('*://login.live.com/*')); }
-  await bg.send({ type: 'setMode', group: 'shield', mode: 'off' }); await bg.settle();
-  assert.equal(bg.state.scripts.some((s) => s.id.startsWith('shield')), false);
+test('J5: every tool is taken hold of before use: after the first lines the page part calls nothing by its global name', () => {
+  const code = src('shield.js').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n'), page = code.slice(code.indexOf('const W = window'));
+  const later = page.split('\n').slice(3).join('\n');   // after the lines that take hold of the tools
+  for (const bad of [/Math\./, /Reflect\./, /Object\./, /crypto\./, /Number\(/, /\.buffer|\.byteOffset|\.byteLength/, /(?<!orig)\.length(?! \}|:)/, /for \(const [^;]* of /, /\.then\(/, /\.has\(|\.add\(|\.get\(|\.set\(/])
+    assert.equal(bad.test(later), false, `${bad} in: ${(bad.exec(later) || { input: '' }).input.slice(Math.max(0, (bad.exec(later) || { index: 0 }).index - 40)).slice(0, 90)}`);
+  assert.match(code, /apply\(crypto\.getRandomValues, crypto, \[new Uint32Array\(4\)\]\)/);
 });
-test('H3: the key comes from the worker at the page script\'s asking: 128 random bits per site and run of Chrome, the site taken from the tab as Chrome reports it', async () => {
-  const bg = await load(on({ storage: { sitesOff: ['off.example'] } })); await bg.alarm('sweep');
-  const ask = (url, o = {}) => bg.send({ type: 'shieldKey', site: 'lies.example', ...o.msg }, { id: bg.chrome.runtime.id, url: o.frame || url, frameId: o.frame ? 3 : 0, tab: { id: 5, url } });
-  const a = await ask('https://www.news.example/story'), again = await ask('https://news.example/other', { frame: 'https://ads.trk.example/frame' }), b = await ask('https://shop.example/');
-  assert.match(a.key, /^[0-9a-f]{32}$/); assert.equal(again.key, a.key, 'a frame, or another page of the site, got another key'); assert.notEqual(b.key, a.key);
-  assert.equal(JSON.stringify(bg.state.storage).includes(a.key), false, 'the key is in storage that outlives Chrome'); assert.equal(bg.state.session.skeys['news.example'], a.key);
-  const other = await load(on()); assert.notEqual((await other.send({ type: 'shieldKey' }, { id: other.chrome.runtime.id, url: 'https://news.example/', tab: { id: 1, url: 'https://news.example/' } })).key, a.key);
-  assert.deepEqual(await ask('https://www.off.example/'), { off: true }); assert.deepEqual(await ask('https://accounts.google.com/signin'), { off: true });
-  await bg.send({ type: 'pause', minutes: 5 }); assert.deepEqual(await ask('https://news.example/'), { off: true }); await bg.send({ type: 'resume' });
-  await bg.send({ type: 'setMode', group: 'shield', mode: 'off' }); assert.deepEqual(await ask('https://news.example/'), { off: true });
+test('J5: its own row, experimental and off unless switched on; then one script for every page and frame, never on the sign-in hosts or a site cleaning is off for; out while paused or during a sign-in', async () => {
+  assert.deepEqual([cap('C32').group, cap('C32').mode, cap('C32').destructive], ['shield', 'off', false]); assert.equal(mayRun('C32', { master: true }), 'no');
+  const g = GROUPS.find((x) => x.id === 'shield'); assert.match(g.title, /experimental/i);
+  assert.ok(g.says.includes('Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.'));
+  const off = await load(on()); await off.alarm('sweep'); assert.equal(off.state.scripts.some((s) => s.id.startsWith('shield')), false);
+  const bg = await load(on({ storage: { modes: { C32: 'auto' }, sitesOff: ['off.example'] } })); await bg.alarm('sweep');
+  const a = bg.state.scripts.find((s) => s.id === 'shield');
+  assert.deepEqual([a.world, a.js, a.runAt, a.allFrames, a.matchOriginAsFallback, a.matches], ['MAIN', ['shield.js'], 'document_start', true, true, ['http://*/*', 'https://*/*']]);
+  for (const m of ['*://accounts.google.com/*', '*://login.live.com/*', '*://off.example/*', '*://*.off.example/*']) assert.ok(a.excludeMatches.includes(m), m);
+  assert.equal(bg.state.scripts.some((s) => s.id === 'shield-seed'), false);
+  await bg.send({ type: 'siteOff', host: 'other.example', on: true }); await bg.settle();
+  assert.ok(bg.state.scripts.find((s) => s.id === 'shield').excludeMatches.includes('*://*.other.example/*')); assert.equal(bg.state.scripts.filter((s) => s.id === 'shield').length, 1);
+  await bg.send({ type: 'pause', minutes: 5 }); await bg.settle(); assert.equal(bg.state.scripts.some((s) => s.id === 'shield'), false);
+  await bg.send({ type: 'resume' }); await bg.settle(); assert.ok(bg.state.scripts.some((s) => s.id === 'shield'));
 });
-test('H3: only a page script of this extension gets a key; a page script gets nothing else answered, and at most 300 sites are remembered', async () => {
-  const bg = await load(on()), tab = { id: 5, url: 'https://news.example/' };
-  assert.equal(await bg.send({ type: 'shieldKey' }, { id: 'another-extension-id', url: tab.url, tab }), undefined);
-  assert.equal(await bg.send({ type: 'shieldKey' }, { id: bg.chrome.runtime.id, url: tab.url }), undefined, 'no tab: not a page script');
-  for (const type of ['state', 'history', 'setMaster', 'clearBrowsing', 'cookieValue']) assert.equal(await bg.send({ type, on: false }, { id: bg.chrome.runtime.id, url: tab.url, tab }), undefined, type);
-  for (let i = 0; i < 305; i++) await bg.send({ type: 'shieldKey' }, { id: bg.chrome.runtime.id, url: `https://s${i}.example/`, tab: { id: 5, url: `https://s${i}.example/` } });
-  assert.equal(Object.keys(bg.state.session.skeys).length, 300); assert.equal('s0.example' in bg.state.session.skeys, false);
+test('J5: no page script is answered any more: the shield-key message is gone, and nothing about the shield is stored', async () => {
+  const bg = await load(on({ storage: { modes: { C32: 'auto' } } })); await bg.alarm('sweep'); const tab = { id: 5, url: 'https://news.example/' };
+  for (const type of ['shieldKey', 'state', 'history', 'setMaster', 'clearBrowsing', 'cookieValue']) assert.equal(await bg.send({ type, on: false }, { id: bg.chrome.runtime.id, url: tab.url, tab }), undefined, type);
+  assert.equal('shield' in bg.state.storage, false); assert.equal('skeys' in bg.state.session, false); assert.equal('shieldSalt' in bg.state.session, false);
 });

@@ -125,7 +125,7 @@ test('state message: settings, hold state, and per group its mode, pending count
   assert.equal(c.mode, 'ask'); assert.equal(c.pending, 25); assert.equal(c.items.length, 20);
   assert.deepEqual(Object.keys(c.items[0]).sort(), ['cap', 'kind', 'name', 'site', 't', 'why']);
   assert.deepEqual(s.groups.filter((g) => g.id !== 'cookies').map((g) => [g.mode, g.pending]),
-    [['auto', 0], ['auto', 0], ['ask', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['off', 0], ['off', 0], ['off', 0], ['off', 0]]);
+    [['auto', 0], ['auto', 0], ['ask', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['off', 0], ['auto', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['off', 0], ['off', 0], ['off', 0], ['off', 0]]);
 });
 test('setMode sets every capability of the group and takes effect at once; bad input is refused', async () => {
   const bg = await load({ storage: { master: true } });

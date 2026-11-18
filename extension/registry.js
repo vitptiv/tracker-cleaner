@@ -34,7 +34,7 @@ const CAPS = [
   C('C29', 'No cookies for other companies', 'othercookies', 'auto', false),
   C('C30', 'No cache tags and no referring page for other companies', 'othertags', 'auto', false),
   C('C31', 'Pages may not call this computer or the home network', 'local', 'auto', false),
-  C('C32', 'Page shield: small changes to what a page can measure of the browser', 'shield', 'auto', false),
+  C('C32', 'Page shield: small changes to what a page can measure of the browser (experimental)', 'shield', 'off', false),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.
@@ -64,7 +64,7 @@ const GROUPS = [
   ['othercookies', 'Other companies get no cookies', 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.'],
   ['othertags', 'Other companies get no page address or tag', 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.'],
   ['local', 'Pages may not call this computer', 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.'],
-  ['shield', 'Blur what makes this browser recognisable', 'Pages that measure your browser to recognise it without cookies (how it draws a picture, plays a sound, names its graphics chip, how much it has saved) get slightly different answers on every site.'],
+  ['shield', 'Blur browser recognition (experimental)', 'Experimental. Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.'],
   ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
   ['unknown', 'Trackers that are on no list', 'A company that turns up on two different sites you visit, each time able to recognise you, or that is handed the number a site keeps for you, is stopped from following you and its cookies are deleted.'],
   ['bounce', 'Sites that only pass you along', 'A site that sends you straight on to another site without showing you anything has what it saved deleted, and the tag it added to the address is cut off.'],
