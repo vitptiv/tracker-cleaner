@@ -680,3 +680,11 @@ A named chunk is a starting point only if its licence and contents check out; ET
 (test-only entries `pack.sh` leaves out).  23. Switch on, rerun the trip.  24. Scoreboard, 36 rows by off / on.
 25. The same by hand.  26. Gaps become extension todos here.
 Expectation, to be tested: redirector, cache tag and disguised subdomain are gaps; the server report is unstoppable.
+
+## Repairs (after the lab's Phase B measurement, `lab/misses.json`)
+
+Counts are kinds of trace out of 35, tracked / stopped, per setting of `test/lab/trip-cleaner.js`: A fresh install,
+B0 everything automatic and no lab names, B with the lab's names entered by hand, C as B plus every manual action.
+A row counts as tracked when it arrived once during the trip, also when it was stopped later in the trip.
+
+- Step 0, measured before any repair: A 35/0, B0 35/0, B 10/25, C 8/27.

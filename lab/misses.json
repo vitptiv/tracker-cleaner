@@ -1,0 +1,1223 @@
+{
+ "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning).",
+ "extension": "1.23",
+ "settings": {
+  "A": "fresh install defaults, nothing approved, no lab entries",
+  "B0": "main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)",
+  "B": "as B0, with the lab's test-only entries",
+  "C": "as B, then every manual action at the end (approve all, drop each lab site's cookies and storage, block the permission, clear the cache), then the sites again"
+ },
+ "recognised": "Not recognised as shipped: none of the lab's site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary's utm_source is).",
+ "testOnlyEntries": {
+  "how": "B and C only, alive only while the script runs; no shipped file is edited",
+  "sessionRules": [
+   {
+    "id": 9001,
+    "priority": 1,
+    "action": {
+     "type": "block"
+    },
+    "condition": {
+     "requestDomains": [
+      "friendface.localhost",
+      "hop.localhost",
+      "pennant.localhost",
+      "metrics.parcelpine.localhost",
+      "friendface.test"
+     ],
+     "domainType": "thirdParty",
+     "resourceTypes": [
+      "script",
+      "xmlhttprequest",
+      "image",
+      "ping",
+      "sub_frame",
+      "media",
+      "other",
+      "websocket",
+      "font",
+      "stylesheet"
+     ]
+    }
+   },
+   {
+    "id": 9002,
+    "priority": 1,
+    "action": {
+     "type": "redirect",
+     "redirect": {
+      "transform": {
+       "queryTransform": {
+        "removeParams": [
+         "ffclid"
+        ]
+       }
+      }
+     }
+    },
+    "condition": {
+     "resourceTypes": [
+      "main_frame"
+     ]
+    }
+   }
+  ],
+  "alwaysDeleteList": [
+   {
+    "site": "friendface.localhost",
+    "name": "ff_uid"
+   },
+   {
+    "site": "friendface.localhost",
+    "name": "ff_frame"
+   },
+   {
+    "site": "hop.localhost",
+    "name": "hop_id"
+   },
+   {
+    "site": "pennant.localhost",
+    "name": "pn_uid"
+   },
+   {
+    "site": "metrics.parcelpine.localhost",
+    "name": "pp_sid"
+   },
+   {
+    "site": "gazette.localhost",
+    "name": "_ffp"
+   },
+   {
+    "site": "gazette.localhost",
+    "name": "_ffc"
+   },
+   {
+    "site": "tidewater.localhost",
+    "name": "_ffp"
+   },
+   {
+    "site": "tidewater.localhost",
+    "name": "_ffc"
+   },
+   {
+    "site": "parcelpine.localhost",
+    "name": "_ffp"
+   },
+   {
+    "site": "parcelpine.localhost",
+    "name": "_ffc"
+   }
+  ],
+  "notAdded": "DOMAINS (cookies judged by tracker host) is a constant inside lists.js, so the always-delete list by cookie name stands in for it. Permanent storage and permission drops come only from the settings program on port 8088, which is not running and is not imitated: in C they are done by hand instead."
+ },
+ "automaticGroups": [
+  "signin",
+  "blocking",
+  "cookies",
+  "google",
+  "params",
+  "storage",
+  "permissions",
+  "cache"
+ ],
+ "groupsLeftAlone": {
+  "tor": "would send requests off this computer",
+  "tabs": "would close the trip's own tabs",
+  "allowlist": "needs a list from the settings program; would delete every cookie",
+  "server": "only reports and self-update",
+  "wifi": "never automatic; touches this computer's saved networks, so it is not approved either"
+ },
+ "runs": {
+  "A": {
+   "says": "fresh install defaults, nothing approved, no lab entries",
+   "broken": [],
+   "steps": {},
+   "canary": "cleaner seems on",
+   "reidentifiedAfterStep12": true,
+   "history": {
+    "opened": 17,
+    "rebuilt": 17,
+    "complete": true
+   },
+   "extension": {
+    "guardHeldAtEnd": true,
+    "removed": 0,
+    "waiting": {},
+    "blockRuleMatches": 0,
+    "tagRuleMatches": 0
+   },
+   "rows": {
+    "T1": {
+     "status": "tracked",
+     "records": 28,
+     "linked": 28,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T2": {
+     "status": "tracked",
+     "records": 23,
+     "linked": 23,
+     "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
+    },
+    "T3": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T4": {
+     "status": "tracked",
+     "records": 21,
+     "linked": 21,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T5": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T6": {
+     "status": "tracked",
+     "records": 3,
+     "linked": 3,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T7": {
+     "status": "tracked",
+     "records": 3,
+     "linked": 3,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T8": {
+     "status": "tracked",
+     "records": 5,
+     "linked": 5,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T9": {
+     "status": "tracked",
+     "records": 21,
+     "linked": 21,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T10": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "no capability covers it (storage under the visited site's own name)"
+    },
+    "T11": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T12": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T13": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T14": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "no capability covers it (an answer the browser gives)"
+    },
+    "T15": {
+     "status": "tracked",
+     "records": 13,
+     "linked": 13,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+    },
+    "T16": {
+     "status": "tracked",
+     "records": 13,
+     "linked": 13,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+    },
+    "T17": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+    },
+    "T18": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (icons go only with the history)"
+    },
+    "T19": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (history is left alone by decision)"
+    },
+    "T20": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "simulated": "needs the lab certificate"
+    },
+    "T21": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "simulated": "needs the lab certificate"
+    },
+    "T22": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "not recognised: the lab's names are on no list",
+     "simulated": "the press on Allow is a grant over the control channel"
+    },
+    "T23": {
+     "status": "tracked",
+     "records": 17,
+     "linked": 17,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T24": {
+     "status": "tracked",
+     "records": 29,
+     "linked": 29,
+     "cause": "not recognised: the lab's names are on no list",
+     "simulated": "the second address is a forwarded-for header"
+    },
+    "T25": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T26": {
+     "status": "tracked",
+     "records": 5,
+     "linked": 5,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T27": {
+     "status": "tracked",
+     "records": 3,
+     "linked": 3,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T28": {
+     "status": "tracked",
+     "records": 19,
+     "linked": 19,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T29": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "no capability covers it (first-party ping on the network's own page)"
+    },
+    "T30": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "no capability covers it (the redirector is the page in front)"
+    },
+    "T31": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T32": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (kept on purpose: a sign-in)"
+    },
+    "T33": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+    },
+    "T34": {
+     "status": "not built",
+     "cause": "designed, not built"
+    },
+    "T35": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T36": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    }
+   },
+   "counts": {
+    "tracked": 35,
+    "unlinked": 0,
+    "stopped": 0
+   }
+  },
+  "B0": {
+   "says": "main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)",
+   "broken": [],
+   "steps": {},
+   "canary": "cleaner seems on",
+   "reidentifiedAfterStep12": true,
+   "history": {
+    "opened": 17,
+    "rebuilt": 17,
+    "complete": true
+   },
+   "extension": {
+    "master": true,
+    "guardHeldAtEnd": true,
+    "removed": 0,
+    "waiting": {},
+    "blockRuleMatches": 0,
+    "tagRuleMatches": 0
+   },
+   "rows": {
+    "T1": {
+     "status": "tracked",
+     "records": 28,
+     "linked": 28,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T2": {
+     "status": "tracked",
+     "records": 23,
+     "linked": 23,
+     "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
+    },
+    "T3": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T4": {
+     "status": "tracked",
+     "records": 21,
+     "linked": 21,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T5": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T6": {
+     "status": "tracked",
+     "records": 3,
+     "linked": 3,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T7": {
+     "status": "tracked",
+     "records": 3,
+     "linked": 3,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T8": {
+     "status": "tracked",
+     "records": 5,
+     "linked": 5,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T9": {
+     "status": "tracked",
+     "records": 21,
+     "linked": 21,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T10": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "no capability covers it (storage under the visited site's own name)"
+    },
+    "T11": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T12": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T13": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T14": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "no capability covers it (an answer the browser gives)"
+    },
+    "T15": {
+     "status": "tracked",
+     "records": 13,
+     "linked": 13,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+    },
+    "T16": {
+     "status": "tracked",
+     "records": 13,
+     "linked": 13,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+    },
+    "T17": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)"
+    },
+    "T18": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (icons go only with the history)"
+    },
+    "T19": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (history is left alone by decision)"
+    },
+    "T20": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "simulated": "needs the lab certificate"
+    },
+    "T21": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (cache: once a day, first time 24 h after install)",
+     "simulated": "needs the lab certificate"
+    },
+    "T22": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "not recognised: the lab's names are on no list",
+     "simulated": "the press on Allow is a grant over the control channel"
+    },
+    "T23": {
+     "status": "tracked",
+     "records": 17,
+     "linked": 17,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T24": {
+     "status": "tracked",
+     "records": 29,
+     "linked": 29,
+     "cause": "not recognised: the lab's names are on no list",
+     "simulated": "the second address is a forwarded-for header"
+    },
+    "T25": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T26": {
+     "status": "tracked",
+     "records": 5,
+     "linked": 5,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T27": {
+     "status": "tracked",
+     "records": 3,
+     "linked": 3,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T28": {
+     "status": "tracked",
+     "records": 19,
+     "linked": 19,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T29": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "no capability covers it (first-party ping on the network's own page)"
+    },
+    "T30": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "no capability covers it (the redirector is the page in front)"
+    },
+    "T31": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T32": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (kept on purpose: a sign-in)"
+    },
+    "T33": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+    },
+    "T34": {
+     "status": "not built",
+     "cause": "designed, not built"
+    },
+    "T35": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "not recognised: the lab's names are on no list"
+    },
+    "T36": {
+     "status": "tracked",
+     "records": 16,
+     "linked": 16,
+     "cause": "not recognised: the lab's names are on no list"
+    }
+   },
+   "counts": {
+    "tracked": 35,
+    "unlinked": 0,
+    "stopped": 0
+   }
+  },
+  "B": {
+   "says": "as B0, with the lab's test-only entries",
+   "broken": [],
+   "steps": {},
+   "canary": "cleaner seems on",
+   "reidentifiedAfterStep12": false,
+   "history": {
+    "opened": 17,
+    "rebuilt": 0,
+    "complete": false
+   },
+   "extension": {
+    "master": true,
+    "guardHeldAtEnd": true,
+    "removed": 6,
+    "waiting": {
+     "storage": 2
+    },
+    "blockRuleMatches": 10,
+    "tagRuleMatches": 0
+   },
+   "rows": {
+    "T1": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T2": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T3": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T4": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T5": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T6": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T7": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T8": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T9": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T10": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T11": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T12": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T13": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)"
+    },
+    "T14": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T15": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T16": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T17": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T18": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (icons go only with the history)"
+    },
+    "T19": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (history is left alone by decision)"
+    },
+    "T20": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T21": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T22": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)",
+     "simulated": "the press on Allow is a grant over the control channel"
+    },
+    "T23": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T24": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T25": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T26": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T27": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+    },
+    "T28": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T29": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "no capability covers it (first-party ping on the network's own page)"
+    },
+    "T30": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "cause": "no capability covers it (the redirector is the page in front)"
+    },
+    "T31": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)"
+    },
+    "T32": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (kept on purpose: a sign-in)"
+    },
+    "T33": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+    },
+    "T34": {
+     "status": "not built",
+     "cause": "designed, not built"
+    },
+    "T35": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    },
+    "T36": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
+    }
+   },
+   "counts": {
+    "tracked": 10,
+    "unlinked": 0,
+    "stopped": 25
+   }
+  },
+  "C": {
+   "says": "as B, then every manual action at the end (approve all, drop each lab site's cookies and storage, block the permission, clear the cache), then the sites again",
+   "broken": [],
+   "steps": {},
+   "canary": "cleaner seems on",
+   "reidentifiedAfterStep12": false,
+   "history": {
+    "opened": 17,
+    "rebuilt": 0,
+    "complete": false
+   },
+   "manual": {
+    "approve storage": {
+     "ok": true,
+     "done": 1,
+     "of": 2
+    },
+    "cookies of friendface.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of friendface.localhost": {
+     "ok": true
+    },
+    "cookies of hop.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of hop.localhost": {
+     "ok": true
+    },
+    "cookies of pennant.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of pennant.localhost": {
+     "ok": true
+    },
+    "cookies of gazette.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of gazette.localhost": {
+     "ok": true
+    },
+    "cookies of parcelpine.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of parcelpine.localhost": {
+     "ok": true
+    },
+    "cookies of metrics.parcelpine.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of metrics.parcelpine.localhost": {
+     "ok": true
+    },
+    "cookies of tidewater.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of tidewater.localhost": {
+     "ok": true
+    },
+    "cookies of loopreel.localhost": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of loopreel.localhost": {
+     "ok": true
+    },
+    "cookies of friendface.test": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
+    "storage of friendface.test": {
+     "ok": true
+    },
+    "block notifications": {
+     "ok": true
+    },
+    "clear cache and remembered servers": {
+     "ok": true
+    }
+   },
+   "afterManual": {
+    "reidentified": false,
+    "historyStillShown": 0
+   },
+   "extension": {
+    "master": true,
+    "guardHeldAtEnd": true,
+    "removed": 18,
+    "waiting": {
+     "storage": 1
+    },
+    "blockRuleMatches": 20,
+    "tagRuleMatches": 0
+   },
+   "rows": {
+    "T1": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T2": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T3": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T4": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T5": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent"
+    },
+    "T6": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T7": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T8": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T9": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T10": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T11": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T12": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T13": {
+     "status": "stopped",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false
+    },
+    "T14": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T15": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T16": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T17": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T18": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "cause": "no capability covers it (icons go only with the history)"
+    },
+    "T19": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "cause": "no capability covers it (history is left alone by decision)"
+    },
+    "T20": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T21": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T22": {
+     "status": "stopped",
+     "records": 2,
+     "linked": 2,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false
+    },
+    "T23": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T24": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T25": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T26": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T27": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+    },
+    "T28": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    },
+    "T29": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "cause": "no capability covers it (first-party ping on the network's own page)"
+    },
+    "T30": {
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "cause": "no capability covers it (the redirector is the page in front)"
+    },
+    "T31": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)"
+    },
+    "T32": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "cause": "no capability covers it (kept on purpose: a sign-in)"
+    },
+    "T33": {
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "duringTrip": "tracked",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "cause": "no capability covers it (sent by the shop's server, not by the browser)"
+    },
+    "T34": {
+     "status": "not built",
+     "cause": "designed, not built"
+    },
+    "T35": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent"
+    },
+    "T36": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false
+    }
+   },
+   "counts": {
+    "tracked": 8,
+    "unlinked": 0,
+    "stopped": 27
+   }
+  }
+ }
+}
