@@ -1182,3 +1182,7 @@ other companies; the local network).
   and sensors can be blocked (never JavaScript, cookies or images); lists are cut at 500, 200, 200, 200 and 50
   entries, the tab limit at 500. The popup still builds its page from text with every value escaped, not from
   nodes: "textContent only" was not done for the whole popup.
+- L11 local-network rule, added: localhost.localdomain, router.asus.com, tplinkwifi.net, o2.box, pi.hole, names
+  ending in .intranet, a private IPv4 address wrapped in IPv6 the 6to4 (2002:...) and NAT64 (64:ff9b::...) ways, and
+  the request kind `webtransport` (Chrome accepted it) in these and in the header rules. Fourteen patterns and the
+  one for names under localhost, each as two rules; all accepted by a real Chrome.

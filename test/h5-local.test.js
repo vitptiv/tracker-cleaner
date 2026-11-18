@@ -1,7 +1,7 @@
 // H5 (second audit): more of this computer and the home network.
 const test = require('node:test'), assert = require('node:assert');
-const { NET_BASE, LOCAL_RES, LOCAL_NAMES, netRules } = require('../extension/net-rules.js'), { buildReport } = require('../extension/report-view.js');
-const hit = (u) => LOCAL_RES.some((x) => new RegExp(x, 'i').test(u)), name = (u) => new RegExp(LOCAL_NAMES, 'i').test(u);
+const { NET_BASE, LOCAL_RES, LOCAL_NAMES, LOCAL_BOX, netRules } = require('../extension/net-rules.js'), { buildReport } = require('../extension/report-view.js');
+const hit = (u) => LOCAL_RES.some((x) => new RegExp(x, 'i').test(u)), name = (u) => [LOCAL_NAMES, LOCAL_BOX].some((x) => new RegExp(x, 'i').test(u));
 
 test('more addresses: the unspecified IPv6 address and the range providers share out to home routers (100.64 to 100.127)', () => {
   for (const u of ['http://[::]/', 'http://[::]:8080/x', 'http://100.64.0.1/', 'http://100.100.100.100/', 'http://100.127.255.255:8443/', 'ws://100.99.1.2/']) assert.ok(hit(u), u);

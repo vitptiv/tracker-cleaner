@@ -11,7 +11,7 @@
 // guardTabs: the tabs a sign-in is going on in; there the header rules do not apply. Only a session rule can name
 // tabs, so background.js installs the header rules as session rules (again at every start) and the local ones as dynamic.
 const NET_BASE = 100010;   // rule ids: NET_BASE .. NET_BASE + 9 the header rules (session rules); the local network (dynamic rules): NET_BASE + 20 .. what pages ask, NET_BASE + 50 .. forms they post
-const NET_TYPES = ['sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other'];
+const NET_TYPES = ['sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'webtransport', 'other'];
 // Google's hosts for sign-in and for services pages embed with a key that is checked against the referring page. Not all
 // of googleapis.com: storage.googleapis.com serves anyone's files.
 const GOOGLE_APIS = ['www', 'accounts', 'oauth2', 'securetoken', 'identitytoolkit', 'content', 'maps', 'places', 'youtube', 'fonts', 'ajax', 'translate', 'firestore', 'firebaseinstallations'].map((x) => x + '.googleapis.com');
@@ -35,8 +35,12 @@ const LOCAL_RES = [local('localhost|0\\.0\\.0\\.0'), local(`127${N}${N}${N}`), l
 // Names that only exist inside a home or office network (H5): anything ending in .local, .lan, .internal or .home.arpa,
 // and fritz.box; and LOCAL_SUB, a name under localhost, which is blocked only for a page that is not itself under localhost.
 // J7: also .home and .corp, easy.box, and a name of one word ("router", "nas"): such a name exists only inside a network.
-const LABELS = '([a-z0-9_-]+\\.)', LOCAL_NAMES = local(`${LABELS}+(local|lan|internal|home\\.arpa|home|corp)|${LABELS}*(fritz|easy)\\.box`), LOCAL_ONE = local('[a-z0-9_-]+'), LOCAL_SUB = local(`${LABELS}+localhost`);
-const LOCAL_ALL = [...LOCAL_RES, LOCAL_NAMES, LOCAL_ONE];
+// L11: also .intranet, o2.box, pi.hole, three names that makers of home routers hand out, and a private IPv4 address
+// wrapped in IPv6 the 6to4 (2002:...) and NAT64 (64:ff9b::...) ways.
+const LABELS = '([a-z0-9_-]+\\.)', LOCAL_NAMES = local(`${LABELS}+(local|lan|internal|home\\.arpa|home|corp|intranet)`), LOCAL_BOX = local(`${LABELS}*((fritz|easy|o2)\\.box|pi\\.hole)`),
+  LOCAL_MAKER = local('localhost\\.localdomain|router\\.asus\\.com|tplinkwifi\\.net'), LOCAL_WRAPPED = local('\\[(2002|64:ff9b:):(7f[0-9a-f][0-9a-f]|a[0-9a-f][0-9a-f]|c0a8|ac1[0-9a-f]|a9fe):[0-9a-f:]*\\]'),
+  LOCAL_ONE = local('[a-z0-9_-]+'), LOCAL_SUB = local(`${LABELS}+localhost`);
+const LOCAL_ALL = [...LOCAL_RES, LOCAL_WRAPPED, LOCAL_NAMES, LOCAL_BOX, LOCAL_MAKER, LOCAL_ONE];
 // self: this extension's own id: what it asks itself (the settings program, Tor's port) is no page's request
 const netRules = ({ cookies, tags, local, exempt = [], self, guardTabs = [] }) => {
   const tabs = [...new Set(guardTabs)].slice(0, 100);
@@ -55,4 +59,4 @@ const netRules = ({ cookies, tags, local, exempt = [], self, guardTabs = [] }) =
     ...(!local ? [] : [[NET_TYPES, 20, {}], [['main_frame'], 50, { requestMethods: ['post', 'put', 'patch', 'delete'] }]].flatMap(([types, base, more]) => [...LOCAL_ALL, LOCAL_SUB].map((regexFilter, i) => ({ id: NET_BASE + base + i, priority: 1, action: { type: 'block' },
       condition: { regexFilter, domainType: 'thirdParty', resourceTypes: types, ...more, excludedInitiatorDomains: [...(self ? [self] : []), ...(regexFilter === LOCAL_SUB ? ['localhost'] : [])] } }))))];
 };
-if (typeof module !== 'undefined') module.exports = { NET_BASE, NET_TYPES, FAMILIES, GOOGLE_APIS, LOCAL_RES, LOCAL_NAMES, LOCAL_ONE, LOCAL_ALL, LOCAL_SUB, netRules };
+if (typeof module !== 'undefined') module.exports = { NET_BASE, NET_TYPES, FAMILIES, GOOGLE_APIS, LOCAL_RES, LOCAL_NAMES, LOCAL_BOX, LOCAL_ONE, LOCAL_ALL, LOCAL_SUB, netRules };
