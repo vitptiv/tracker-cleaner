@@ -1,6 +1,6 @@
 // M1 (1.26): the pure cross-site-id helpers (extension/xsid.js). No browser, no state.
 const test = require('node:test'), assert = require('node:assert');
-const { idTokens, idValue, pathPrefix, tokHash, fnv1a, XID_MIN, applyStrip, blockRe, xidRules, stripNav, RETURN_PARAMS } = require('../extension/xsid.js');
+const { idTokens, idValue, pathPrefix, tokHash, fnv1a, XID_MIN, applyStrip, blockRe, xidRules, stripNav, RETURN_PARAMS, etagRe } = require('../extension/xsid.js');
 
 test('idTokens picks only long, high-entropy values; not dates, numbers, words or short strings', () => {
   assert.equal(XID_MIN, 12);
@@ -63,4 +63,15 @@ test('stripNav removes a confirmed id from any ordinary parameter but keeps sign
   assert.equal(stripNav(`https://s.example/login?redirect_uri=https%3A%2F%2Fs.example%2Fcb%3Fx%3D${T}&state=${T}`, [T]), null);
   // a tracking param alongside a return param: cut the tracker, keep the return address
   assert.equal(stripNav(`https://s.example/login?state=abc&sid=${T}`, [T]), 'https://s.example/login?state=abc');
+});
+// M5 helper
+test('xidRules strips the conditional headers for an id-bearing ETag resource, matching that exact resource only', () => {
+  const rules = xidRules({ etags: ['s.example/assets/logo.png'], etag: 102800, signin: ['accounts.google.com'], blockTypes: ['image'] });
+  const r = rules.find((x) => x.action.type === 'modifyHeaders');
+  assert.equal(r.id, 102800); assert.deepEqual(r.action.requestHeaders.map((h) => h.header), ['if-none-match', 'if-modified-since']);
+  assert.ok(r.action.requestHeaders.every((h) => h.operation === 'remove'));
+  const re = new RegExp(etagRe('s.example/assets/logo.png'));
+  assert.ok(re.test('https://s.example/assets/logo.png') && re.test('https://s.example/assets/logo.png?v=1'));
+  assert.equal(re.test('https://s.example/assets/logo.png.map'), false, 'a different resource was matched');
+  assert.equal(re.test('https://s.example/assets/other.png'), false);
 });

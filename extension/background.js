@@ -519,9 +519,10 @@ async function learnedRules(want) {
 // take the others down, and what could not be installed is named in the popup (`notWorking`) instead of looking switched on.
 const REFUSED = { dynamic: new Set(), session: new Set() };
 const BLOCKED = 101000;   // dynamic rule ids BLOCKED .. BLOCKED + 299: one per host the user blocked
-// C33 (M2): a confirmed cross-site id's collector-path blocks (XBLOCK..) and its URL/nav strip-redirects (XSTRIP..)
-const XBLOCK = 102000, XSTRIP = 102400;
-const RULE_NAME = (id) => id >= XSTRIP ? 'Cross-site codes stripped from links' : id >= XBLOCK ? 'Cross-site code collectors blocked'
+// C33 (M2/M5): a confirmed cross-site id's collector-path blocks (XBLOCK..), URL/nav strip-redirects (XSTRIP..) and
+// conditional-header strips for an id-bearing ETag resource (XETAG..)
+const XBLOCK = 102000, XSTRIP = 102400, XETAG = 102800;
+const RULE_NAME = (id) => id >= XETAG ? 'Cross-site code cache tags stripped' : id >= XSTRIP ? 'Cross-site codes stripped from links' : id >= XBLOCK ? 'Cross-site code collectors blocked'
   : id >= BLOCKED ? 'Hosts you blocked' : id === LEARNED + 3 ? 'Pings are blocked'
   : id >= NET_BASE + 10 ? 'Pages may not call this computer' : 'Other companies get no cookies or cache tags';
 // One change at a time per kind (two at once would trip over each other's rule numbers); what counts as refused is what
@@ -666,6 +667,21 @@ const XSEEN_MAX = 50, XNEW_HOUR = 10, xnew = new Map();   // xnew: per visited s
 async function xidSalt() { let { xsalt } = await chrome.storage.session.get('xsalt');
   if (!xsalt) { xsalt = [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join(''); await chrome.storage.session.set({ xsalt }); }
   return xsalt; }
+// Record id-like tokens a page sent (or that rode its ETag): the site that sent each, the endpoint it went to, and -- for
+// an ETag (M5) -- the exact resource. Per-page hourly cap of new tokens; at most XSEEN_MAX tracked.
+async function xidObserve(page, toks, ep, etagRes) {
+  const salt = await saltNow(), xs = await xidSalt(), siteHash = mark(`${salt} ${page}`);
+  await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, now = Date.now(); let changed = false;
+    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k];
+      if (e) { if (!e.sites[siteHash]) { e.sites[siteHash] = true; changed = true; } if (ep && !e.eps[ep]) { e.eps[ep] = true; changed = true; }
+        if (etagRes) { if (!e.etag) e.etag = {}; if (!e.etag[etagRes]) { e.etag[etagRes] = true; changed = true; } } e.t = now; continue; }
+      // a token new to this worker: it costs the site one of its XNEW_HOUR new tokens an hour, and at most XSEEN_MAX are kept
+      const c = xnew.get(page); if (xnew.size > 500) xnew.clear();
+      if (!c || c.t < now - 3600e3) xnew.set(page, { t: now, n: 1 }); else if (++c.n > XNEW_HOUR) continue;
+      const ks = Object.keys(xseen); if (ks.length >= XSEEN_MAX) delete xseen[ks.sort((a, b) => xseen[a].t - xseen[b].t)[0]];
+      xseen[k] = { raw: tok, sites: { [siteHash]: true }, eps: ep ? { [ep]: true } : {}, ...(etagRes ? { etag: { [etagRes]: true } } : {}), t: now }; changed = true; }
+    if (changed) await chrome.storage.session.set({ xseen }); });
+}
 async function noteSent(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;   // not the address bar: only what a page itself sends counts
   let u; try { u = new URL(d.url); } catch { return; }
@@ -675,17 +691,23 @@ async function noteSent(d) {
   await ready;
   if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   const toks = idTokens(safeDecode(d.url) + ' ' + bodyText(d.requestBody));
+  if (toks.length) await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase());
+}
+// M5 (F10): an ETag carries an id the browser echoes back as If-None-Match on revalidation. Feed its id-like tokens into
+// the same detector (so an ETag reused across sites is caught) and remember the exact resource, so that once the token is
+// confirmed cross-site the conditional headers are stripped for THAT resource only (caching for everything else stays).
+async function noteEtag(d) {
+  if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol) || isSignIn(d.url)) return;
+  const tag = (d.responseHeaders || []).find((h) => String(h.name).toLowerCase() === 'etag');
+  const toks = tag ? idTokens(String(tag.value)) : [];
   if (!toks.length) return;
-  const salt = await saltNow(), xs = await xidSalt(), siteHash = mark(`${salt} ${page}`), ep = (u.host + pathPrefix(u.pathname)).toLowerCase();
-  await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, now = Date.now(); let changed = false;
-    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k];
-      if (e) { if (!e.sites[siteHash]) { e.sites[siteHash] = true; changed = true; } if (!e.eps[ep]) { e.eps[ep] = true; changed = true; } e.t = now; continue; }
-      // a token new to this worker: it costs the site one of its XNEW_HOUR new tokens an hour, and at most XSEEN_MAX are kept
-      const c = xnew.get(page); if (xnew.size > 500) xnew.clear();
-      if (!c || c.t < now - 3600e3) xnew.set(page, { t: now, n: 1 }); else if (++c.n > XNEW_HOUR) continue;
-      const ks = Object.keys(xseen); if (ks.length >= XSEEN_MAX) delete xseen[ks.sort((a, b) => xseen[a].t - xseen[b].t)[0]];
-      xseen[k] = { raw: tok, sites: { [siteHash]: true }, eps: { [ep]: true }, t: now }; changed = true; }
-    if (changed) await chrome.storage.session.set({ xseen }); });
+  const page = await topSite(d);
+  if (!page) return;
+  await ready;
+  if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
+  await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase(), (u.host + u.pathname).toLowerCase());
 }
 // At each sweep: a token SENT by two or more sites that are both in `mine` is confirmed a cross-site id. Re-checked
 // every sweep, so a site added to `mine` after the value was first seen still counts. Records the confirmation
@@ -696,7 +718,7 @@ async function xidSweep(cx) {
   await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, was = (await chrome.storage.session.get('xsid')).xsid || {}, xsid = {};
     const ours = (h) => (cx.set.mine || []).includes(h) || (cx.set.mineShared || []).includes(h);
     for (const [k, e] of Object.entries(xseen)) { const sites = Object.keys(e.sites).filter(ours);
-      if (sites.length >= 2) xsid[k] = { raw: e.raw, eps: Object.keys(e.eps), n: sites.length }; }
+      if (sites.length >= 2) xsid[k] = { raw: e.raw, eps: Object.keys(e.eps), ...(e.etag ? { etag: Object.keys(e.etag) } : {}), n: sites.length }; }
     n = Object.keys(xsid).length; changed = JSON.stringify(xsid) !== JSON.stringify(was);
     if (changed) await chrome.storage.session.set({ xsid }); });
   return { ...(n ? { crossIds: n } : {}), changed };
@@ -713,7 +735,8 @@ async function xidActRules(cx) {
     return !signInCompany(site) && !SIGNIN_HOSTS.some((h) => under(bareHost, h)) && !off.some((o) => under(bareHost, o)); };
   const eps = [...new Set(vals.flatMap((e) => e.eps))].filter((ep) => okHost(ep.split('/')[0])).slice(0, 60);
   const toks = [...new Set(vals.map((e) => e.raw))].slice(0, 50);
-  return xidRules({ eps, toks, block: XBLOCK, strip: XSTRIP, signin: SIGNIN_HOSTS, off, blockTypes: TYPES, stripTypes: STRIP_TYPES });
+  const etags = [...new Set(vals.flatMap((e) => e.etag || []))].filter((r) => okHost(r.split('/')[0])).slice(0, 40);   // M5
+  return xidRules({ eps, toks, etags, block: XBLOCK, strip: XSTRIP, etag: XETAG, signin: SIGNIN_HOSTS, off, blockTypes: TYPES, stripTypes: STRIP_TYPES });
 }
 // Delete a cookie whose value carries a confirmed cross-site id (M2). Targeted by value, so it can be undone; never a
 // sign-in cookie (KEEP or http-only+secure) and never a site the user turned off. Storage that holds the id cannot be
@@ -730,7 +753,7 @@ async function xidClean(cx, all) {
   return gone.length ? { crossIdCookies: gone.length } : {};
 }
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
-try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
+try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); noteEtag(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
 // M3 (1.26, C33): strip a confirmed cross-site id from an in-page history pushState/replaceState
 // (onHistoryStateUpdated) -- the one hand-off the DNR strip rules (M2) cannot see, because changing the address in
 // script fires no request. The DNR rules already strip the id from EVERY network navigation (a link, a scripted

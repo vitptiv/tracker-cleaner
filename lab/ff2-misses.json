@@ -1,17 +1,17 @@
 {
  "what": "Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.",
  "extension": "1.26",
- "browser": "ff2m-1a1ef69259da61fbd",
+ "browser": "ff2m-1a1ef784e3a1af683",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
   "atlas.localhost"
  ],
  "joinedOnFirstContact": 10,
- "stoppedGoingForward": 4,
- "survives": 6,
+ "stoppedGoingForward": 5,
+ "survives": 5,
  "of": 10,
- "headline": "10/10 kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops 4/10 (collector path blocked) and 6/10 survive (first-party server-side, sign-in, per-site cookie, hand-off chain for M3, ETag for M5).",
+ "headline": "10/10 kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops 5/10 (collector path blocked, incl. the ETag image under /f/) and 5/10 survive (first-party server-side F4/F5, per-site cookie F1, sign-in F7, hand-off chain F3).",
  "collectorBlocked": true,
  "crossIdConfirmed": 1,
  "nothingLearned": true,
@@ -25,9 +25,9 @@
   "keyEqualsBaselineShieldOff": true,
   "keyEqualsBaselineShieldOn": false,
   "shieldOnCodes": {
-   "ledger": "fp2-9a879683",
-   "sundial": "fp2-013d8ea4",
-   "atlas": "fp2-063991c7"
+   "ledger": "fp2-7380ec72",
+   "sundial": "fp2-87a1e950",
+   "atlas": "fp2-218500a2"
   },
   "readPixels": {
    "shieldOff": {
@@ -35,7 +35,7 @@
     "perturbed": false
    },
    "shieldOn": {
-    "hash": "3803c221",
+    "hash": "61037b51",
     "perturbed": true
    },
    "baseline": "bd825545"
@@ -51,7 +51,7 @@
   "Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.",
   "A value-based cross-site detector is reactive: the collector gets the id on first contact, before two sites reveal it is cross-site, so the initial join is not preventable; the cleaner stops every FURTHER send by blocking the exact collector path (never the site root) and stripping the id from request URLs and links.",
   "F4/F5 and F8-to-the-site's-own-server are first-party server-side; they cannot be stopped without breaking the site, so they are marked \"cannot\", not blocked.",
-  "F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is M3; F10 (ETag) is M5.",
+  "F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is per-site here, not a confirmed cross-site value. F10 (ETag) is per-site here and its image /f/px.gif is under the blocked /f/ path, so it is stopped going forward; M5 additionally strips the If-None-Match conditional for a cross-site ETag id on a resource that is not otherwise blocked (not exercised by ff2, whose ETag is per-site).",
   "The shield (C32) is ON by default from 1.26 (M4). It now blurs the font-measure widths and screen size (not only canvas/WebGL/audio), so the F6 join key -- built from fonts and matchMedia/screen -- no longer matches across the three sites or the cleaner-off baseline when the shield is on. matchMedia and the pixel ratio are left alone (a page needs them), so it is best effort, detectable, not perfect. The collector-path block (C33) already stops the code reaching the collector as well."
  ],
  "rows": [
@@ -122,8 +122,8 @@
    "id": "F10",
    "type": "First-party cache tag (ETag)",
    "joinedOnFirstContact": true,
-   "stoppedGoingForward": false,
-   "why": "survives: a first-party ETag: handled in M5"
+   "stoppedGoingForward": true,
+   "why": "stopped going forward: its ETag image /f/px.gif is under the blocked collector path, so the browser no longer revalidates it with If-None-Match (M5 also strips the conditional for a cross-site ETag on a resource that is not otherwise blocked)"
   }
  ]
 }

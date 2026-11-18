@@ -49,12 +49,17 @@ const nz = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => !Array.
 // host or company, no site the user turned off). The collector block is priority 2 so a site-off `allow` (also
 // priority 2, and allow beats block) still exempts it; the URL strip is priority 1, below both. Sign-in hosts are never
 // cut (the return-address list), and the sites the user turned off are excluded from both.
-function xidRules({ eps = [], toks = [], block, strip, signin = [], off = [], blockTypes, stripTypes }) {
-  const rules = []; let b = block, s = strip;
+// M5: match one EXACT resource (host + full path) whose ETag carried a confirmed cross-site id.
+const etagRe = (res) => { const i = res.indexOf('/'), host = i < 0 ? res : res.slice(0, i), path = i < 0 ? '/' : res.slice(i); return `^https?://([^/?#@]*@)?${reEsc(host)}${reEsc(path)}([?#]|$)`; };
+function xidRules({ eps = [], toks = [], etags = [], block, strip, etag, signin = [], off = [], blockTypes, stripTypes }) {
+  const rules = []; let b = block, s = strip, g = etag;
   for (const ep of eps) { const i = ep.indexOf('/'); if (i < 0) continue;
     rules.push({ id: b++, priority: 2, action: { type: 'block' }, condition: nz({ regexFilter: blockRe(ep.slice(0, i), ep.slice(i)), excludedInitiatorDomains: signin, excludedRequestDomains: off, resourceTypes: blockTypes }) }); }
   for (const tok of toks) for (const [rf, sub] of stripRes(reEsc(tok)))
     rules.push({ id: s++, priority: 1, action: { type: 'redirect', redirect: { regexSubstitution: sub } }, condition: nz({ regexFilter: rf, excludedInitiatorDomains: signin, excludedRequestDomains: signin.concat(off), resourceTypes: stripTypes }) });
+  // M5: strip the conditional request headers for the id-bearing resource only, so caching for every other resource stays
+  for (const res of etags) rules.push({ id: g++, priority: 1, action: { type: 'modifyHeaders', requestHeaders: [{ header: 'if-none-match', operation: 'remove' }, { header: 'if-modified-since', operation: 'remove' }] },
+    condition: nz({ regexFilter: etagRe(res), excludedInitiatorDomains: signin, excludedRequestDomains: signin.concat(off), resourceTypes: blockTypes }) });
   return rules;
 }
 // ---- M3 (1.26): strip a confirmed cross-site id from a navigation URL (a scripted or meta hand-off, or a pushState),
@@ -74,4 +79,4 @@ function stripNav(url, toks = [], returnParams = RETURN_PARAMS) {
   }
   return changed ? u.toString() : null;
 }
-if (typeof module !== 'undefined') module.exports = { XID_MIN, XID_MAX, idTokens, idValue, fnv1a, tokHash, pathPrefix, reEsc, blockRe, stripRes, applyStrip, xidRules, RETURN_PARAMS, stripNav };
+if (typeof module !== 'undefined') module.exports = { XID_MIN, XID_MAX, idTokens, idValue, fnv1a, tokHash, pathPrefix, reEsc, blockRe, stripRes, applyStrip, xidRules, RETURN_PARAMS, stripNav, etagRe };

@@ -102,41 +102,46 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     const xsid = await popup.ev(`chrome.storage.session.get('xsid').then((x) => Object.values(x.xsid || {}))`);
     ok(xsid.length >= 1, `the cross-site id was confirmed (xsid entries: ${xsid.length})`);
     ok((st.stopped || []).length === 0, `C33 does not use the learned-block list (stopped: ${JSON.stringify(st.stopped)})`);
-    // forward-looking, objective: the page can no longer reach its own /f/ collector on any of the three sites
+    // forward-looking, objective: the page can no longer reach its own /f/ collector on any of the three sites, and the
+    // ETag image /f/px.gif (which carries F10) sits under that same blocked /f/ path, so it cannot revalidate either.
     const reach = {}; for (const s of ['ledger', 'sundial', 'atlas']) { await t.go(at(s)); await sleep(300);
       reach[s] = await t.ev(`fetch('/f/hit?probe=1', { method: 'POST', body: 'm=probe' }).then(() => 'ok', () => 'blocked')`); }
     const collectorBlocked = ['ledger', 'sundial', 'atlas'].every((s) => reach[s] === 'blocked');
     ok(collectorBlocked, `the collector path is blocked on all three sites now (${JSON.stringify(reach)})`);
+    await t.go(at('ledger')); await sleep(300);
+    const etagBlocked = (await t.ev(`fetch('/f/px.gif', { cache: 'reload' }).then(() => 'ok', () => 'blocked')`)) === 'blocked';
+    ok(etagBlocked, 'the ETag image /f/px.gif is blocked too (F10 cannot revalidate)');
     ok(questions.every((n) => n === 0), `C33 acts automatically; no question was raised (answered ${questions})`);
     const cookies = await b.cookies(); const ledgerCk = cookies.filter((c) => c.domain.replace(/^\./, '').endsWith('ledger.localhost'));
     ok(ledgerCk.some((c) => c.name === 'SID'), 'the sign-in-window SID cookie was left alone');
 
-    // the collector receives F2/F6/F8/F9 over its /f/ path, so blocking the path stops them going forward; the rest are
-    // the site's own first-party server (F4/F5), a per-site cookie (F1), a sign-in cookie (F7), a hand-off chain (F3,
-    // handled in M3) or a first-party ETag (F10, M5), none stoppable here without breaking the site.
+    // the collector receives F2/F6/F8/F9 over its /f/ path, and F10's ETag image /f/px.gif is under the same path, so
+    // blocking the path stops all five going forward; the rest are the site's own first-party server (F4/F5), a
+    // per-site cookie (F1), a sign-in cookie (F7) or a hand-off chain (F3), none stoppable here without breaking the site.
     const COLL = { F2: 'the master id reaches the collector', F6: 'the fingerprint code reaches the collector', F8: 'the address and referrer are posted to the collector', F9: 'the collector runs its loopback probe for the page' };
     const SURV = { F1: 'a per-site first-party cookie (fp_id), not a cross-site value: a visited site\'s own cookie is left alone',
       F3: 'M3 strips a CONFIRMED id from a scripted/meta/pushState hand-off, but ff2 gives each site its own master value at /f/ (ledger/sundial/atlas each send a different ff2m-...), so no single master value is seen on two sites and none is confirmed; the real cross-site link is the fingerprint, whose collector send is already blocked',
       F4: 'the from->to redirect log is the site\'s own server; cannot stop without breaking navigation',
       F5: 'a first-party click record on the site\'s own server; cannot stop without breaking the site',
-      F7: 'a sign-in cookie (SID): kept on purpose, never touched', F10: 'a first-party ETag: handled in M5' };
+      F7: 'a sign-in cookie (SID): kept on purpose, never touched', F10: 'a first-party ETag, per-site here; its image is under the blocked /f/ path so it cannot revalidate' };
     const rows = TRACES2.map((tr) => { const id = tr.id, r = k.rows.find((x) => x.id === id) || {};
-      const stopped = id in COLL && collectorBlocked;
-      return { id, type: tr.type, joinedOnFirstContact: r.mark === 'tracked', stoppedGoingForward: stopped,
-        why: stopped ? `stopped going forward: ${COLL[id]} is blocked (collector-path block, host+/f/ prefix)` : `survives: ${SURV[id] || 'first-party, server-side'}` }; });
+      const stopped = (id in COLL && collectorBlocked) || (id === 'F10' && collectorBlocked && etagBlocked);
+      const why = id === 'F10' ? (stopped ? 'stopped going forward: its ETag image /f/px.gif is under the blocked collector path, so the browser no longer revalidates it with If-None-Match (M5 also strips the conditional for a cross-site ETag on a resource that is not otherwise blocked)' : `survives: ${SURV.F10}`)
+        : stopped ? `stopped going forward: ${COLL[id]} is blocked (collector-path block, host+/f/ prefix)` : `survives: ${SURV[id] || 'first-party, server-side'}`;
+      return { id, type: tr.type, joinedOnFirstContact: r.mark === 'tracked', stoppedGoingForward: stopped, why }; });
     const stoppedN = rows.filter((r) => r.stoppedGoingForward).length, survN = rows.length - stoppedN;
-    ok(stoppedN >= 4, `the four collector kinds are stopped going forward (stopped ${stoppedN})`);
+    ok(stoppedN >= 5, `the four collector kinds and the ETag image are stopped going forward (stopped ${stoppedN})`);
 
     const out = { what: 'Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.',
       extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, browser: k.browser, sites: k.sites,
       joinedOnFirstContact: joined.length, stoppedGoingForward: stoppedN, survives: survN, of: TRACES2.length,
-      headline: `${joined.length}/${TRACES2.length} kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops ${stoppedN}/${TRACES2.length} (collector path blocked) and ${survN}/${TRACES2.length} survive (first-party server-side, sign-in, per-site cookie, hand-off chain for M3, ETag for M5).`,
+      headline: `${joined.length}/${TRACES2.length} kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops ${stoppedN}/${TRACES2.length} (collector path blocked, incl. the ETag image under /f/) and ${survN}/${TRACES2.length} survive (first-party server-side F4/F5, per-site cookie F1, sign-in F7, hand-off chain F3).`,
       collectorBlocked, crossIdConfirmed: xsid.length, nothingLearned: (st.stopped || []).length === 0, questionsRaised: questions.reduce((a, c) => a + c, 0),
       fingerprint,
       caveats: ['Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.',
         'A value-based cross-site detector is reactive: the collector gets the id on first contact, before two sites reveal it is cross-site, so the initial join is not preventable; the cleaner stops every FURTHER send by blocking the exact collector path (never the site root) and stripping the id from request URLs and links.',
         'F4/F5 and F8-to-the-site\'s-own-server are first-party server-side; they cannot be stopped without breaking the site, so they are marked "cannot", not blocked.',
-        'F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is M3; F10 (ETag) is M5.',
+        'F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is per-site here, not a confirmed cross-site value. F10 (ETag) is per-site here and its image /f/px.gif is under the blocked /f/ path, so it is stopped going forward; M5 additionally strips the If-None-Match conditional for a cross-site ETag id on a resource that is not otherwise blocked (not exercised by ff2, whose ETag is per-site).',
         'The shield (C32) is ON by default from 1.26 (M4). It now blurs the font-measure widths and screen size (not only canvas/WebGL/audio), so the F6 join key -- built from fonts and matchMedia/screen -- no longer matches across the three sites or the cleaner-off baseline when the shield is on. matchMedia and the pixel ratio are left alone (a page needs them), so it is best effort, detectable, not perfect. The collector-path block (C33) already stops the code reaching the collector as well.'],
       rows };
     fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'ff2-misses.json'), JSON.stringify(out, null, 1) + '\n');

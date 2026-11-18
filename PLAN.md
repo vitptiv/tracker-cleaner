@@ -1317,3 +1317,13 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   and theming -- so they are left alone; also still unblurred: timezone, navigator.languages/platform/hardwareConcurrency
   /maxTouchPoints, and WebGL MAX_TEXTURE_SIZE / extension list. shield.js stays under 80 lines (65) and closed (no
   network, storage, message, or global assignment). trip-cleaner A/Q within the 29/23 bar (shield is non-destructive).
+- M5 first-party ETag cache id (F10). `noteEtag` (onHeadersReceived) feeds the id-like tokens in a response's ETag into
+  the same detector (xseen, via the shared `xidObserve`), remembering the exact resource; `xidSweep` carries those
+  resources into `xsid`. Once an ETag id is confirmed cross-site (the same id-like ETag seen on two visited sites in
+  `mine`), `xidRules` adds a DNR modifyHeaders rule (XETAG) that removes If-None-Match and If-Modified-Since for THAT
+  exact resource only -- so the browser fetches a fresh 200 instead of a 304 that would carry the id, while every other
+  resource keeps its caching. Chrome MV3 cannot match a request on a header VALUE, so the resource is identified from
+  its ETag response and the strip is scoped to it; a non-id ETag and a per-site (one-site) ETag get no rule. ff2: F10's
+  ETag is per-site (the master, different per site) AND its image /f/px.gif sits under the /f/ collector path M2 already
+  blocks, so F10 is stopped going forward by that block (verified: /f/px.gif is blocked); M5's cross-site-ETag strip is
+  the general case ff2 does not exercise. ff2 now 5/10 stopped going forward (F2/F6/F8/F9/F10), 5/10 survive (F1/F3/F4/F5/F7).

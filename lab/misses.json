@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Three counts, of the 35 kinds built (one of 36, T34, is not built in the lab): arrived = it arrived at all, also tied to nobody. ever = it arrived, tied to her (in Q and C: after the answers or the cleaning, on the second look). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is A (the fresh install, no press) and Q (the same with every question answered yes).",
- "headline": "A (fresh install, nothing changed), of the 35 kinds built: 23 at the end; 27 arrived and tied to her; 29 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 21 at the end; 23 tied to her after the answers; 28 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
+ "headline": "A (fresh install, nothing changed), of the 35 kinds built: 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 21 at the end; 23 tied to her after the answers; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
  "caveats": [
   "Nothing is cut short in the measurement any more: there is no hold on everything (L4). The lab's own \"Sign in with\" page holds deleting for the network's own site for five minutes, as it would for a user.",
   "A is the fresh install with no press; Q is the same with every question the extension asks answered yes; since L1 a company on no list is not even blocked without such a press.",
@@ -249,14 +249,12 @@
     },
     "T3": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "read by the kit",
       "the cookie was gone; put back from local storage, IndexedDB, cache storage"
      ],
      "lastStep": 11,
@@ -265,19 +263,13 @@
      "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T4": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 3,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "click ID given out in the feed"
-     ],
-     "lastStep": 7,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "fired too late (ID already sent)"
+     "ever": false
     },
     "T5": {
      "status": "tracked",
@@ -330,11 +322,10 @@
     },
     "T9": {
      "status": "tracked",
-     "records": 13,
-     "linked": 8,
+     "records": 11,
+     "linked": 6,
      "sites": [
-      "tidewater.localhost",
-      "parcelpine.localhost"
+      "tidewater.localhost"
      ],
      "via": [
       "Friendface frame inside the site",
@@ -347,10 +338,9 @@
     },
     "T10": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
@@ -363,10 +353,9 @@
     },
     "T11": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
@@ -379,10 +368,9 @@
     },
     "T12": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
@@ -411,10 +399,9 @@
     },
     "T14": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
@@ -426,18 +413,13 @@
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 1,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "the saved copy, given out once and not asked for again"
-     ],
-     "lastStep": 7,
+     "status": "unlinked",
+     "records": 4,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T16": {
@@ -547,10 +529,9 @@
     },
     "T23": {
      "status": "tracked",
-     "records": 12,
-     "linked": 3,
+     "records": 10,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
@@ -563,11 +544,10 @@
     },
     "T24": {
      "status": "tracked",
-     "records": 21,
-     "linked": 7,
+     "records": 19,
+     "linked": 5,
      "sites": [
-      "tidewater.localhost",
-      "parcelpine.localhost"
+      "tidewater.localhost"
      ],
      "via": [
       "the like frame",
@@ -581,16 +561,13 @@
     },
     "T25": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
-      "canvas e6f3203c, graphics de1a1cf2, audio dd42ecc0, fonts bd8a2c56, traits 801,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 9c631915, graphics de1a1cf2, audio 3bf29600, fonts bd8a2c56, traits 798,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 96d1cb55, graphics de1a1cf2, audio d2c52c41, fonts bd8a2c56, traits 798,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas cabb3770, graphics de1a1cf2, audio 0c6bb57c, fonts bd8a2c56, traits 801,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 11,
      "atEnd": true,
@@ -598,19 +575,13 @@
      "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 11"
     },
     "T26": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "reported by the kit"
-     ],
-     "lastStep": 7,
-     "atEnd": true,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 7"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false
     },
     "T27": {
      "status": "tracked",
@@ -722,10 +693,9 @@
     },
     "T36": {
      "status": "tracked",
-     "records": 8,
-     "linked": 3,
+     "records": 6,
+     "linked": 1,
      "sites": [
-      "parcelpine.localhost",
       "tidewater.localhost"
      ],
      "via": [
@@ -738,12 +708,12 @@
     }
    },
    "counts": {
-    "tracked": 25,
-    "unlinked": 2,
-    "stopped": 6,
-    "arrived": 29,
-    "ever": 27,
-    "atEnd": 23,
+    "tracked": 22,
+    "unlinked": 3,
+    "stopped": 8,
+    "arrived": 27,
+    "ever": 24,
+    "atEnd": 22,
     "simulated": [],
     "own": [
      "T18",
@@ -789,7 +759,7 @@
    "manual": {},
    "afterManual": {
     "reidentified": true,
-    "historyStillShown": 5
+    "historyStillShown": 4
    },
    "extension": {
     "master": true,
@@ -827,15 +797,15 @@
     },
     "T3": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
-      "read by the kit",
-      "the cookie was gone; put back from local storage, IndexedDB, cache storage"
+      "the cookie was gone; put back from local storage, IndexedDB, cache storage",
+      "read by the kit"
      ],
      "lastStep": 11,
      "atEnd": true,
@@ -846,17 +816,12 @@
     },
     "T4": {
      "status": "stopped",
-     "records": 2,
-     "linked": 2,
-     "sites": [
-      "parcelpine.localhost"
-     ],
-     "via": [
-      "click ID given out in the feed"
-     ],
-     "lastStep": 7,
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
@@ -914,8 +879,8 @@
     },
     "T9": {
      "status": "tracked",
-     "records": 18,
-     "linked": 11,
+     "records": 17,
+     "linked": 10,
      "sites": [
       "tidewater.localhost",
       "parcelpine.localhost"
@@ -933,11 +898,11 @@
     },
     "T10": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
       "read by the kit"
@@ -951,11 +916,11 @@
     },
     "T11": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
       "read by the kit"
@@ -969,11 +934,11 @@
     },
     "T12": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
       "read by the kit"
@@ -1004,11 +969,11 @@
     },
     "T14": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
       "the browser's answer"
@@ -1022,8 +987,8 @@
     },
     "T15": {
      "status": "tracked",
-     "records": 9,
-     "linked": 3,
+     "records": 8,
+     "linked": 2,
      "sites": [
       "tidewater.localhost",
       "parcelpine.localhost"
@@ -1156,11 +1121,11 @@
     },
     "T23": {
      "status": "tracked",
-     "records": 16,
-     "linked": 5,
+     "records": 15,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
       "kit"
@@ -1174,8 +1139,8 @@
     },
     "T24": {
      "status": "tracked",
-     "records": 28,
-     "linked": 10,
+     "records": 27,
+     "linked": 9,
      "sites": [
       "tidewater.localhost",
       "parcelpine.localhost"
@@ -1194,17 +1159,17 @@
     },
     "T25": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
-      "canvas 4812fc38, graphics de1a1cf2, audio afe35817, fonts bd8a2c56, traits 799,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 79fabbd6, graphics de1a1cf2, audio 65243e05, fonts bd8a2c56, traits 802,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas a087ea21, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 798,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 28773d62, graphics de1a1cf2, audio e6de0e2b, fonts bd8a2c56, traits 802,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 66fa1917, graphics de1a1cf2, audio 9e832f5a, fonts bd8a2c56, traits 801,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas ad2e8423, graphics de1a1cf2, audio 50ab17be, fonts bd8a2c56, traits 802,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas c592d997, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 800,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 44d418b9, graphics de1a1cf2, audio 2da43033, fonts bd8a2c56, traits 799,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 11,
      "atEnd": true,
@@ -1215,31 +1180,29 @@
     },
     "T26": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 1,
+     "linked": 1,
      "sites": [
       "parcelpine.localhost"
      ],
      "via": [
       "reported by the kit"
      ],
-     "lastStep": 7,
      "atEnd": true,
-     "duringTrip": "tracked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 7"
+     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), arrived tied to nobody"
     },
     "T27": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 1,
+     "linked": 1,
      "sites": [
       "parcelpine.localhost"
      ],
      "via": [
-      "sent by the shop's server",
-      "passed on by the site with the event"
+      "sent by the shop's server"
      ],
      "lastStep": 7,
      "atEnd": true,
@@ -1247,7 +1210,7 @@
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; asked about, not blocked (no press), last arrived tied to her in step 7; the report says \"Tracker Cleaner cannot stop this\""
+     "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
@@ -1364,11 +1327,11 @@
     },
     "T36": {
      "status": "tracked",
-     "records": 12,
-     "linked": 5,
+     "records": 11,
+     "linked": 4,
      "sites": [
-      "parcelpine.localhost",
-      "tidewater.localhost"
+      "tidewater.localhost",
+      "parcelpine.localhost"
      ],
      "via": [
       "asked from the page on 127.0.0.1"
@@ -1385,7 +1348,7 @@
     "tracked": 21,
     "unlinked": 2,
     "stopped": 10,
-    "arrived": 28,
+    "arrived": 27,
     "ever": 23,
     "atEnd": 21,
     "simulated": [],
@@ -1415,7 +1378,6 @@
     "cutOff": [],
     "removed": 6,
     "waiting": {
-     "unknown": 1,
      "bounce": 2
     },
     "blockRuleMatches": 0,
@@ -1443,7 +1405,7 @@
     },
     "T3": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
@@ -1516,7 +1478,7 @@
     },
     "T9": {
      "status": "tracked",
-     "records": 12,
+     "records": 11,
      "linked": 6,
      "sites": [
       "tidewater.localhost"
@@ -1532,7 +1494,7 @@
     },
     "T10": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
@@ -1547,7 +1509,7 @@
     },
     "T11": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
@@ -1562,7 +1524,7 @@
     },
     "T12": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
@@ -1593,7 +1555,7 @@
     },
     "T14": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
@@ -1608,7 +1570,7 @@
     },
     "T15": {
      "status": "unlinked",
-     "records": 5,
+     "records": 4,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -1738,7 +1700,7 @@
     },
     "T24": {
      "status": "tracked",
-     "records": 20,
+     "records": 19,
      "linked": 5,
      "sites": [
       "tidewater.localhost"
@@ -1755,13 +1717,13 @@
     },
     "T25": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
      ],
      "via": [
-      "canvas 9585e4e7, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 800,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas c6ab516b, graphics de1a1cf2, audio a9d059e9, fonts bd8a2c56, traits 799,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 11,
      "atEnd": true,
@@ -1887,7 +1849,7 @@
     },
     "T36": {
      "status": "tracked",
-     "records": 7,
+     "records": 6,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
