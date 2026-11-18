@@ -1,18 +1,14 @@
-// The other half of the page shield (S7): runs beside shield.js but in the extension's own closed-off world, after
-// learn.js (siteOf, mark). It gives shield.js the value that decides the small changes: made from a random value of
-// this run of Chrome (written by background.js) and the site in the address bar, so one site gets the same changes
-// all through a run of Chrome and another site gets others. The value crosses to the page's world sealed with the
-// token shield.js handed over before any page code ran; sealed 0 means "leave this page alone" (a site cleaning is
-// switched off for, a pause, a sign-in going on). It reads the page's address and nothing else of the page.
+// The other half of the page shield (S7, H3): runs beside shield.js but in the extension's own closed-off world. It
+// asks background.js for this site's key (128 random bits per site and run of Chrome; background.js takes the site
+// from the tab's address as Chrome reports it, not from this script) and hands it to shield.js sealed with the token
+// that shield.js gave it before any page code ran. "Leave this page alone" (a site cleaning is switched off for, a
+// pause, a sign-in) is sealed the same way, so a page cannot fake it. It reads nothing of the page.
 (() => {
   const doc = document; let token = null;
-  doc.addEventListener('tc-shield-token', (e) => { if (token !== null || typeof e.detail !== 'number') return; token = e.detail; e.preventDefault(); e.stopImmediatePropagation(); }, true);
+  doc.addEventListener('tc-shield-token', (e) => { if (token !== null || typeof e.detail !== 'string' || !/^[0-9a-f]{32}$/.test(e.detail)) return; token = e.detail; e.preventDefault(); e.stopImmediatePropagation(); }, true);
   doc.dispatchEvent(new CustomEvent('tc-shield-hello'));   // shield.js ran first: it answers now, before any page code
-  const up = location.ancestorOrigins, under = (h, s) => h === s || h.endsWith('.' + s);
-  let top = location.hostname; try { if (up && up.length) top = new URL(up[up.length - 1]).hostname; } catch {}
-  chrome.storage.local.get('shield').then(({ shield }) => { const s = shield || {};
-    if (token === null || typeof s.salt !== 'string' || !s.salt) return;   // nothing known: shield.js keeps its own random value
-    const off = s.off === true || (Array.isArray(s.sites) ? s.sites : []).some((x) => under(top, x) || under(location.hostname, x));
-    const seed = off ? 0 : parseInt(mark(`${s.salt} ${siteOf(top)}`), 36) >>> 0 || 1;
-    doc.dispatchEvent(new CustomEvent('tc-shield-seed', { detail: (seed ^ token) >>> 0 })); }, () => {});
+  const part = (s, i) => parseInt(s.slice(i, i + 8), 16), seal = (key) => [0, 8, 16, 24].map((i) => ((part(key, i) ^ part(token, i)) >>> 0).toString(16).padStart(8, '0')).join('');
+  chrome.runtime.sendMessage({ type: 'shieldKey' }).then((r) => { const key = r && r.off === true ? '0'.repeat(32) : r && r.key;
+    if (token === null || typeof key !== 'string' || !/^[0-9a-f]{32}$/.test(key)) return;   // nothing known: shield.js keeps its own random key
+    doc.dispatchEvent(new CustomEvent('tc-shield-seed', { detail: seal(key) })); }, () => {});
 })();

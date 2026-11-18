@@ -934,3 +934,13 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   that site alone (`sguard`), five minutes, at most once an hour per site; it never exempts a tab from the header
   rules and never switches the shield off. The tab that opened a sign-in is skipped by the header rules only when
   it is the same site.
+- H3 page shield: one empty-picture read gave the seed, the 32-bit state was the same on all sites, three sizes
+  restored the dots. Now: per site and run of Chrome a key of 128 random bits (`crypto.getRandomValues`), made and
+  kept by the worker in memory storage (`skeys`, at most 300 sites) and given to `shield-seed.js` at its asking (the
+  one message taken from a page script; the site is the tab's address as Chrome reports it); sealed with a 128-bit
+  token on the way to the page's world, all zero = leave alone. Which values change comes from a mix of the key,
+  the index and a digest of what was drawn. Also covered now: OffscreenCanvas.convertToBlob, WebGL readPixels;
+  replaced functions say "native code". `shield` and its shared salt in `storage.local` are gone. Stays uncovered:
+  pages' background workers (they have their own OffscreenCanvas and no page script reaches them), fonts, the
+  screen's size and colour depth, and a page that reads the same drawing several times, each shifted a little,
+  and takes the most frequent value per dot (the mix is not a cipher; it stops reading the key off one picture).

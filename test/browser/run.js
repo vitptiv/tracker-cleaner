@@ -354,6 +354,7 @@ async function main() {
       ok(a1.url !== b1.url && a1.data !== b1.data, `example.com and example.org read the same picture back: ${a1.url} ${b1.url} / ${a1.data} ${b1.data}`);
       ok(a1.url === a1.again && a1.url === a2.url && a1.data === a2.data, `example.com did not read the same twice: ${a1.url} ${a1.again} ${a2.url} / ${a1.data} ${a2.data}`);
       ok(a1.chip === 'none' || a1.chip === 'ANGLE (Generic GPU)', `the graphics chip is named "${a1.chip}"`);
+      ok(a1.native, 'a replaced function does not say "native code"');
       ok(a1.quota % (10 * 2 ** 30) === 0 && a1.usage % 2 ** 30 === 0, `saved amount not rounded: room ${a1.quota}, used ${a1.usage}`);
       await P.s.ev(`chrome.runtime.sendMessage({ type: 'siteOff', host: 'example.org', on: true })`); await sleep(500); await x.go(org, 'https://example.org/?off'); await sleep(500);
       const off1 = await measure(org); await x.go(org, 'https://example.org/?off2'); await sleep(500); const off2 = await measure(org);

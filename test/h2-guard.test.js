@@ -17,7 +17,7 @@ test('the audit scenario: a page that goes to its own /login every 4 minutes hol
   let heldOwn = 0;
   for (let i = 0; i < 15; i++) { await bg.navigate(1, `https://evil.example/login?n=${i}`); await bg.settle();
     assert.equal(bg.state.storage.guardUntil > bg.now, false, 'the pause for everything was switched on'); assert.equal((await bg.send({ type: 'state' })).hold.guard, false);
-    assert.equal('excludedTabIds' in header(bg).condition, false, 'the header rules skip its tab'); assert.equal(bg.state.storage.shield.off, false, 'the page shield went off');
+    assert.equal('excludedTabIds' in header(bg).condition, false, 'the header rules skip its tab'); assert.match((await bg.send({ type: 'shieldKey' }, { id: bg.chrome.runtime.id, url: 'https://shop.example/', tab: { id: 2, url: 'https://shop.example/' } })).key || '', /^[0-9a-f]{32}$/, 'the page shield went off');
     await bg.setCookie(ga('shop.example')); assert.equal((await bg.names()).includes('_ga'), false, `another site's tracker cookie was kept (minute ${i * 4})`);
     await bg.setCookie({ ...ga('evil.example'), name: '_gid' }); if ((await bg.names()).includes('_gid')) heldOwn++;
     await bg.chrome.cookies.remove({ url: 'https://www.evil.example/', name: '_gid' }); bg.now += 4 * MIN; await bg.alarm('sweep'); }
