@@ -23,7 +23,7 @@ test('at 300 blocked companies learning goes on: the oldest block is dropped for
 test('ten blocks in a row clear all saved copies once, not ten times: every clearing a page can cause shares one hour; the daily one and your own presses (Remove, Clean now) do not count (K1)', async () => {
   const hosts = Array.from({ length: 10 }, (_, i) => `trk${i}.example`);
   const bg = await load(on({ cookies: hosts.map((h) => cookie('.' + h)) }));
-  for (const h of hosts) { await req(bg, `https://${h}/p.gif`, 'news.example'); await req(bg, `https://${h}/p.gif`, 'shop.example'); }
+  for (const [i, h] of hosts.entries()) { await req(bg, `https://${h}/p.gif`, `a${i}.example`); await req(bg, `https://${h}/p.gif`, `b${i}.example`); }   // each on its own two sites (L5: two questions a site an hour)
   assert.equal(bg.state.storage.stopped.length, 10); assert.equal(clears(bg), 1);
   for (const h of hosts) { await bg.send({ type: 'approve', group: 'unknown', site: h, name: 'what it keeps to follow you' }); await bg.settle(); }
   assert.equal(clears(bg), 11, 'one for the blocks, one for each press on Remove');

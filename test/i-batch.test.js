@@ -5,14 +5,15 @@ const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12,
 const SET = 'tid=t-77ab12cd34ef; Path=/; SameSite=None; Secure', FP = { name: '_fp', domain: 'news.example', value: 'k9x2m4q8r1t7' };
 const req = async (bg, url, page) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script' }); await bg.settle(); };
 const answer = async (bg, url, page) => { await bg.answer({ url, initiator: `https://www.${page}`, type: 'script', responseHeaders: [{ name: 'Set-Cookie', value: SET }] }); await bg.settle(); };
-const soft = async (bg, site) => { await answer(bg, `https://${site}/kit.js`, 'news.example'); await req(bg, `https://${site}/e?fp=k9x2m4q8r1t7`, 'news.example'); };
+// (1.25, L5: a visited site can raise at most two questions an hour, so the third tracker is seen on another site)
+const soft = async (bg, site, page = 'news.example') => { await answer(bg, `https://${site}/kit.js`, page); await req(bg, `https://${site}/e?fp=k9x2m4q8r1t7`, page); };
 const clears = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length;
 const asks = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.map((i) => [i.kind, i.site]);
 
 test('I1: a stop that only blocks clears all saved copies once; further stops within the hour do not; never at a start of Chrome', async () => {
-  const bg = await load(on({ cookies: [FP] }));
+  const bg = await load(on({ cookies: [FP, { ...FP, domain: 'shop.example' }] }));
   await soft(bg, 'trk1.example'); assert.deepEqual(bg.state.storage.stopped, ['trk1.example']); assert.deepEqual(bg.state.storage.hard || [], []); assert.equal(clears(bg), 1);
-  await soft(bg, 'trk2.example'); await soft(bg, 'trk3.example'); assert.equal(bg.state.storage.stopped.length, 3); assert.equal(clears(bg), 1);
+  await soft(bg, 'trk2.example'); await soft(bg, 'trk3.example', 'shop.example'); assert.equal(bg.state.storage.stopped.length, 3); assert.equal(clears(bg), 1);
   await bg.chrome.runtime.onStartup.fire(); await bg.settle(); assert.equal(clears(bg), 1);
   bg.now += 61 * 60e3; await soft(bg, 'trk4.example'); assert.equal(clears(bg), 2);
   assert.match(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, /once a day, once more when a tracker is cleaned out, and at most once an hour when a new tracker is blocked/);

@@ -31,7 +31,7 @@ test("a stopped tracker's notifications are blocked once even while its own page
   assert.equal(bg.called('browsingData.remove').some((c) => (c.args[0].origins || []).some((o) => o.includes('trk.example')) && c.args[1].serviceWorkers), false);
   await bg.alarm('sweep'); assert.equal(blocked(bg), 1, 'blocked again at the next sweep');
   await bg.send({ type: 'unstop', site: 'trk.example' });
-  assert.equal(bg.called('contentSettings.clear').length, 1, '"Let it through again" does not give the notifications back');
+  assert.ok(bg.called('contentSettings.set').some((c) => c.args[0].primaryPattern === '*://*.trk.example/*' && c.args[0].setting === 'ask'), '"Let it through again" does not give the notifications back');
 });
 test('notifications are not blocked on "Ask first" before the answer, nor while cleaning is switched off', async () => {
   for (const storage of [{ stopped: ['trk.example'], hard: ['trk.example'], modes: { C28: 'ask' } }, { stopped: ['trk.example'], hard: ['trk.example'], master: false }]) {

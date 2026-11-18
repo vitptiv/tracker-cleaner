@@ -20,7 +20,7 @@ test('one site: nothing. The second (1.25, S6): one question waits, nothing is b
 test('no ID, no question: a file server seen everywhere is left alone; an ID in the address alone is no evidence (1.25, F1), a cookie of that company is', async () => {
   const bg = await load(on({ cookies: [{ name: 'lang', domain: '.cdn.example', value: 'en-US', sameSite: 'no_restriction' }, { name: 'sid', domain: '.own.example', value: 'a1b2c3d4e5f6', sameSite: 'lax' }] }));
   await three(bg, 'static.cdn.example'); await three(bg, 'own.example');
-  assert.deepEqual(queued(bg), []);
+  assert.deepEqual(queued(bg), []); bg.now += 61 * 60e3;   // (1.25, L5: a visited site can raise two questions an hour)
   await three(bg, 'quiet.example', '/c.gif?uid=3fa9c2d1e07b4a55aa01');
   assert.deepEqual(queued(bg), []);
   await bg.setCookie({ url: 'https://quiet.example/', domain: '.quiet.example', name: 'q', value: 'q-3fa9c2d1e0', sameSite: 'no_restriction', secure: true }); await bg.alarm('sweep');

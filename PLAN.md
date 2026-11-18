@@ -1154,3 +1154,10 @@ other companies; the local network).
   cookies (`KEEP_RE`) are never deleted, hold or no hold. Also: `applyFeatures` and each rule change now run one
   at a time and read what is installed inside their turn (two at once could leave the older result). Checked in a
   real Chrome (run.js check 8). The tests of the old hold on everything were retired (15 tests).
+- L5 caps without side effects: letting a host through again, and the oldest block making room at 300, put that one
+  host's notification setting back to "ask" and touch no other host's block or note (no more clearing of all
+  blocks); the blocked hosts and the hosts chosen for skipping hold only what the user pressed, so candidates
+  never push them out; a candidate is asked about only when marked `q`, a visited site marks at most 2 an hour (in
+  memory), and at most 20 questions wait at a time, most evidence first; pages under shared names (`SHARED`) go on a
+  list of their own of 50 places (`mineShared`) and cannot push a real site off `mine`; the holds of the shipped
+  sign-in families are outside the 200-site room that other sites' /login pages can fill (L4).

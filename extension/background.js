@@ -17,7 +17,7 @@ const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCor
 // mine, salt, later, firstRun. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
-  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'hard', 'later', 'params', 'mine', 'salt', 'histOn', 'sguard']), now = Date.now();
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'hard', 'later', 'params', 'mine', 'mineShared', 'salt', 'histOn', 'sguard']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
   // L4: nothing holds all cleaning any more. A sign-in holds deleting only for the sites named in `sguard` (see `guarded`).
   // signing: a tab is on a shipped sign-in host right now; used only to leave the network path and the extension itself
@@ -540,12 +540,12 @@ async function notNow(m) {
 // the name; the MINE_MAX opened last, emptied by "Clear history". The user may be signed in there, so nothing
 // automatic deletes such a site's cookies or empties what it saved: it is only blocked elsewhere. A page counts when
 // its tab is still on that site MINE_WAIT_MS later: one that passes the browser straight on cannot put itself here.
-const MINE_MAX = 2000, MINE_WAIT_MS = 3000;
+const MINE_MAX = 2000, MINE_SHARED = 50, MINE_WAIT_MS = 3000;
 // the random value of this install that every stored hash of a site name is made with
 async function saltNow() { let { salt } = await chrome.storage.local.get('salt');
   if (!salt) await chrome.storage.local.set({ salt: salt = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('') });
   return salt; }
-function visited(cx, site) { return !!cx.set.salt && (cx.set.mine || []).includes(mark(`${cx.set.salt} ${site}`)); }
+function visited(cx, site) { const m = mark(`${cx.set.salt} ${site}`); return !!cx.set.salt && ((cx.set.mine || []).includes(m) || (cx.set.mineShared || []).includes(m)); }
 async function notePage(d) {
   if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300) || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
@@ -554,10 +554,11 @@ async function notePage(d) {
   if (/^https?:$/.test(u.protocol)) setTimeout(async () => {
     const tab = await chrome.tabs.get(d.tabId).catch(() => null);
     if (!tab || siteOf(hostOf(tab.url)) !== site) return;
-    await serial(async () => { let { mine = [], salt } = await chrome.storage.local.get(['mine', 'salt']);
-      if (!salt) salt = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('');
-      const m = mark(`${salt} ${site}`);
-      if (mine.at(-1) !== m) await chrome.storage.local.set({ salt, mine: [...mine.filter((x) => x !== m), m].slice(-MINE_MAX) }); }); }, MINE_WAIT_MS);
+    // a page under a shared name (pages.dev and the like, where anyone can have a host) goes on a list of its own of
+    // MINE_SHARED places, so that such pages together can never push a real site off the list (L5)
+    const key = SHARED.some((x) => site.endsWith('.' + x)) ? 'mineShared' : 'mine', max = key === 'mine' ? MINE_MAX : MINE_SHARED;
+    await serial(async () => { const salt = await saltNow(), list = (await chrome.storage.local.get(key))[key] || [], m = mark(`${salt} ${site}`);
+      if (list.at(-1) !== m) await chrome.storage.local.set({ [key]: [...list.filter((x) => x !== m), m].slice(-max) }); }); }, MINE_WAIT_MS);
 }
 try { chrome.webRequest.onCompleted.addListener((d) => { notePage(d); }, { urls: ['<all_urls>'], types: ['main_frame'] }); } catch {}
 const signInCompany = (site) => site === 'github.com' || isGoogleHost(site) || NEEDED.includes(site) || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
@@ -574,6 +575,12 @@ const tabKey = (page) => SHARED.find((s) => page.endsWith('.' + s)) || page;
 // At most NEW_HOUR companies are noted for the first time per visited site in an hour (in memory): a page that asks hundreds
 // of made-up hosts cannot fill the list. followStore gives the list, or null when this one may not be added now.
 const NEW_HOUR = 20, fresh = new Map();
+// Questions (L5): a candidate may be asked about only when it is marked `q`, and a visited site can mark at most ASK_HOUR
+// of them in an hour (in memory), so one page cannot fill the list of questions; at most QUESTIONS_MAX wait at a time.
+const ASK_HOUR = 2, QUESTIONS_MAX = 20, asked = new Map();
+const mayAsk = (page) => { const now = Date.now(), e = asked.get(page); if (asked.size > 500) asked.clear();
+  if (!e || e.t < now - 3600e3) { asked.set(page, { t: now, n: 1 }); return true; }
+  return ++e.n <= ASK_HOUR; };
 async function followStore(site, page) { const { follow = {} } = await chrome.storage.local.get('follow');
   if (follow[site]) return follow;
   const now = Date.now(), e = fresh.get(page); if (fresh.size > 500) fresh.clear();
@@ -598,7 +605,8 @@ async function noteRequest(d) {
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   let full = false; const salt = await saltNow();
   await serial(async () => { const st = await followStore(site, page), next = st && followNote(st, site, u.host, `${salt} ${tabKey(page)}`, false, Date.now(), sent);
-    if (next) { await chrome.storage.local.set({ follow: next }); full = followFull(next[site]); } });
+    if (next) { full = followFull(next[site]); if (full && next[site].q !== true && mayAsk(page)) next[site] = { ...next[site], q: true };
+      await chrome.storage.local.set({ follow: next }); } });
   if (full) sweep('learned');
 }
 // What S6 compares, all in memory: hashes of the ID-like parts of the visited site's own script-readable cookies (asked
@@ -626,7 +634,8 @@ async function noteAnswer(d) {
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   let full = false; const salt = await saltNow();
   await serial(async () => { const st = await followStore(site, page), next = st && followNote(st, site, u.host, `${salt} ${tabKey(page)}`, true, Date.now());
-    if (next) { await chrome.storage.local.set({ follow: next }); full = followFull(next[site]); } });
+    if (next) { full = followFull(next[site]); if (full && next[site].q !== true && mayAsk(page)) next[site] = { ...next[site], q: true };
+      await chrome.storage.local.set({ follow: next }); } });
   if (full) sweep('learned');
 }
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
@@ -642,14 +651,16 @@ async function followSweep(cx, all, wait) {
   // a cookie Chrome would send to that host; not one set for a whole shared name (a tenant can set that for every other tenant)
   const hasId = (site) => all.some((c) => under(site, bare(c.domain)) && !SHARED.includes(bare(c.domain)) &&
     (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
-  const { follow = {}, hard = [] } = await chrome.storage.local.get(['follow', 'hard']);
+  const { follow = {}, hard = [] } = await chrome.storage.local.get(['follow', 'hard']), asks = [];
   for (const [site, e] of Object.entries(follow)) {
     // evidence: on FOLLOW_N sites, a cookie of its own that other sites can use (in Chrome's list, or tried in its answer);
     // on one site (`sent`), only its own answer counts. Whatever the evidence, it only ever makes a question (L1): a page
     // can stage all of it, so nothing is blocked before the user pressed Block.
     const many = e.on.length >= FOLLOW_N;
-    if (stopped.includes(site) || !followFull(e) || later(cx, 'C25', site) || !(e.ck || (many && hasId(site)))) continue;
-    wait.push({ cap: 'C25', kind: 'tracker', site, name: many ? `followed you on ${FOLLOW_N} sites` : 'was handed the ID a site keeps for you', why: String(e.on.length), did: v === 'held' ? 'held' : 'queued' }); }
+    if (stopped.includes(site) || !followFull(e) || e.q !== true || later(cx, 'C25', site) || !(e.ck || (many && hasId(site)))) continue;
+    asks.push({ w: (e.sent ? 4 : 0) + (e.ck ? 2 : 0) + e.on.length, cap: 'C25', kind: 'tracker', site, name: many ? `followed you on ${FOLLOW_N} sites` : 'was handed the ID a site keeps for you', why: String(e.on.length), did: v === 'held' ? 'held' : 'queued' }); }
+  // at most QUESTIONS_MAX such questions wait at a time: the ones with the most evidence (L5)
+  for (const { w, ...it } of asks.sort((a, b) => b.w - a.w).slice(0, QUESTIONS_MAX)) wait.push(it);
   // a blocked host: the second question, once (USED: remove what it saved)
   for (const site of stopped) if (!hard.includes(site) && !later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: String(((follow[site] || {}).on || []).length), did: 'queued' });
 }
@@ -658,9 +669,8 @@ async function stopTracker(site) {
   const { stopped = [] } = await chrome.storage.local.get('stopped');
   // at the cap the block made longest ago is dropped for the new one (J6): learning never ends, and the list stays bounded
   if (!stopped.includes(site)) { const next = [...stopped, site].slice(-STOPPED_MAX), gone = stopped.filter((s) => !next.includes(s)), { hard = [], own = {} } = await chrome.storage.local.get(['hard', 'own']);
-    if (gone.some((s) => own[s])) try { await chrome.contentSettings.notifications.clear({}); } catch {}   // its notification block goes with it; the others are set again at the next sweep
-    await chrome.storage.local.set({ stopped: next, hard: hard.filter((s) => next.includes(s)),
-      ...(gone.some((s) => own[s]) ? { own: Object.fromEntries(Object.entries(own).filter(([s]) => !gone.includes(s)).map(([s, e]) => [s, { ...e, at: 0, mute: false }])) } : {}) }); }
+    for (const s of gone) if ((own[s] || {}).mute) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${s}/*`, setting: 'ask' }); } catch {}   // its own block goes with it; nobody else's is touched (L5)
+    await chrome.storage.local.set({ stopped: next, hard: hard.filter((s) => next.includes(s)), ...(gone.some((s) => own[s]) ? { own: Object.fromEntries(Object.entries(own).filter(([s]) => !gone.includes(s))) } : {}) }); }
   await applyFeatures();
   return true;
 }
@@ -694,9 +704,9 @@ async function keepRemoving(site, on) {
 // "Let it through again": the block goes, and it is not offered again for a while
 async function unstop(site) {
   const { stopped: was = [], own = {}, hard = [] } = await chrome.storage.local.get(['stopped', 'own', 'hard']), stopped = was.filter((s) => s !== site);
-  // its notifications were blocked by C28: Chrome can only take back all blocks this extension set, so the others are set again at the sweep that follows
-  if (own[site]) try { await chrome.contentSettings.notifications.clear({}); } catch {}
-  await chrome.storage.local.set({ stopped, hard: hard.filter((s) => s !== site), own: Object.fromEntries(Object.entries(own).filter(([s]) => s !== site).map(([s, e]) => [s, { ...e, at: 0, mute: false }])) });
+  // its notifications were blocked for "Keep removing": that one host's setting is put back to "ask"; no other host's block or note is touched (L5)
+  if ((own[site] || {}).mute) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${site}/*`, setting: 'ask' }); } catch {}
+  await chrome.storage.local.set({ stopped, hard: hard.filter((s) => s !== site), own: Object.fromEntries(Object.entries(own).filter(([s]) => s !== site)) });
   return { ...(await notNow({ group: 'unknown', site })), stopped };
 }
 
