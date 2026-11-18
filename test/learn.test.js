@@ -14,12 +14,12 @@ test('an ID in an address: a long random value, but not a version or a time', ()
   assert.equal(idInUrl('https://t.example/p.gif?uid=3fa9c2d1e07b4a55aa01'), true);
   for (const u of ['https://cdn.example/app.js?v=3fa9c2d1e07b4a55aa01', 'https://cdn.example/a.css?ts=1731888000000', 'https://cdn.example/font.woff2', 'nonsense']) assert.equal(idInUrl(u), false, u);
 });
-test('the count: one mark per site, never the site name, full at three; nothing new gives null', () => {
+test('the count: one mark per site, never the site name, full at two (1.25, S6); nothing new gives null', () => {
   let s = followNote(undefined, 't.example', 'px.t.example', 'news.example', false, 1);
   assert.equal(followNote(s, 't.example', 'px.t.example', 'news.example', false, 2), null);
-  s = followNote(s, 't.example', 'px.t.example', 'shop.example', false, 3); assert.equal(followFull(s['t.example']), false);
-  s = followNote(s, 't.example', 'cdn.t.example:8443', 'blog.example', true, 4);
-  assert.equal(followFull(s['t.example']), true); assert.equal(s['t.example'].id, true); assert.deepEqual(s['t.example'].hosts, ['px.t.example', 'cdn.t.example:8443']);
+  assert.equal(followFull(s['t.example']), false);
+  s = followNote(s, 't.example', 'cdn.t.example:8443', 'shop.example', true, 4);
+  assert.equal(followFull(s['t.example']), true); assert.equal(s['t.example'].ck, true); assert.deepEqual(s['t.example'].hosts, ['px.t.example', 'cdn.t.example:8443']);
   assert.equal(followNote(s, 't.example', 'px.t.example', 'fourth.example', false, 5), null);
   assert.equal(s['t.example'].on.length, FOLLOW_N);
   assert.equal(/news|shop|blog/.test(JSON.stringify(s)), false);

@@ -7,12 +7,12 @@ const on = (o = {}) => ({ cookies: [ID], ...o, storage: { master: true, cacheCle
 const queued = (bg, group = 'unknown') => ((bg.state.storage.pending || {})[group] || { items: [] }).items;
 const rule = (bg) => bg.state.dynamic.find((r) => r.id === 100001);
 
-test('two sites: nothing. The third: one question waits, nothing is blocked or deleted, and no site name is stored', async () => {
+test('one site: nothing. The second (1.25, S6): one question waits, nothing is blocked or deleted, and no site name is stored', async () => {
   const bg = await load(on());
-  await req(bg, 'px.trk.example', 'news.example'); await req(bg, 'px.trk.example', 'shop.example'); await req(bg, 'px.trk.example', 'news.example');
+  await req(bg, 'px.trk.example', 'news.example'); await req(bg, 'px.trk.example', 'news.example');
   assert.deepEqual(queued(bg), []);
   await req(bg, 'px.trk.example', 'blog.example');
-  assert.deepEqual(queued(bg).map((i) => [i.cap, i.kind, i.site, i.name]), [['C25', 'tracker', 'trk.example', 'followed you on 3 sites']]);
+  assert.deepEqual(queued(bg).map((i) => [i.cap, i.kind, i.site, i.name]), [['C25', 'tracker', 'trk.example', 'followed you on 2 sites']]);
   assert.deepEqual(bg.destructive(), []); assert.equal(rule(bg), undefined);
   assert.equal(/news\.example|shop\.example|blog\.example|u-3fa9/.test(JSON.stringify(bg.state.storage)), false);
   assert.deepEqual(bg.called('storage.sync.set'), []); assert.deepEqual(bg.reports, []);

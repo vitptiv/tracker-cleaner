@@ -99,7 +99,7 @@ module.exports = function makeChrome(init = {}) {
       // fake.refuse(rule) true = Chrome refuses that rule, and with it the whole change (as it does)
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
-    webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event() },
+    webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event(), onHeadersReceived: event() },
     // any permission name works: chrome.contentSettings.camera.set(...)
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), clear: rec('contentSettings.clear', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },
@@ -145,6 +145,8 @@ module.exports = function makeChrome(init = {}) {
     tabOf: (url) => { const o = new URL(url).origin; let t = state.tabs.find((x) => x.url && new URL(x.url).origin === o);
       if (!t) state.tabs.push(t = { id: 9000 + state.tabs.length, windowId: 1, url: o + '/', active: false }); return t.id; },
     visit: (url, tabId = fake.tabOf(url)) => chrome.webRequest.onCompleted.fire({ url, type: 'main_frame', statusCode: 200, tabId, frameId: 0 }),   // the user opens a page
+    // the answer to what a page asked for, with its headers
+    answer: (d) => chrome.webRequest.onHeadersReceived.fire(d.tabId === undefined && d.initiator ? { tabId: fake.tabOf(d.initiator), frameId: 0, ...d } : d),
     // a page asks for something; without a tabId it is the top page at `initiator` that asks
     request: (d) => chrome.webRequest.onBeforeRequest.fire(d.tabId === undefined && d.initiator ? { tabId: fake.tabOf(d.initiator), frameId: 0, ...d } : d),
     closeTab: async (id) => { state.tabs = state.tabs.filter((t) => t.id !== id); await chrome.tabs.onRemoved.fire(id, {}); },

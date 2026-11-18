@@ -451,8 +451,9 @@ async function sweepOnce(cause) {
 }
 
 // ---- Trackers on no list (C25, learn.js). Every request a page makes to another company is counted, privately: on
-// how many sites was that company seen. Seen on FOLLOW_N sites and able to recognise the user (a cookie other sites
-// can use, or an ID in the request), it is offered: "X followed you on 3 sites. Stop it?". Stopped = blocked when
+// how many sites was that company seen. Seen on FOLLOW_N sites and able to recognise the user (a cookie of its own that
+// other sites can use), or handed a visited site's own ID and answering with such a cookie (S6), it is stopped, or on
+// "Ask first" offered: "X followed you on 2 sites. Stop it?". Stopped = blocked when
 // another site asks for it (one dynamic rule, above LEARNED; the rules below it are siteOff's), its cookies deleted,
 // and from then on judged like a listed tracker (core.js EXTRA). Never learned: a company people sign in with.
 const LEARNED = 100000, TYPES = ['script', 'xmlhttprequest', 'image', 'ping', 'sub_frame', 'media', 'other', 'websocket', 'font', 'stylesheet'];
@@ -506,25 +507,63 @@ async function noteRequest(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
   if (!/^https?:$/.test(u.protocol)) return;
-  const site = siteOf(u.hostname), page = await topSite(d.tabId), key = `${u.host} ${page}`, id = false;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
-  if (!page || site === page || seen.has(key) || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
+  const site = siteOf(u.hostname), page = await topSite(d.tabId), key = `${u.host} ${page}`;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
+  if (!page || site === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
+  // S6: does this request hand the company the ID that the visited site keeps for the user (address or what is sent)?
+  let sent = false;
+  if (!handed.has(`${site} ${page}`)) try { const ids = await ownIds(page);
+    sent = ids.size > 0 && carries(ids, safeDecode(d.url) + ' ' + bodyText(d.requestBody), SYNC_SALT);
+    if (sent) { if (handed.size > 2000) handed.clear(); handed.add(`${site} ${page}`); } } catch {}
+  if (seen.has(key) && !sent) return;
   if (seen.size > 5000) seen.clear();
   seen.add(key); await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   let full = false;
-  await serial(async () => { const next = followNote((await chrome.storage.local.get('follow')).follow, site, u.host, page, id, Date.now());
+  await serial(async () => { const next = followNote((await chrome.storage.local.get('follow')).follow, site, u.host, page, false, Date.now(), sent);
     if (next) { await chrome.storage.local.set({ follow: next }); full = followFull(next[site]); } });
   if (full) sweep('learned');
 }
-try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); }, { urls: ['<all_urls>'] }); } catch {}
+// What S6 compares, all in memory: hashes of the ID-like parts of the visited site's own script-readable cookies (asked
+// of Chrome at most every 5 seconds per site, and again when one of its cookies changes), and the request's address and
+// body cut to 16000 characters. Neither is stored, logged or sent anywhere.
+const SYNC_SALT = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join(''), pageIds = new Map(), handed = new Set();
+async function ownIds(page) { let e = pageIds.get(page);
+  if (!e || e.t < Date.now() - 5000) { if (pageIds.size > 50) pageIds.clear(); e = { t: Date.now(), set: idHashes(await chrome.cookies.getAll({ domain: page }), SYNC_SALT) }; pageIds.set(page, e); }
+  return e.set; }
+chrome.cookies.onChanged.addListener(({ cookie }) => { pageIds.delete(siteOf(bare(cookie.domain))); });
+const safeDecode = (s) => { s = String(s).slice(0, 16000); try { return decodeURIComponent(s); } catch { return s; } };
+const bodyText = (b) => { if (!b) return ''; let out = Object.values(b.formData || {}).flat().join(' ').slice(0, 16000);
+  for (const part of b.raw || []) { if (out.length >= 16000 || !part.bytes) break; out += ' ' + new TextDecoder().decode(new Uint8Array(part.bytes).subarray(0, 16000 - out.length)); }
+  return out; };
+// The company's answer: does it try to set a cookie with an ID that other sites can use? Kept as a yes or no (`ck`). With
+// S4 such a cookie is no longer saved, so Chrome's cookie list alone would never show it.
+async function noteAnswer(d) {
+  if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
+  const ok = (d.responseHeaders || []).some((h) => String(h.name).toLowerCase() === 'set-cookie' && /;\s*samesite=none/i.test(h.value) && idLike(String(h.value).split(';')[0].split('=').slice(1).join('=')));
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!ok || !/^https?:$/.test(u.protocol)) return;
+  const site = siteOf(u.hostname), page = await topSite(d.tabId);
+  if (!page || site === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
+  await ready;
+  if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
+  let full = false;
+  await serial(async () => { const next = followNote((await chrome.storage.local.get('follow')).follow, site, u.host, page, true, Date.now());
+    if (next) { await chrome.storage.local.set({ follow: next }); full = followFull(next[site]); } });
+  if (full) sweep('learned');
+}
+try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
+try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
 async function followSweep(cx, all, wait) {
   const v = verdict('C25', cx), stopped = cx.set.stopped || [];
   if (v === 'no') return;
   const hasId = (site) => all.some((c) => under(bare(c.domain), site) && (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
   const { follow = {}, stops = [] } = await chrome.storage.local.get(['follow', 'stops']), now = Date.now(), recent = stops.filter((t) => t > now - 3600e3), n = recent.length;
   for (const [site, e] of Object.entries(follow)) {
-    if (!followFull(e) || stopped.includes(site) || later(cx, 'C25', site) || !hasId(site)) continue;
-    const it = { cap: 'C25', kind: 'tracker', site, name: `followed you on ${FOLLOW_N} sites`, why: 'on no list', did: waitsAs(v) };
+    // evidence: on FOLLOW_N sites, a cookie of its own that other sites can use (in Chrome's list, or tried in its answer);
+    // on one site (`sent`), only its own answer counts: a page must not get a company stopped that never asked for anything
+    const many = e.on.length >= FOLLOW_N;
+    if (!followFull(e) || stopped.includes(site) || later(cx, 'C25', site) || !(e.ck || (many && hasId(site)))) continue;
+    const it = { cap: 'C25', kind: 'tracker', site, name: many ? `followed you on ${FOLLOW_N} sites` : 'was handed the ID a site keeps for you', why: 'on no list', did: waitsAs(v) };
     if (waits(v)) wait.push(it);
     else if (recent.length >= STOPS_HOUR) wait.push({ ...it, did: 'queued' });   // too many in an hour to be an accident: the user is asked
     else if (await stopTracker(site, visited(cx, site))) { recent.push(now); await logged([it], 'removed'); } }

@@ -1,14 +1,15 @@
 // Learning (C25): which outside company turns up on several of the sites the user visits, each time able to recognise
 // them. Pure: background.js keeps chrome.storage.local { follow: { '<company>': { on, id, hosts, t } } } and passes it in.
 //   on    one mark per site it was seen on: a short hash, not the site's name, and never more than FOLLOW_N
-//   id    it had a number to recognise the user by (a cookie other sites can use, or a long random value in a request)
+//   ck    it tried to set a cookie with an ID that other sites can use (seen in its answer; a yes or no, never the cookie)
+//   sent  the ID a visited site keeps for the user was seen being handed to it (S6; a yes or no, never the ID)
 //   hosts its server names (at most 5), so that what it saved itself can be emptied later
 // Bounded to FOLLOW_MAX companies, the longest unseen go. It stays on this computer: no report carries it.
 // Never learned and never cleaned as a passing site: companies that pages need to check that you are human or to take a
 // payment. They are seen on many sites with an ID, and stopping them would break sign-in forms and checkouts.
 const NEEDED = ['hcaptcha.com', 'recaptcha.net', 'gstatic.com', 'googleapis.com', 'cloudflare.com', 'stripe.com', 'stripe.network', 'paypal.com', 'paypalobjects.com',
   'klarna.com', 'adyen.com', 'braintreegateway.com', 'auth0.com', 'okta.com', 'duosecurity.com'];
-const FOLLOW_N = 3, FOLLOW_MAX = 300, LATER_MS = 7 * 86400e3;
+const FOLLOW_N = 2, FOLLOW_MAX = 300, LATER_MS = 7 * 86400e3;
 // never more than STOPPED_MAX stopped companies, and at most STOPS_HOUR stopped without a question in an hour: the next ones are asked about
 const STOPPED_MAX = 300, STOPS_HOUR = 10;
 // Names under which anyone can rent a host of their own: there every host is a site of its own, so that one tenant can
@@ -26,11 +27,11 @@ const idLike = (v) => String(v ?? '').split(/[^A-Za-z0-9_-]+/).some((t) => t.len
 const idInUrl = (url) => { try { return [...new URL(url).searchParams].some(([k, v]) => v.length >= 16 && idLike(v) && !/^(v|ver|version|rev|hash|cb|t|ts|_)$/i.test(k)); } catch { return false; } };
 const mark = (s) => { let h = 0x811c9dc5; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193) >>> 0; return h.toString(36); };
 // A page of `page` asked `host`, which belongs to the company `site`. Returns the new store, or null when it says nothing new.
-const followNote = (store, site, host, page, id, now) => {
-  const old = (store || {})[site] || { on: [], id: false, hosts: [] }, m = mark(page);
-  const e = { on: old.on.includes(m) || old.on.length >= FOLLOW_N ? old.on : [...old.on, m], id: old.id || !!id,
+const followNote = (store, site, host, page, ck, now, sent) => {
+  const old = (store || {})[site] || { on: [], hosts: [] }, m = mark(page);
+  const e = { on: old.on.includes(m) || old.on.length >= FOLLOW_N ? old.on : [...old.on, m], ck: !!old.ck || !!ck, sent: !!old.sent || !!sent,
     hosts: !host || old.hosts.includes(host) || old.hosts.length >= 5 ? old.hosts : [...old.hosts, host], t: now };
-  if (e.on === old.on && e.id === old.id && e.hosts === old.hosts) return null;
+  if (e.on === old.on && e.ck === !!old.ck && e.sent === !!old.sent && e.hosts === old.hosts) return null;
   return Object.fromEntries(Object.entries({ ...store, [site]: e }).sort((a, b) => b[1].t - a[1].t).slice(0, FOLLOW_MAX));
 };
 // A page address answered "go to `to`" (C27). When the address it was asked with names where the user wanted to go
@@ -43,5 +44,14 @@ const bounceAdded = (from, to) => { try { const b = new URL(to);
   for (const [, v] of new URL(from).searchParams) { let want; try { want = new URL(v); } catch { continue; }
     if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.has(k.toLowerCase())).map(([k]) => k); }
   } catch {} return []; };
-const followFull = (e) => !!e && e.on.length >= FOLLOW_N;
-if (typeof module !== 'undefined') module.exports = { NEEDED, SHARED, FOLLOW_N, FOLLOW_MAX, LATER_MS, STOPPED_MAX, STOPS_HOUR, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };
+const followFull = (e) => !!e && (e.on.length >= FOLLOW_N || e.sent === true);
+// S6: is the ID a site keeps for the user being handed to another company? Compared part by part: a part counts when it
+// has 8 or more letters and digits mixed, or 16 or more digits (a time or a version is not an ID). Only cookies the
+// page's own script can read (not HttpOnly: those are sign-ins). Nothing is kept but hashes, made with a random value
+// of this run of the worker, in memory; text longer than 16000 characters is cut, at most 400 parts are looked at.
+const syncToken = (t) => t.length >= 8 && t.length <= 200 && (/^[0-9]{16,}$/.test(t) || (/[0-9]/.test(t) && /[a-z]/i.test(t)));
+const syncTokens = (text) => String(text ?? '').slice(0, 16000).split(/[^A-Za-z0-9_-]+/).filter(syncToken).slice(0, 400);
+const hash2 = (salt, t) => mark(salt + t) + '.' + mark(t + salt);
+const idHashes = (cookies, salt) => new Set((cookies || []).filter((c) => !c.httpOnly).flatMap((c) => syncTokens(c.value)).map((t) => hash2(salt, t)));
+const carries = (hashes, text, salt) => hashes.size > 0 && syncTokens(text).some((t) => hashes.has(hash2(salt, t)));
+if (typeof module !== 'undefined') module.exports = { syncTokens, idHashes, carries, NEEDED, SHARED, FOLLOW_N, FOLLOW_MAX, LATER_MS, STOPPED_MAX, STOPS_HOUR, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };

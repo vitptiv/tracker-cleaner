@@ -64,7 +64,7 @@ const GROUPS = [
   ['othertags', 'Other companies get no page address or tag', 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.'],
   ['local', 'Pages may not call this computer', 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.'],
   ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
-  ['unknown', 'Trackers that are on no list', 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.'],
+  ['unknown', 'Trackers that are on no list', 'A company that turns up on two different sites you visit, each time able to recognise you, or that is handed the number a site keeps for you, is stopped from following you and its cookies are deleted.'],
   ['bounce', 'Sites that only pass you along', 'A site that sends you straight on to another site without showing you anything has what it saved deleted, and the tag it added to the address is cut off.'],
   ['own', 'What trackers saved on their own sites', 'What a tracker you stopped has left on its own site (a background program, saved data, the right to send notifications) is taken away once a day; on Automatic also for the trackers on the built-in list.'],
   ['storage', 'Data that sites keep (site storage)', 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.'],

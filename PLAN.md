@@ -886,3 +886,12 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   ("kept on purpose: your own history, readable by no website"). Extension: one button in the popup, "Clear my
   browsing history", pressed twice, clears all of it (`browsingData.remove` with `history`, no new permission);
   nothing calls it by itself. Setting C presses it with its other manual actions. S11 is unchanged.
+- S6 faster learning (`learn.js`, `background.js`): (a) two visited sites instead of three; (b) at once, on one site,
+  when the ID a visited site keeps for the user (a part of one of its script-readable cookies: 8 or more letters and
+  digits mixed, or 16 or more digits) is seen in the address or body of a request to another company
+  (`onBeforeRequest` with `requestBody`; compared as hashes made with a random value of that run of the worker,
+  in memory, never stored, logged or sent) AND that company's own answer tries to set an ID cookie other sites can
+  use (`onHeadersReceived`, kept as a yes or no). The second condition is there because with S4 such a cookie is no
+  longer saved, and because a page must not get a company stopped that never asked for anything: for one site a
+  cookie in Chrome's list is not enough. All F1 limits stay (tab site, shared hosts, never-learn lists, 10 an hour,
+  300). No new permission.

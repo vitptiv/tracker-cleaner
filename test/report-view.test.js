@@ -18,7 +18,7 @@ const SAYS = {
   cookies: 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.',
   google: 'Small files that Google and YouTube save to recognise you when you are not signed in are deleted, while the ones that keep you signed in stay.',
   params: 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.',
-  unknown: 'A company that turns up on three different sites you visit, each time able to recognise you, is stopped from following you and its cookies are deleted.',
+  unknown: 'A company that turns up on two different sites you visit, each time able to recognise you, or that is handed the number a site keeps for you, is stopped from following you and its cookies are deleted.',
   bounce: 'A site that sends you straight on to another site without showing you anything has what it saved deleted, and the tag it added to the address is cut off.',
   own: 'What a tracker you stopped has left on its own site (a background program, saved data, the right to send notifications) is taken away once a day; on Automatic also for the trackers on the built-in list.',
   storage: 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.',
