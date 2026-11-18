@@ -49,7 +49,7 @@ test('S16: her own history and site icons are a class of their own, named apart,
 });
 test('H11: what the numbers do not show is written beside them', () => {
   const { CAVEATS } = require('./lab/count');
-  for (const w of [/sign-in guard.*(second|1 s)/i, /not use the fingerprint to tie/i, /T18.*T19.*own history/i, /T22.*simulated/i]) assert.ok(CAVEATS.some((c) => w.test(c)), String(w));
+  for (const w of [/no hold on everything/i, /not use the fingerprint to tie/i, /T18.*T19.*own history/i, /T22.*simulated/i, /differ from run to run/i, /message sent to the extension.*not a click/i]) assert.ok(CAVEATS.some((c) => w.test(c)), String(w));
 });
 test('J8: the fresh install without a press (A) and with every question answered yes (Q) lead the headline, C follows', () => {
   const { headline } = require('./lab/count'), c = (a, e, r) => ({ counts: { atEnd: a, ever: e, arrived: r } });

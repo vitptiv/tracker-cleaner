@@ -1186,3 +1186,17 @@ other companies; the local network).
   ending in .intranet, a private IPv4 address wrapped in IPv6 the 6to4 (2002:...) and NAT64 (64:ff9b::...) ways, and
   the request kind `webtransport` (Chrome accepted it) in these and in the header rules. Fourteen patterns and the
   one for names under localhost, each as two rules; all accepted by a real Chrome.
+- L12 measurement: `caveats` state the run-to-run spread, that nothing is cut short any more (the line that set
+  `guardUntil` after step 4 is gone with the hold on everything), and that in Q a press is the message the button
+  sends, sent from the extension's own popup page, not a click in the report. The cause text no longer says "step
+  undefined": a kind that arrived tied to nobody says so.
+- After L1 to L12, of 35: A (no press) 27 at the end; 29 arrived and tied to her; 30 arrived at all. Q (every
+  question answered yes) 6; 8 tied after the answers; 24. B0 as A. B 6; 9; 9. C 5; 7; 9. T18, T19 apart in all.
+  What acts in A without any press, and what it does in the lab: the rules that need no evidence. No cookies for
+  other companies: T1 (the browser cookie), T2 (the sign-in cookie sent along to other sites) and T8 (the like
+  frame's cookie) never arrive; the cache tag T16 arrives but is tied to nobody. The ping rules: T28 (page-close
+  beacon) and T29 (click ping) never arrive. Everything else arrives and is tied to her until she presses Block:
+  the tracker's own script runs inside each visited site and sends its own first-party ID (T3) itself. In Q, at
+  the end: the four no browser tool stops, T30 (the pass through Hop in step 7: Skip is offered only after the
+  second destination) and T20 (the remembered server, saved again on Friendface's own pages after Remove, which is
+  one-off).

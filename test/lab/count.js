@@ -21,8 +21,10 @@ const apart = (c) => [(c.simulated || []).length ? `apart from these, ${c.simula
 const headline = (runs) => (runs.A ? '' : 'A was not run. ') + Object.keys(runs).map((n) => { const c = runs[n].counts;
   return `${NAMES[n] || n}${n === 'A' ? ', of the 35 kinds built' : ''}: ${c.atEnd} at the end; ${c.ever} ${MIDDLE[n] || 'arrived and tied to her'}; ${c.arrived} arrived at all${apart(c)}.`; }).join(' ');
 // what the numbers do not show, written beside them in misses.json and on the page
-const CAVEATS = ['After step 4 the measurement sets the end of the hold-everything sign-in guard to one second from then and waits four seconds. Since J3 the lab\'s own "Sign in with" page does not arm that guard at all (its host is not a shipped sign-in host); it holds deleting for the network\'s own site for five minutes, which is not cut.',
-  'A is the fresh install with no press; Q is the same with every question the extension asks answered yes; most of the cleaning of a company on no list is behind such a press by design.',
+const CAVEATS = ['Nothing is cut short in the measurement any more: there is no hold on everything (L4). The lab\'s own "Sign in with" page holds deleting for the network\'s own site for five minutes, as it would for a user.',
+  'A is the fresh install with no press; Q is the same with every question the extension asks answered yes; since L1 a company on no list is not even blocked without such a press.',
+  'In Q each press is a message sent to the extension from its own popup page, the message the button sends; it is not a click on the button in the report.',
+  'The numbers differ from run to run by a few kinds (seen: "arrived at all" 15 to 28 for the same setting): how many requests get through before a block depends on timing.',
   'The lab does not use the fingerprint to tie visits together, so the page shield is not measured by these numbers.',
   'T18 and T19 (site icons and history) are counted apart as her own history, readable by no website.',
   'T22 (notification right) is counted apart when it arrives only through the lab\'s simulated press on Allow.',

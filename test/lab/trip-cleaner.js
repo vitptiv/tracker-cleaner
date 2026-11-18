@@ -46,7 +46,7 @@ const OUTSIDE = ['T17', 'T18', 'T19', 'T20'];
 const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26', 'T28', 'T36'];
 // what the report names as out of reach (report-view.js CANNOT), per row
 const SAID = { T18: 'cannot clean', T19: 'cannot clean', T27: 'cannot stop', T31: 'cannot stop', T32: 'cannot stop', T33: 'cannot stop' };
-const SIMULATED = { guard: 'after step 4 the end of the hold-everything sign-in guard is set to one second from then and the trip waits four seconds; the lab\'s own sign-in page does not arm that guard (not a shipped sign-in host), and the five-minute hold on the network\'s own site is not cut', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
+const SIMULATED = { guard: 'nothing is cut short: there is no hold on everything any more; the lab\'s own sign-in page holds deleting for the network\'s own site for five minutes', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
 async function run(name, set, cert, flags, chance = {}) {
   const lab = await start({ port: PORT, tls: cert });
@@ -73,8 +73,6 @@ async function run(name, set, cert, flags, chance = {}) {
         const r = await E.b.msg({ type: 'approve', group: g.id, site: it.site, name: it.name }).catch((e) => String(e.message)); answered.push({ when, kind: it.kind, site: it.site, name: it.name, done: r && r.done }); } };
     for (const s of TRIP) { if (set.answers && s.n > 1) await answerAll(`before step ${s.n}`);
       try { await within(W.steps[s.n](), 90000, `step ${s.n}`); } catch (e) { out.broken.push(`step ${s.n}: ${String(e.message || e).split('\n')[0]}`); }
-      // the trip takes a minute and the guard holds five after the sign-in of step 4: here they are cut to two seconds, and the extension's own wake-up does the rest
-      if (s.n === 4) { await E.b.popup.ev('chrome.storage.local.set({ guardUntil: Date.now() + 1000 })'); await sleep(4000); }
       await sleep(400); ends.push(lab.store.records.length); process.stdout.write(`${name}${s.n} `); }
     await sleep(1500);
     const k12 = await E.know().catch(() => null);
@@ -137,14 +135,14 @@ async function run(name, set, cert, flags, chance = {}) {
       if (vias.length && vias.every((v) => /shop's server/.test(v))) row.cause = 'no capability covers it (sent by the shop\'s server, not by the browser)';
       else if (set.entries && caps.length && caps.every((c) => c === 'C06' || c === 'C09') && !fired.length) row.cause = 'capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)';
       else if (!caps.length) row.cause = `no capability covers it${WHY_NONE[id] ? ` (${WHY_NONE[id]})` : ''}`;
-      else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list' + (out.extension.stopped.length ? `; learned and stopped later (${out.extension.stopped.join(', ')}), last arrived in step ${row.lastStep}` : '');
+      else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list' + (out.extension.stopped.length ? `; blocked after the press on Block (${out.extension.stopped.join(', ')})` : '; asked about, not blocked (no press)') + (row.lastStep ? `, last arrived tied to her in step ${row.lastStep}` : ', arrived tied to nobody');
       else if (!fired.length && !blockSeen) { const g = ext.groups.find((x) => x.pending && x.items && x.items.some((it) => it.name === COOKIE[id]));
         row.cause = `capability exists but did not fire${caps.includes('C11') ? ' (cache: cleared when it is switched on or "Clean now" is pressed, then once a day; this copy was saved after that)' : out.extension.guardHeldAtEnd && (COOKIE[id] || KIND[id]) ? ' (held: sign-in guard, 5 minutes after any /login or /oauth address)' : g ? ' (waits for approval)' : ''}`; }
       else if (!fired.length && blockSeen) row.cause = 'capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)';
       else { const back = all.filter((r) => r.t > last && linked.has(r)), sameId = back.some((r) => all.some((x) => x.t <= last && x.value === r.value)), via = (back.find((r) => /put back from/.test(r.via)) || {}).via;
         row.cause = !back.length ? 'fired too late (ID already sent)'
           : `re-created after cleaning (${via ? via.replace('the cookie was gone; ', '') : sameId ? 'same ID again' : 'new ID'}${survivors(last).filter((x) => x !== id).length ? `; re-linked by ${survivors(last).filter((x) => x !== id).join(' ')}` : ''})`; }
-      if (caps.includes('C27') && out.extension.cutOff.length && !set.entries) row.cause = `learned at the first pass and handled from then on (cut off: ${out.extension.cutOff.join(', ')}); last arrived in step ${row.lastStep}`;
+      if (caps.includes('C27') && out.extension.cutOff.length && !set.entries) row.cause = `learned at the first pass${row.lastStep ? `; last arrived tied to her in step ${row.lastStep}` : ''}`;
       if (SAID[id]) row.cause += `; the report says "Tracker Cleaner ${SAID[id]} this"`;
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
