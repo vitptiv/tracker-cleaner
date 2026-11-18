@@ -35,11 +35,13 @@ const followNote = (store, site, host, page, id, now) => {
 };
 // A page address answered "go to `to`" (C27). When the address it was asked with names where the user wanted to go
 // (…?to=https://blog/post), whatever `to` carries beyond that was added on the way: returned are the names of the
-// added parts that look like an ID. Never a part a sign-in hands over.
-const NEVER_PARAM = /^(code|state|token|id_token|access_token|refresh_token|session_state|nonce|ticket|SAMLResponse|RelayState|sig|signature|key)$/i;
+// added parts that look like an ID. Never a part a sign-in hands over, and never a name pages commonly need to work
+// (a video, a list, a search, a page number): cutting those off every address would break sites.
+const NEVER_PARAM = new Set(('code state token id_token access_token refresh_token session_state nonce ticket samlresponse relaystate sig signature key client_id redirect_uri response_type scope '
+  + 'v id q p s t u n c a list page lang locale url uri to next continue return callback search query type tab view sort order limit offset name user email sid session item product article post file path action format').split(' '));
 const bounceAdded = (from, to) => { try { const b = new URL(to);
   for (const [, v] of new URL(from).searchParams) { let want; try { want = new URL(v); } catch { continue; }
-    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.test(k)).map(([k]) => k); }
+    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.has(k.toLowerCase())).map(([k]) => k); }
   } catch {} return []; };
 const followFull = (e) => !!e && e.on.length >= FOLLOW_N;
 if (typeof module !== 'undefined') module.exports = { NEEDED, SHARED, FOLLOW_N, FOLLOW_MAX, LATER_MS, STOPPED_MAX, STOPS_HOUR, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };

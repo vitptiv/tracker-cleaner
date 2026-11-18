@@ -536,7 +536,8 @@ async function bounceSweep(cx, wait) {
     const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === site) ? [{ kind: 'bounce', name: PASSED }] : []), ...e.params.filter((p) => !cut.includes(p)).map((name) => ({ kind: 'param', name }))];
     for (const x of asks) { const it = { cap: 'C27', site, why: 'a redirect', did: waitsAs(v), ...x };
       if (later(cx, 'C27', site, x.name) || (x.kind === 'bounce' && v === 'run' && visited(cx, site))) continue;
-      if (waits(v)) wait.push(it); else if (await carry(it).catch(() => false)) done.push(it); } }
+      // a tag is never cut off by itself: the rule works on every address of every site, so it is always a question (1.25, F2)
+      if (waits(v) || x.kind === 'param') wait.push({ ...it, did: v === 'held' ? 'held' : 'queued' }); else if (await carry(it).catch(() => false)) done.push(it); } }
   await logged(done, 'removed');
 }
 async function cleanBounce(site) {

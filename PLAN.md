@@ -785,3 +785,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   knows two-part country endings and treats every host under a shared name (`SHARED` in `learn.js`) as its own site;
   Google's own sites in any country are never learned; at most 10 stops without a question in an hour, then
   questions; never more than 300 stopped, and `own` is pruned with that list. Not the full public suffix list.
+- F2 one redirect could add a name of its choosing to the rule that cuts tags off every address. Now a tag is never
+  cut by itself: it is always one question (site and name), and names pages need (`NEVER_PARAM` in `learn.js`: v, id,
+  q, list, page, client_id, ...) or values that do not look like an ID are never offered. The automatic defence is
+  S2c. Cleaning what the passing site saved stays automatic.

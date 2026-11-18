@@ -51,10 +51,10 @@ test('a site that passes you along is cleaned by itself, but not one you also op
   const cookies = [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }];
   let bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.redirect(hop); await bg.settle();
-  assert.deepEqual(await bg.names(), []); assert.deepEqual(bg.state.storage.params, ['hid']);
+  assert.deepEqual(await bg.names(), []); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['hid']);   // the tag: a question, never by itself (F2)
   bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.visit('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
-  assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.params, ['hid']);
+  assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['hid']);   // the tag: a question, never by itself (F2)
 });
 test('fresh install, a sign-in page in front: nothing is deleted or stopped', async () => {
   const bg = await fresh({ cookies: [ID, { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }], tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] });
