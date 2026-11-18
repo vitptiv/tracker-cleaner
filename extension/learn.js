@@ -40,9 +40,9 @@ const followNote = (store, site, host, page, ck, now, sent) => {
 // (a video, a list, a search, a page number): cutting those off every address would break sites.
 const NEVER_PARAM = new Set(('code state token id_token access_token refresh_token session_state nonce ticket samlresponse relaystate sig signature key client_id redirect_uri response_type scope '
   + 'v id q p s t u n c a list page lang locale url uri to next continue return callback search query type tab view sort order limit offset name user email sid session item product article post file path action format').split(' '));
-const bounceAdded = (from, to) => { try { const b = new URL(to);
+const bounceAdded = (from, to, any) => { try { const b = new URL(to);   // any: also under a name that is never offered for cutting (did it add an ID at all?)
   for (const [, v] of new URL(from).searchParams) { let want; try { want = new URL(v); } catch { continue; }
-    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.has(k.toLowerCase())).map(([k]) => k); }
+    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && (any || !NEVER_PARAM.has(k.toLowerCase()))).map(([k]) => k); }
   } catch {} return []; };
 const followFull = (e) => !!e && (e.on.length >= FOLLOW_N || e.sent === true);
 // S6: is the ID a site keeps for the user being handed to another company? Compared part by part: a part counts when it

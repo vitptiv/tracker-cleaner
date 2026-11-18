@@ -4,7 +4,8 @@ const { skipTo } = require('../extension/skip.js'), { buildReport, renderReport 
 const SITES = ['hop.example'], PAGE = 'https://social.example/feed', enc = encodeURIComponent;
 const hop = (q, host = 'go.hop.example') => `https://${host}/r?${q}`;
 const on = (o = {}) => ({ tabs: [{ id: 1, active: true, url: PAGE }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
-const pass = async (bg) => { await bg.redirect({ url: hop(`to=${enc('https://blog.example/post')}`), redirectUrl: 'https://blog.example/post', type: 'main_frame' }); await bg.settle(); };
+// passing (1.25, H4): it sent the browser on to two different sites and added an ID
+const pass = async (bg) => { for (const to of ['https://blog.example/post', 'https://shop.example/x']) { await bg.redirect({ url: hop(`to=${enc(to)}`), redirectUrl: to + '?hid=h-77ab12cd34ef', type: 'main_frame' }); await bg.settle(); } };
 
 test('a link to a known pass-through site that names one address on another site goes straight there', () => {
   assert.equal(skipTo(hop(`c=77&to=${enc('https://blog.example/post?a=1')}`), PAGE, SITES), 'https://blog.example/post?a=1');
@@ -37,7 +38,7 @@ test('the list the page script gets: the sites seen passing you along, while tha
   await bg.send({ type: 'siteOff', host: 'social.example', on: true }); await bg.settle(); assert.deepEqual(bg.state.storage.skip.off, ['social.example']);
   await bg.send({ type: 'setMode', group: 'bounce', mode: 'off' }); await bg.settle();
   assert.deepEqual(bg.state.storage.skip.sites, []); assert.equal(bg.state.scripts.some((s) => s.id === 'skip'), false);
-  const signing = await load(on({ tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }], storage: { bounce: { 'hop.example': { n: 1, done: 0, hosts: [], params: [], t: 1 } } } }));
+  const signing = await load(on({ tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }], storage: { bounce: { 'hop.example': { n: 2, done: 0, hosts: [], params: [], t: 1, to: ['a', 'b'], id: true } } } }));
   await signing.alarm('sweep'); assert.deepEqual((signing.state.storage.skip || { sites: [] }).sites, []);
 });
 test('"Let it through again" takes a site off the list and the report offers it; only a site name is accepted', async () => {

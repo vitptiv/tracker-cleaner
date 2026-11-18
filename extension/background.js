@@ -435,7 +435,7 @@ async function applyFeatures() {
     if (JSON.stringify(old) !== JSON.stringify(want)) await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); } catch {}
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
-  const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
+  const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => (bounce[s].to || []).length >= 2 && bounce[s].id === true && !visited(cx, s) && !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
   if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
   try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
     const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(mayRun('C32', cx.set) === 'run' && !cx.hold.paused ? SHIELD : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
@@ -513,6 +513,10 @@ async function notNow(m) {
 // automatic deletes such a site's cookies or empties what it saved: it is only blocked elsewhere. A page counts when
 // its tab is still on that site MINE_WAIT_MS later: one that passes the browser straight on cannot put itself here.
 const MINE_MAX = 2000, MINE_WAIT_MS = 3000;
+// the random value of this install that every stored hash of a site name is made with
+async function saltNow() { let { salt } = await chrome.storage.local.get('salt');
+  if (!salt) await chrome.storage.local.set({ salt: salt = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('') });
+  return salt; }
 function visited(cx, site) { return !!cx.set.salt && (cx.set.mine || []).includes(mark(`${cx.set.salt} ${site}`)); }
 async function notePage(d) {
   if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300) || !(d.tabId >= 0)) return;
@@ -660,8 +664,12 @@ async function noteRedirect(d) {
   await ready;
   const cx = await context();
   if (mayRun('C27', cx.set) === 'no' || cx.hold.guard || cx.hosts.some((h) => siteOf(h) === site)) return;
+  // to: a hash per site it sent the browser on to (at most 3); id: it added an ID to the address on the way. skip.js gets a
+  // site only with both (two different destinations and an added ID): one safe-link redirect makes no passing site (H4)
+  const salt = await saltNow(), dest = mark(`${salt} ${siteOf(b.hostname)}`);
   await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce'), old = bounce[site] || { n: 0, done: 0, hosts: [], params: [] };
-    bounce[site] = { n: old.n + 1, done: old.done, t: Date.now(), hosts: [...new Set([...old.hosts, a.host])].slice(0, 5), params: [...new Set([...old.params, ...bounceAdded(d.url, d.redirectUrl)])].slice(0, 10) };
+    bounce[site] = { n: old.n + 1, done: old.done, t: Date.now(), hosts: [...new Set([...old.hosts, a.host])].slice(0, 5), params: [...new Set([...old.params, ...bounceAdded(d.url, d.redirectUrl)])].slice(0, 10),
+      to: [...new Set([...(old.to || []), dest])].slice(0, 3), id: !!old.id || bounceAdded(d.url, d.redirectUrl, true).length > 0 };
     await chrome.storage.local.set({ bounce: Object.fromEntries(Object.entries(bounce).sort((x, y) => y[1].t - x[1].t).slice(0, BOUNCE_MAX)) }); });
   sweep('passed on');
 }

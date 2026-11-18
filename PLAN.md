@@ -944,3 +944,9 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   pages' background workers (they have their own OffscreenCanvas and no page script reaches them), fonts, the
   screen's size and colour depth, and a page that reads the same drawing several times, each shifted a little,
   and takes the most frequent value per dot (the mix is not a cipher; it stops reading the key off one picture).
+- H4 one redirect (a mail service's safe links) made a site "passing", and links such as /logout?returnTo= were then
+  skipped. Now a site is passing only after it sent the browser on to two different sites (`bounce[site].to`, salted
+  hashes) AND added an ID to the address (`id`) AND is not a site the user opens as a page. At the press `skip.js`
+  never changes a link whose address parameter is a way back by its name (return, returnTo, return_url,
+  redirect_uri, continue, next, callback, back, success_url, cancel_url, ...) or whose path has a part that does
+  something (logout, signout, pay, payment, checkout, auth, verify, confirm, unsubscribe, ...).

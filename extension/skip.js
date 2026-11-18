@@ -4,13 +4,18 @@
 // the page, keeps nothing and sends nothing. skipTo is pure, so the Node tests can load it.
 const SKIP = typeof module !== 'undefined' ? { ...require('./guard.js'), ...require('./learn.js') } : { isSignIn, siteOf };
 const web = (u) => u.protocol === 'https:' || u.protocol === 'http:';
+// never skipped (1.25, H4): an address handed over as the way back (by its name), and a link that does something on the way
+const BACK = /^(return|returnto|return_to|returnurl|return_url|redirect|redirect_uri|redirect_url|continue|next|callback|back|success_url|cancel_url)$/i;
+const DOES = /^(logout|log-out|signout|sign-out|pay|payment|payments|checkout|auth|verify|confirm|unsubscribe|subscribe|delete|remove)([-_.]|$)/i;
 // sites: the known passing sites. The one address on another site that the link names, or null: never for a sign-in.
 const skipTo = (href, base, sites) => {
   let u; try { u = new URL(href, base); } catch { return null; }
   const site = SKIP.siteOf(u.hostname), to = [];
-  if (!web(u) || u.username || !sites.includes(site) || SKIP.isSignIn(u.href)) return null;
-  for (const [, v] of u.searchParams) { let t; try { t = new URL(v); } catch { continue; }
-    if (web(t) && SKIP.siteOf(t.hostname) !== site) to.push(t); }
+  if (!web(u) || u.username || !sites.includes(site) || SKIP.isSignIn(u.href) || u.pathname.split('/').some((seg) => DOES.test(seg))) return null;
+  for (const [k, v] of u.searchParams) { let t; try { t = new URL(v); } catch { continue; }
+    if (!web(t) || SKIP.siteOf(t.hostname) === site) continue;
+    if (BACK.test(k)) return null;
+    to.push(t); }
   return to.length === 1 && !to[0].username && !SKIP.isSignIn(to[0].href) ? to[0].href : null;
 };
 if (typeof module !== 'undefined') module.exports = { skipTo };
