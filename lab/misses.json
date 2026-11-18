@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Three counts, of the 35 kinds built (one of 36, T34, is not built in the lab): arrived = it arrived at all, also tied to nobody. ever = it arrived, tied to her (in Q and C: after the answers or the cleaning, on the second look). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is A (the fresh install, no press) and Q (the same with every question answered yes).",
- "headline": "A (fresh install, nothing changed), of the 35 kinds built: 10 at the end; 13 arrived and tied to her; 23 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 8 at the end; 10 tied to her after the answers; 26 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 10 at the end; 15 arrived and tied to her; 26 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
+ "headline": "A (fresh install, nothing changed), of the 35 kinds built: 10 at the end; 13 arrived and tied to her; 23 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 6 at the end; 8 tied to her after the answers; 21 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 10 at the end; 13 arrived and tied to her; 15 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
  "caveats": [
   "After step 4 the measurement sets the end of the hold-everything sign-in guard to one second from then and waits four seconds. Since J3 the lab's own \"Sign in with\" page does not arm that guard at all (its host is not a shipped sign-in host); it holds deleting for the network's own site for five minutes, which is not cut.",
   "A is the fresh install with no press; Q is the same with every question the extension asks answered yes; most of the cleaning of a company on no list is behind such a press by design.",
@@ -67,7 +67,7 @@
  "extension": "1.25",
  "settings": {
   "A": "fresh install defaults, nothing approved, no lab entries",
-  "Q": "as A, then every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press and nothing else by hand; then the sites again",
+  "Q": "as A, and every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press, when a user would see it: at the start of the step after the one in which it appeared (the badge is up by then), and once more after the last step; nothing else by hand; then the sites again",
   "B0": "main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google's identity cookies, storage and permissions of the user's own lists); no lab entries (the lab is on no list)",
   "B": "as B0, with the lab's test-only entries",
   "C": "as B, then every manual action at the end (approve all, drop each lab site's cookies and storage, block the permission, clear the cache), then the sites again"
@@ -206,6 +206,7 @@
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
+   "answered": [],
    "reidentifiedAfterStep12": false,
    "history": {
     "opened": 17,
@@ -659,38 +660,54 @@
    }
   },
   "Q": {
-   "says": "as A, then every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press and nothing else by hand; then the sites again",
+   "says": "as A, and every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press, when a user would see it: at the start of the step after the one in which it appeared (the badge is up by then), and once more after the last step; nothing else by hand; then the sites again",
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
+   "answered": [
+    {
+     "when": "before step 2",
+     "kind": "used",
+     "site": "friendface.localhost",
+     "name": "what it keeps to follow you",
+     "done": 1
+    },
+    {
+     "when": "before step 4",
+     "kind": "bounce",
+     "site": "hop.localhost",
+     "name": "passed you on without showing a page",
+     "done": 1
+    },
+    {
+     "when": "before step 4",
+     "kind": "param",
+     "site": "hop.localhost",
+     "name": "ffclid",
+     "done": 1
+    },
+    {
+     "when": "before step 8",
+     "kind": "bounce",
+     "site": "hop.localhost",
+     "name": "passed you on without showing a page",
+     "done": 1
+    },
+    {
+     "when": "before step 8",
+     "kind": "skip",
+     "site": "hop.localhost",
+     "name": "skip it next time",
+     "done": 1
+    }
+   ],
    "reidentifiedAfterStep12": false,
    "history": {
     "opened": 17,
     "rebuilt": 0,
     "complete": false
    },
-   "manual": {
-    "yes to: used friendface.localhost what it keeps to follow you": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
-    "yes to: bounce hop.localhost passed you on without showing a page": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
-    "yes to: param hop.localhost ffclid": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
-    "yes to: skip hop.localhost skip it next time": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    }
-   },
+   "manual": {},
    "afterManual": {
     "reidentified": false,
     "historyStillShown": 0
@@ -704,11 +721,11 @@
     "cutOff": [
      "ffclid"
     ],
-    "removed": 7,
+    "removed": 13,
     "waiting": {},
     "blockRuleMatches": 0,
     "tagRuleMatches": 0,
-    "notificationSetting": "ask"
+    "notificationSetting": "block"
    },
    "rows": {
     "T1": {
@@ -735,7 +752,7 @@
     },
     "T3": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -756,31 +773,25 @@
      "ever": false
     },
     "T5": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "hop.localhost"
-     ],
-     "via": [
-      "cookie sent again at this pass"
-     ],
-     "lastStep": 7,
-     "atEnd": true,
-     "duringTrip": "tracked",
-     "sameIdAfterCleaning": false,
-     "note": "not repeated after cleaning: what was sent during the trip stays sent",
-     "ever": true,
-     "cause": "learned at the first pass and handled from then on (cut off: ffclid); last arrived in step 7"
-    },
-    "T6": {
      "status": "stopped",
-     "records": 1,
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "duringTrip": "unlinked",
+     "duringTrip": "stopped",
+     "sameIdAfterCleaning": false,
+     "note": "not repeated after cleaning: what was sent during the trip stays sent",
+     "ever": false
+    },
+    "T6": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
@@ -808,23 +819,18 @@
     },
     "T9": {
      "status": "stopped",
-     "records": 4,
-     "linked": 2,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "Friendface frame inside the site"
-     ],
-     "lastStep": 4,
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "unlinked",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T10": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -835,7 +841,7 @@
     },
     "T11": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -846,7 +852,7 @@
     },
     "T12": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -873,7 +879,7 @@
     },
     "T14": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -884,42 +890,36 @@
     },
     "T15": {
      "status": "stopped",
-     "records": 1,
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "duringTrip": "unlinked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T16": {
      "status": "stopped",
-     "records": 1,
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "duringTrip": "unlinked",
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T17": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "this Chrome profile"
-     ],
-     "via": [
-      "checked from outside, in Chrome's own files"
-     ],
-     "lastStep": 8,
-     "atEnd": true,
-     "duringTrip": "tracked",
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "re-created after cleaning (new ID; re-linked by T9)"
+     "ever": false
     },
     "T18": {
      "status": "kept on purpose: your own history, readable by no website",
@@ -972,7 +972,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "ever": true,
-     "cause": "re-created after cleaning (new ID; re-linked by T9)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
@@ -990,7 +990,7 @@
      "duringTrip": "tracked",
      "sameIdAfterCleaning": true,
      "ever": false,
-     "cause": "re-created after cleaning (new ID; re-linked by T9)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -1011,7 +1011,7 @@
     },
     "T23": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -1022,23 +1022,18 @@
     },
     "T24": {
      "status": "stopped",
-     "records": 5,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "the like frame"
-     ],
-     "lastStep": 3,
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "duringTrip": "tracked",
+     "duringTrip": "unlinked",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T25": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -1119,14 +1114,12 @@
     },
     "T31": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 1,
+     "linked": 1,
      "sites": [
-      "tidewater.localhost",
       "gazette.localhost"
      ],
      "via": [
-      "like button in a frame",
       "share link"
      ],
      "lastStep": 6,
@@ -1191,7 +1184,7 @@
     },
     "T36": {
      "status": "stopped",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -1202,12 +1195,12 @@
     }
    },
    "counts": {
-    "tracked": 8,
+    "tracked": 6,
     "unlinked": 1,
-    "stopped": 24,
-    "arrived": 26,
-    "ever": 10,
-    "atEnd": 8,
+    "stopped": 26,
+    "arrived": 21,
+    "ever": 8,
+    "atEnd": 6,
     "simulated": [],
     "own": [
      "T18",
@@ -1221,6 +1214,7 @@
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
+   "answered": [],
    "reidentifiedAfterStep12": false,
    "history": {
     "opened": 17,
@@ -1263,14 +1257,13 @@
      "ever": false
     },
     "T3": {
-     "status": "unlinked",
-     "records": 2,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
+     "ever": false
     },
     "T4": {
      "status": "stopped",
@@ -1297,14 +1290,13 @@
      "cause": "capability exists but did not fire"
     },
     "T6": {
-     "status": "unlinked",
-     "records": 1,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
+     "ever": false
     },
     "T7": {
      "status": "stopped",
@@ -1325,49 +1317,40 @@
      "ever": false
     },
     "T9": {
-     "status": "tracked",
-     "records": 4,
-     "linked": 2,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "Friendface frame inside the site"
-     ],
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false
     },
     "T10": {
-     "status": "unlinked",
-     "records": 2,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "no capability covers it (storage under the visited site's own name)"
+     "ever": false
     },
     "T11": {
-     "status": "unlinked",
-     "records": 2,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
+     "ever": false
     },
     "T12": {
-     "status": "unlinked",
-     "records": 2,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
+     "ever": false
     },
     "T13": {
      "status": "tracked",
@@ -1385,34 +1368,31 @@
      "cause": "capability exists but did not fire"
     },
     "T14": {
-     "status": "unlinked",
-     "records": 2,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "no capability covers it (an answer the browser gives)"
+     "ever": false
     },
     "T15": {
-     "status": "unlinked",
-     "records": 1,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "fired too late (ID already sent)"
+     "ever": false
     },
     "T16": {
-     "status": "unlinked",
-     "records": 1,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "fired too late (ID already sent)"
+     "ever": false
     },
     "T17": {
      "status": "tracked",
@@ -1427,7 +1407,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "re-created after cleaning (new ID; re-linked by T9)"
+     "cause": "re-created after cleaning (new ID)"
     },
     "T18": {
      "status": "kept on purpose: your own history, readable by no website",
@@ -1474,7 +1454,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "re-created after cleaning (new ID; re-linked by T9)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
@@ -1490,7 +1470,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "re-created after cleaning (new ID; re-linked by T9)",
+     "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -1511,7 +1491,7 @@
     },
     "T23": {
      "status": "unlinked",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
@@ -1520,30 +1500,24 @@
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T24": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "the like frame"
-     ],
-     "lastStep": 3,
-     "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 3",
-     "simulated": "the second address is a forwarded-for header"
-    },
-    "T25": {
      "status": "unlinked",
-     "records": 2,
+     "records": 1,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined",
+     "simulated": "the second address is a forwarded-for header"
+    },
+    "T25": {
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false
     },
     "T26": {
      "status": "stopped",
@@ -1604,14 +1578,12 @@
     },
     "T31": {
      "status": "tracked",
-     "records": 2,
-     "linked": 2,
+     "records": 1,
+     "linked": 1,
      "sites": [
-      "tidewater.localhost",
       "gazette.localhost"
      ],
      "via": [
-      "like button in a frame",
       "share link"
      ],
      "lastStep": 6,
@@ -1663,22 +1635,21 @@
      "ever": false
     },
     "T36": {
-     "status": "unlinked",
-     "records": 2,
+     "status": "stopped",
+     "records": 0,
      "linked": 0,
      "sites": [],
      "via": [],
      "atEnd": false,
-     "ever": false,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
+     "ever": false
     }
    },
    "counts": {
-    "tracked": 13,
-    "unlinked": 11,
-    "stopped": 9,
-    "arrived": 26,
-    "ever": 15,
+    "tracked": 11,
+    "unlinked": 2,
+    "stopped": 20,
+    "arrived": 15,
+    "ever": 13,
     "atEnd": 10,
     "simulated": [],
     "own": [
@@ -1693,6 +1664,7 @@
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
+   "answered": [],
    "reidentifiedAfterStep12": false,
    "history": {
     "opened": 17,
@@ -2114,6 +2086,36 @@
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
+   "answered": [
+    {
+     "when": "after the trip",
+     "kind": "used",
+     "site": "friendface.localhost",
+     "name": "what it keeps to follow you",
+     "done": 1
+    },
+    {
+     "when": "after the trip",
+     "kind": "bounce",
+     "site": "hop.localhost",
+     "name": "passed you on without showing a page",
+     "done": 1
+    },
+    {
+     "when": "after the trip",
+     "kind": "param",
+     "site": "hop.localhost",
+     "name": "ffclid",
+     "done": 1
+    },
+    {
+     "when": "after the trip",
+     "kind": "skip",
+     "site": "hop.localhost",
+     "name": "skip it next time",
+     "done": 1
+    }
+   ],
    "reidentifiedAfterStep12": false,
    "history": {
     "opened": 17,
@@ -2121,26 +2123,6 @@
     "complete": false
    },
    "manual": {
-    "yes to: used friendface.localhost what it keeps to follow you": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
-    "yes to: bounce hop.localhost passed you on without showing a page": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
-    "yes to: param hop.localhost ffclid": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
-    "yes to: skip hop.localhost skip it next time": {
-     "ok": true,
-     "done": 1,
-     "of": 1
-    },
     "approve unknown": {
      "ok": true,
      "done": 0,
@@ -2251,7 +2233,7 @@
     "cutOff": [
      "ffclid"
     ],
-    "removed": 28,
+    "removed": 29,
     "waiting": {
      "storage": 1
     },

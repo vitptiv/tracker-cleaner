@@ -551,10 +551,11 @@ const signInCompany = (site) => site === 'github.com' || isGoogleHost(site) || N
 const seen = new Set();   // what this worker has counted already, so that a page's hundred requests cost one look
 // The site a sighting is counted for is the one the user has in the tab (its address bar), never the frame that asked:
 // one page cannot stand for three sites by holding three frames. A request that belongs to no tab is not counted.
-const tabSite = new Map();
-const topSite = async (tabId) => { if (!tabSite.has(tabId)) { if (tabSite.size > 500) tabSite.clear(); tabSite.set(tabId, siteOf(hostOf(((await chrome.tabs.get(tabId).catch(() => null)) || {}).url))); } return tabSite.get(tabId); };
-chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) tabSite.delete(id); });
-chrome.tabs.onRemoved.addListener((id) => { tabSite.delete(id); });
+// For a request of the page itself (frame 0) that site is the page that asks, as Chrome hands it over with the request;
+// for a frame's request it is the tab's address, asked of Chrome at that moment. Nothing is remembered between requests
+// (K3): a remembered tab address was sometimes the address before, or none yet, when the first requests of a new page
+// came in ahead of the news that the tab had moved, and those requests were then counted for the wrong site or not at all.
+const topSite = async (d) => siteOf(hostOf(d.frameId === 0 && d.initiator ? d.initiator : ((await chrome.tabs.get(d.tabId).catch(() => null)) || {}).url));
 // for counting visited sites, every tenant of one shared name (two pages on github.io) is the same site: two of them never add up
 const tabKey = (page) => SHARED.find((s) => page.endsWith('.' + s)) || page;
 // At most NEW_HOUR companies are noted for the first time per visited site in an hour (in memory): a page that asks hundreds
@@ -571,7 +572,7 @@ async function noteRequest(d) {
   if (!/^https?:$/.test(u.protocol)) return;
   // co: the company, to tell "another company" from the site's own hosts. site: the exact host; everything learned and
   // blocked is kept per exact host, never per company or per shared name (J2)
-  const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d.tabId), key = `${u.host} ${page}`;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
+  const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d), key = `${u.host} ${page}`;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
   if (!page || co === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(co)) return;
   // S6: does this request hand the company the ID that the visited site keeps for the user (address or what is sent)?
   let sent = false;
@@ -606,7 +607,7 @@ async function noteAnswer(d) {
   const ok = (d.responseHeaders || []).some((h) => String(h.name).toLowerCase() === 'set-cookie' && /;\s*samesite=none/i.test(h.value) && idLike(String(h.value).split(';')[0].split('=').slice(1).join('=')));
   let u; try { u = new URL(d.url); } catch { return; }
   if (!ok || !/^https?:$/.test(u.protocol)) return;
-  const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d.tabId);
+  const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d);
   if (!page || co === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(co)) return;
   await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;

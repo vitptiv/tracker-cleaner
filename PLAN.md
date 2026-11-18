@@ -1106,3 +1106,16 @@ on the shipped lists; for anything learned it needs the user's press on one plai
 - K2 measuring side: in Q each question is answered with its yes at the start of the step after the one in which it
   appeared, and what still waits after the last step then; `answered` in each run of `misses.json` lists every
   press with its moment. A is unchanged; C answers after the trip as before.
+- K3 why the block came in step 1 in one run and in step 3 in another: an extension bug, found and fixed. The site a
+  request is counted for came from a remembered address per tab (`tabSite`), refreshed when Chrome reported that
+  the tab had moved. The first requests of a new page could come in ahead of that report: they were then counted
+  for the page before (and dropped as "the site's own" when that was the tracker's site), or for none while the
+  tab still said about:blank. Now a request of the page itself is counted for the page that asks, as Chrome hands
+  it over with the request, and a frame's request for the tab's address asked at that moment; nothing is
+  remembered. Tests reproduce both orders. Not proved that this was the whole cause: in the one full run since, A,
+  Q and B0 all blocked in step 1; how many kinds slip through before the block still differs from run to run (A 23
+  arrived at all, B0 15 in the same run).
+- After batch K, of 35: A 10 at the end; 13 arrived and tied to her; 23 arrived at all. Q 6; 8 tied after the
+  answers; 21. B0 10; 13; 15. B 6; 9; 9. C 5; 7; 9. At the end in Q: the four no browser tool stops, T30 (its
+  first pass and the pass in step 7: the Skip question comes only after the second destination) and T20 (the
+  remembered server is saved again on Friendface's own pages after the press on Remove).
