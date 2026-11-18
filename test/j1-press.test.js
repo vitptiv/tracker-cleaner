@@ -17,13 +17,13 @@ test('a company on no list seen on many visited sites, one the user never opens:
   assert.deepEqual(deleted(bg), { cookies: 0, storage: 0, notifications: 0 }); assert.deepEqual(await bg.names(), ['uid']);
   assert.deepEqual(asks(bg), [['used', 'trk.example']]);
   const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
-  assert.ok(html.includes('trk.example follows you on 2 sites. It is already blocked on other sites. Also remove what it saved here?')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
+  assert.ok(html.includes('trk.example is blocked on other sites. Also remove what it has saved here? This removes what is there now, once; nothing later.')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
 });
-test('Remove: its cookies but the sign-in-looking ones, its storage and worker, its notifications; Keep: never asked again', async () => {
+test('Remove: its cookies but the sign-in-looking ones, its storage and worker; Keep: never asked again', async () => {
   const bg = await load(on({ cookies: [UID, { name: 'sess', domain: '.trk.example', value: 's-3fa9c2d1e0', httpOnly: true, secure: true }] }));
   await req(bg, 'https://trk.example/p.gif', 'news.example'); await req(bg, 'https://trk.example/p.gif', 'shop.example');
   assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }), { ok: true, done: 1, of: 1 }); await bg.settle(); await bg.alarm('sweep');
-  assert.deepEqual(await bg.names(), ['sess']); const d = deleted(bg); assert.ok(d.cookies === 1 && d.storage >= 1 && d.notifications === 1, JSON.stringify(d));
+  assert.deepEqual(await bg.names(), ['sess']); const d = deleted(bg); assert.ok(d.cookies === 1 && d.storage >= 1 && d.notifications === 0, JSON.stringify(d));   // 1.25, L2: once; no notification block
   const keep = await load(on({ cookies: [UID] })); await req(keep, 'https://trk.example/p.gif', 'news.example'); await req(keep, 'https://trk.example/p.gif', 'shop.example');
   await keep.send({ type: 'notNow', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); keep.now += 60 * 86400e3; await keep.alarm('sweep');
   assert.deepEqual(asks(keep), []); assert.deepEqual(await keep.names(), ['uid']);

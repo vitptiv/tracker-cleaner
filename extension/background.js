@@ -180,7 +180,7 @@ async function state() {
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
-    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], hard: set.hard || [], params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
+    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], hard: set.hard || [], stoppedUsed: (set.stopped || []).filter((s) => visited({ set }, siteOf(s))), params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
     ...(serverOff().length ? { serverOff: serverOff() } : {}), ...(notWorking().length ? { notWorking: notWorking() } : {}), histOn: set.histOn === true,
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
@@ -310,7 +310,7 @@ async function lineSeen(m) {
   if (m.auto === true) await sweep('settings');
   return { ok: true };
 }
-const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), histOn: (m) => histOn(m.on), clearBrowsing, unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), keepRemoving: (m) => keepRemoving(m.site, m.on), histOn: (m) => histOn(m.on), clearBrowsing, unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -621,10 +621,10 @@ async function noteAnswer(d) {
 }
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
-// The principle (1.25, J1): what is learned from how pages behave may only BLOCK that company when another site asks for
-// it (`stopped`), which "Let it through again" undoes. Deleting anything of a learned company (`hard`: its cookies, what
-// it saved on its own site, its background program, its notifications) is never done by itself: there is one question,
-// once (USED: Remove / Keep), and only the user's press on Remove does it. Built-in list entries are cleaned as before.
+// The principle (1.25, J1 and L1): what is learned from how pages behave only ever makes a question. Block (`stopped`) is
+// the user's press; "Let it through again" undoes it. Then one more question, once (USED: Remove / Keep): Remove deletes
+// what that host has saved now, once (hardClean). Keeping on removing is a switch per host (`hard`, keepRemoving).
+// Built-in list entries are cleaned as before.
 const USED = 'what it keeps to follow you';
 async function followSweep(cx, all, wait) {
   const v = verdict('C25', cx), stopped = cx.set.stopped || [];
@@ -654,23 +654,32 @@ async function stopTracker(site) {
   await applyFeatures();
   return true;
 }
-// its sign-in cookies stay (signinLike), and all of them while the user has its own site open; its background program goes
-// even then, the rest of what it saved when its site is closed (ownSweep)
+// Remove (L2): the user's press on the second question. One-off: what that host has saved NOW goes (its cookies but those
+// that look like a sign-in, what it saved on its own site and its background program, all saved copies), and nothing
+// later. While its own site is open in a tab only its background program goes. The question is not asked again.
 async function hardClean(site) {
-  const { stopped = [], hard = [], follow = {} } = await chrome.storage.local.get(['stopped', 'hard', 'follow']);
+  const { stopped = [], follow = {}, later: lt = {} } = await chrome.storage.local.get(['stopped', 'follow', 'later']);
   if (!isHost(site) || !stopped.includes(site)) return false;
-  if (!hard.includes(site)) await chrome.storage.local.set({ hard: [...hard, site].filter((s) => stopped.includes(s)) });
-  await refreshBlacklist();
-  const cx = await context(), gone = [];
+  const cx = await context(), gone = [], origins = [...new Set([site, ...((follow[site] || {}).hosts || []).filter((h) => under(h.replace(/:\d+$/, ''), site))])].flatMap((h) => [`https://${h}`, `http://${h}`]);
   for (const c of await allCookies()) if (under(bare(c.domain), site) && !signinLike(c) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
   await logged(gone, 'removed');
-  try { await chrome.browsingData.remove({ origins: [...new Set([site, 'www.' + site, ...((follow[site] || {}).hosts || [])])].flatMap((h) => [`https://${h}`, `http://${h}`]) }, { serviceWorkers: true }); } catch {}
-  // a saved copy can carry the ID and bring it back: all saved copies go once with the clean
-  // (clearing them for the tracker's addresses alone was tried in a real Chrome: it leaves the compiled copy of its script and the remembered server)
+  try { await chrome.browsingData.remove({ origins }, cx.hosts.some((h) => under(h, site)) ? { serviceWorkers: true } : { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true }); } catch {}
   // the saved copies are cleared with it. This is the user's own press, so it is not counted against the hour's one clearing,
   // which bounds only what a page can cause (K1)
   if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {}
+  await chrome.storage.local.set({ later: Object.fromEntries([...Object.entries(lt).filter(([, t]) => t > Date.now()), [`C25 ${site} ${USED}`, Date.now() + 3650 * 86400e3]].slice(-500)) });
   return true;
+}
+// "Keep removing what X saves" (L2): a switch per blocked host, off unless the user ticks it, and never for a host whose
+// site the user opens as a page. On (`hard`): the host is judged like a listed tracker from then on: its cookies go when
+// they come back, what it saved on its own site is emptied daily, its notifications are blocked. Off: all of that ends.
+async function keepRemoving(site, on) {
+  const cx = await context(), { stopped = [], hard = [], own = {} } = await chrome.storage.local.get(['stopped', 'hard', 'own']);
+  if (!isHost(site) || typeof on !== 'boolean' || !stopped.includes(site) || (on && visited(cx, siteOf(site)))) return { ok: false };
+  if (!on && (own[site] || {}).mute) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${site}/*`, setting: 'ask' }); } catch {}
+  await chrome.storage.local.set({ hard: on ? [...hard.filter((s) => s !== site), site] : hard.filter((s) => s !== site), ...(on ? {} : { own: Object.fromEntries(Object.entries(own).filter(([s]) => s !== site)) }) });
+  await sweep('settings');
+  return { ok: true };
 }
 // "Let it through again": the block goes, and it is not offered again for a while
 async function unstop(site) {

@@ -38,7 +38,7 @@ test('fresh install: a company seen on several sites is blocked at once and the 
   assert.deepEqual(await bg.names(), []);
   assert.ok(emptied(bg).includes('https://trk.example') && emptied(bg).includes('https://trk.example'), 'its own storage was not emptied');
   assert.ok(bg.called('browsingData.remove').some((c) => c.args[1].cache && c.args[0].since === 0), 'the saved copies were not cleared after the stop');
-  assert.equal(bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes('trk.example')).length, 1);
+  assert.equal(bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes('trk.example')).length, 0);   // 1.25, L2: Remove is one-off; the notification block belongs to "Keep removing"
   assert.deepEqual(((bg.state.storage.pending || {}).unknown || { items: [] }).items, []);   // answered: nothing waits
 });
 test('a company whose own site you open as a page is blocked on other sites, but its cookies and what it saved stay: you may be signed in there', async () => {

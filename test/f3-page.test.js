@@ -15,12 +15,13 @@ test('opened as a page, then stopped: its cookie is still there after the next s
   assert.deepEqual(await bg.names(), ['c_user', 'xs']); assert.deepEqual(bg.called('cookies.remove'), []);
   assert.deepEqual(bg.blockedHosts(), ['trk.example'], 'it is still blocked on other sites');
 });
-test('never opened as a page: its cookies go when the user presses Remove (1.25, J1), and from then on whenever they come back', async () => {
+test('never opened as a page: its cookies go when the user presses Remove, once (1.25, L2); with "Keep removing" ticked also whenever they come back', async () => {
   const bg = await load(on()); await three(bg);
   assert.deepEqual(await bg.names(), ['c_user']); await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.deepEqual(await bg.names(), []);
-  await bg.setCookie({ url: 'https://trk.example/', domain: '.trk.example', name: 'uid2', value: 'x-77ab12cd34ef', sameSite: 'no_restriction', secure: true });
-  assert.deepEqual(await bg.names(), []);
+  const again = { url: 'https://trk.example/', domain: '.trk.example', name: 'uid2', value: 'x-77ab12cd34ef', sameSite: 'no_restriction', secure: true };
+  await bg.setCookie(again); assert.deepEqual(await bg.names(), ['uid2']);
+  await bg.send({ type: 'keepRemoving', site: 'trk.example', on: true }); await bg.settle(); await bg.setCookie(again); assert.deepEqual(await bg.names(), []);
 });
 test('a tracker on the built-in list is judged as before, also when its site was opened as a page', async () => {
   const bg = await load(on({ cookies: [{ name: 'IDE', domain: '.doubleclick.net', value: 'x' }] }));

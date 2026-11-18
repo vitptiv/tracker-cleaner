@@ -53,7 +53,6 @@ test('a cleaned-out tracker\'s background program is removed even while its own 
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }], cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
   await req(bg, 'https://trk.example/p.gif', 'news.example'); await req(bg, 'https://trk.example/p.gif', 'shop.example');
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.hard, ['trk.example']);
   const workers = bg.called('browsingData.remove').filter((c) => c.args[1].serviceWorkers && (c.args[0].origins || []).includes('https://trk.example'));
   assert.equal(workers.length, 1); assert.deepEqual(Object.keys(workers[0].args[1]), ['serviceWorkers'], 'more than the background program was removed while the site is open');
 });

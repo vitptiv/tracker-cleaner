@@ -27,8 +27,8 @@ test('seen on two visited sites: blocked and the saved copies cleared once; what
   assert.deepEqual([bg.state.storage.stopped, bg.state.storage.hard || []], [['trk.example'], []]); assert.deepEqual(await bg.names(), ['uid']);
   assert.deepEqual(hardCalls(bg, 'trk.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); await bg.alarm('sweep');
-  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.deepEqual(await bg.names(), []);
-  const h = hardCalls(bg, 'trk.example'); assert.ok(h.storage >= 1 && h.notifications === 1, JSON.stringify(h));
+  assert.deepEqual(bg.state.storage.hard || [], []); assert.deepEqual(await bg.names(), []);   // 1.25, L2: once; not on the keep-removing list
+  const h = hardCalls(bg, 'trk.example'); assert.ok(h.storage >= 1 && h.notifications === 0, JSON.stringify(h));
 });
 test('a company the user also uses: blocked elsewhere, and one question once; Remove cleans it out but keeps what looks like a sign-in, Keep ends the matter', async () => {
   for (const answerIs of ['Remove', 'Keep']) {
@@ -37,9 +37,9 @@ test('a company the user also uses: blocked elsewhere, and one question once; Re
     assert.deepEqual(bg.state.storage.stopped, ['bank.example']); assert.deepEqual(hardCalls(bg, 'bank.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });   // cache: all saved copies once after the block (I1), which costs her only speed
     assert.deepEqual(asks(bg), [['used', 'bank.example']]);
     const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
-    assert.ok(html.includes('bank.example follows you on 2 sites. It is already blocked on other sites. Also remove what it saved here?')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
+    assert.ok(html.includes('bank.example is blocked on other sites. Also remove what it has saved here? This removes what is there now, once; nothing later.')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
     if (answerIs === 'Remove') { assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'bank.example', name: 'what it keeps to follow you' }), { ok: true, done: 1, of: 1 }); await bg.settle();
-      assert.deepEqual(await bg.names(), ['sess']); assert.deepEqual(bg.state.storage.hard, ['bank.example']); }
+      assert.deepEqual(await bg.names(), ['sess']); assert.deepEqual(bg.state.storage.hard || [], []); }
     else { await bg.send({ type: 'notNow', group: 'unknown', site: 'bank.example', name: 'what it keeps to follow you' }); bg.now += 30 * 86400e3; await bg.alarm('sweep');
       assert.deepEqual(asks(bg), []); assert.deepEqual((await bg.names()).sort(), ['prefs', 'sess']); }
   }

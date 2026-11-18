@@ -11,7 +11,7 @@ const blocked = (bg, site = 'trk.example') => bg.called('contentSettings.set').f
 test('H7, I1, K1: all saved copies are cleared once after the block and once at the press on Remove, and at most once a day otherwise: no wake-up a minute later, nothing when Chrome starts or the extension is loaded again', async () => {
   const bg = await load(on()); await three(bg); assert.equal(clears(bg), 1);
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.equal(clears(bg), 2); assert.equal('copies' in bg.state.alarms, false);
+  assert.equal(clears(bg), 2); assert.equal('copies' in bg.state.alarms, false);
   await bg.chrome.runtime.onStartup.fire(); await bg.settle(); await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle();
   for (let i = 0; i < 4; i++) { bg.now += 15 * 60e3; await bg.alarm('sweep'); }
   assert.equal(clears(bg), 2, 'cleared again within the day');

@@ -409,7 +409,7 @@ test('R1, as changed by L1: "X follows you on N sites. Block it on other sites?"
   assert.ok(text(html).includes('trk.example follows you on 3 sites. Block it on other sites?BlockNot now'));
   assert.ok(html.includes('data-msg="{&quot;type&quot;:&quot;approve&quot;,&quot;group&quot;:&quot;unknown&quot;,&quot;site&quot;:&quot;trk.example&quot;,&quot;name&quot;:&quot;followed you on 3 sites&quot;}"'));
   assert.ok(html.includes('{&quot;type&quot;:&quot;notNow&quot;,&quot;group&quot;:&quot;unknown&quot;,&quot;site&quot;:&quot;trk.example&quot;,&quot;name&quot;:&quot;followed you on 3 sites&quot;}'));
-  assert.ok(text(html).includes('Trackers you stopped (1)old.exampleLet it through again'));
+  assert.ok(text(html).includes('Hosts you blocked (1)old.exampleLet it through again'));
   assert.equal(row(r, 'unknown').count, '0 stopped today, 1 waiting');
 });
 test('R1: a cookie of a company that was stopped and cleaned out is called a tracker\'s; one that is only blocked keeps its cookies (1.25, H1)', () => {

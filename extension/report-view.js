@@ -104,7 +104,7 @@ const { buildReport, renderReport } = (() => {
   // things asked one by one, in one sentence each, with Approve and Not now
   const ASKS = { tracker: (it) => (Number(it.why) > 1 ? `${it.site} follows you on ${Number(it.why)} sites.` : `${it.site} was handed the number a site keeps for you.`) + ' Block it on other sites?',
     skip: (it) => `${it.site} only passes you along and adds a tag. Skip it next time?`,
-    used: (it) => `${it.site} follows you on ${Number(it.why) || 1} site${Number(it.why) > 1 ? 's' : ''}. It is already blocked on other sites. Also remove what it saved here?`,
+    used: (it) => `${it.site} is blocked on other sites. Also remove what it has saved here? This removes what is there now, once; nothing later.`,
     bounce: (it) => `${it.site} passed you on to another site without showing you a page. Delete what it saved in your browser?`,
     own: (it) => it.site === 'the listed trackers' ? 'Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?'
       : `${it.site} is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?`,
@@ -135,7 +135,7 @@ const { buildReport, renderReport } = (() => {
       features: (s.groups || []).map((g) => ({ id: g.id, title: g.title, says: g.says, state: word(g, s), count: counted(g, s, tab) })),
       cookies: host && Array.isArray(tab.cookies) ? { n: tab.cookies.length, rows: tab.cookies.map((c) => cookieRow(c, s, host)) } : null,
       // what the user chose to always delete on this site, also when the cookie is not there right now
-      stoppedTrackers: (s.stopped || []).map(String), cut: (s.params || []).map(String), skipped: (s.skipped || []).map(String),
+      stoppedTrackers: (s.stopped || []).map(String), stoppedUsed: (s.stoppedUsed || []).map(String), keeps: (s.hard || []).map(String), cut: (s.params || []).map(String), skipped: (s.skipped || []).map(String),
       always: host ? (s.always || []).filter((a) => under(host, String(a.site)) || under(String(a.site), host)) : [],
       cannot: CANNOT.map(([what, why]) => ({ what, why })),
       stopped: (s.hold || {}).paused ? 'paused' : s.master === false ? 'switched off' : '' };   // deleting would be refused
@@ -192,8 +192,10 @@ const { buildReport, renderReport } = (() => {
     const page = () => `<p class="m">${r.site ? `This page: ${esc(r.site)}` : 'This tab is not a web page'} · Read at ${esc(r.readAt)} <button class="small" data-act="refresh">Read again</button></p>`;
     const ask = (w, a) => `<div class="c" data-ask="${esc(a.site)}"><div>${esc(a.line)}</div><div class="b">${btn(a.yes === 'Remove' ? 'Remove' : a.yes === 'Skip' ? 'Skip it' : a.yes === 'Block' ? 'Block' : 'Approve', { type: 'approve', group: w.id, site: a.site, name: a.name }, ' class="go"' + off)}`
       + `${btn(a.no === 'Keep' ? 'Keep' : 'Not now', { type: 'notNow', group: w.id, site: a.site, name: a.name })}</div></div>`;
-    const stoppedList = () => (!(r.stoppedTrackers || []).length ? '' : `<details id="stopped"><summary>Trackers you stopped (${r.stoppedTrackers.length})</summary>`
-      + r.stoppedTrackers.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unstop', site: x })}</div>`).join('') + '</details>')
+    const stoppedList = () => (!(r.stoppedTrackers || []).length ? '' : `<details id="stopped"><summary>Hosts you blocked (${r.stoppedTrackers.length})</summary>`
+      + r.stoppedTrackers.map((x) => `<div class="c"><div class="h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unstop', site: x })}</div>`
+        // never offered for a host whose site the user opens as a page
+        + ((r.stoppedUsed || []).includes(x) ? '' : `<label><input type="checkbox" data-msg="${esc(JSON.stringify({ type: 'keepRemoving', site: x }))}"${(r.keeps || []).includes(x) ? ' checked' : ''}> Keep removing what ${esc(x)} saves</label>`) + '</div>').join('') + '</details>')
       + (!(r.cut || []).length ? '' : `<details id="cut"><summary>Tags you chose to cut off addresses (${r.cut.length})</summary>`
       + r.cut.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Stop cutting it off', { type: 'unparam', name: x })}</div>`).join('') + '</details>')
       + (!(r.skipped || []).length ? '' : `<details id="skipped"><summary>Sites that are skipped (${r.skipped.length})</summary><div class="m">These sites only passed you along, so their links now take you straight to the page they name.</div>`

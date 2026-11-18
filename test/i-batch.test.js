@@ -30,7 +30,7 @@ test('I2: a company the user also uses is asked about as soon as it is blocked, 
   await soft(bg, 'used.example');
   assert.deepEqual(bg.state.storage.stopped, ['used.example']); assert.deepEqual(asks(bg), [['used', 'used.example']]); assert.deepEqual(bg.called('cookies.remove'), []);
   assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'used.example', name: 'what it keeps to follow you' }), { ok: true, done: 1, of: 1 }); await bg.settle();
-  assert.deepEqual((await bg.names()).sort(), ['_fp', 'sess']); assert.deepEqual(bg.state.storage.hard, ['used.example']);
+  assert.deepEqual((await bg.names()).sort(), ['_fp', 'sess']); assert.deepEqual(bg.state.storage.hard || [], []);
 });
 test('I2 as changed by J1: a company the user does not use is asked about in the same way; nothing of it is cleaned out by itself', async () => {
   const bg = await load(on({ cookies: [FP, { name: 'uid', domain: '.trk1.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] })); await soft(bg, 'trk1.example');

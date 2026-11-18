@@ -26,7 +26,7 @@ test('ten blocks in a row clear all saved copies once, not ten times: every clea
   for (const h of hosts) { await req(bg, `https://${h}/p.gif`, 'news.example'); await req(bg, `https://${h}/p.gif`, 'shop.example'); }
   assert.equal(bg.state.storage.stopped.length, 10); assert.equal(clears(bg), 1);
   for (const h of hosts) { await bg.send({ type: 'approve', group: 'unknown', site: h, name: 'what it keeps to follow you' }); await bg.settle(); }
-  assert.equal(bg.state.storage.hard.length, 10); assert.equal(clears(bg), 11, 'one for the blocks, one for each press on Remove');
+  assert.equal(clears(bg), 11, 'one for the blocks, one for each press on Remove');
   bg.now += 61 * 60e3; await req(bg, 'https://late.example/p.gif', 'news.example'); await bg.setCookie({ url: 'https://late.example/', name: 'uid', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction', secure: true }); await req(bg, 'https://late.example/p.gif', 'shop.example');
   assert.equal(clears(bg), 12);
   await bg.send({ type: 'drop', kind: 'servers' }); assert.equal(clears(bg), 13, '"Clean now" is your own press: not counted against the hour');

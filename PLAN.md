@@ -1131,3 +1131,10 @@ other companies; the local network).
   whole host name (ids from 101000; `requestDomains` also matched subdomains). A cookie set for a whole shared name
   (`SHARED`) is no evidence against a host under it. "Also remove what it saved?" stays the second question. The
   limit of 10 blocks an hour is gone with the automatic block.
+- L2 Remove is one-off and says so ("This removes what is there now, once; nothing later."): the host's cookies but
+  those that look like a sign-in, what it saved on its own site and its background program, all saved copies; the
+  host is NOT put on a list, nothing of it is removed later, its notifications are not touched. Keeping on is a
+  separate switch per blocked host in the report, "Keep removing what X saves" (`hard`), off unless ticked, not
+  offered and refused for a host whose site the user opens as a page: on, the host is judged like a listed tracker
+  (cookies as they come back, own storage daily, notifications blocked); off, that ends and its notification
+  setting is put back to "ask" for that host alone.
