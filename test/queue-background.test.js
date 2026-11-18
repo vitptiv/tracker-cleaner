@@ -114,7 +114,7 @@ test('state message: settings, hold state, and per group its mode, pending count
   const bg = await load(ask({ cookies: many }));
   await bg.alarm('sweep'); await bg.send({ type: 'pause', minutes: 3 }); await bg.settle();
   const s = await bg.send({ type: 'state' });
-  assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'groups', 'hold', 'log', 'master', 'modes', 'now', 'params', 'server', 'sitesOff', 'stopped', 'tor', 'undo']);
+  assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'groups', 'hold', 'log', 'master', 'modes', 'now', 'params', 'server', 'sitesOff', 'skipped', 'stopped', 'tor', 'undo']);
   assert.equal(s.master, true); assert.deepEqual(s.modes, { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C03: 'ask' });
   assert.deepEqual(s.hold, { paused: true, guard: false, tab: false, pauseUntil: bg.now + 3 * MIN, guardUntil: 0 });
   assert.deepEqual(s.groups.map((g) => g.id), GROUPS.map((g) => g.id));

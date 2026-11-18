@@ -148,7 +148,7 @@ async function state() {
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
-    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [],
+    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...((await chrome.storage.local.get('firstRun')).firstRun ? { firstRun: true } : {}),
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
@@ -267,7 +267,7 @@ async function stored(m) {
   try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
     return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
 }
-const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -350,6 +350,8 @@ async function refreshBlacklist() {
 const YT_JS = { id: 'yt-adfree', matches: ['*://*.youtube.com/*'], js: ['yt-adfree.js'], runAt: 'document_start', world: 'MAIN', allFrames: true };
 // Link pings (C26): no-ping.js takes the ping address off a link as it is pressed; never on the sign-in hosts
 const NO_PING = { id: 'no-ping', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['no-ping.js'], runAt: 'document_start', allFrames: true };
+// Known passing sites are skipped (S2c): skip.js changes a pressed link to the address it names; never on the sign-in hosts
+const SKIP = { id: 'skip', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['guard.js', 'learn.js', 'skip.js'], runAt: 'document_start', allFrames: true };
 const YT_CSS = { id: 'yt-adfree-css', matches: ['*://*.youtube.com/*'], css: ['yt-adfree.css'], runAt: 'document_start', allFrames: true };
 async function applyFeatures() {
   const cx = await context(), yt = YT && can('C05', cx), pings = BLOCK && can('C26', cx);
@@ -368,8 +370,12 @@ async function applyFeatures() {
     // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
     ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
       condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }])]);
+  // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
+  const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
+  const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
+  if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
   try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
-    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
+    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
     if (add.length) await chrome.scripting.registerContentScripts(add);
     if (drop.length) await chrome.scripting.unregisterContentScripts({ ids: drop }); } catch {}
 }
@@ -538,6 +544,13 @@ async function stripParam(name) {
   if (!params.includes(name)) await chrome.storage.local.set({ params: [...params, name].slice(-50) });
   await applyFeatures();
   return true;
+}
+// "Let it through again" for a passing site: its links are no longer changed (at most 100 such sites are remembered)
+async function unskip(site) {
+  if (!isHost(site)) return { ok: false };
+  const { noskip = [] } = await chrome.storage.local.get('noskip');
+  await chrome.storage.local.set({ noskip: [...noskip.filter((s) => s !== site), site].slice(-BOUNCE_MAX) }); await applyFeatures();
+  return { ok: true };
 }
 // "Stop cutting it off": the name is forgotten everywhere, and asked about again only when a site adds it again
 async function unparam(name) {
@@ -756,7 +769,7 @@ chrome.runtime.onInstalled.addListener(applyProxy);
 
 // A changed switch takes effect at once for what would otherwise wait: blocking, YouTube scripts, Tor.
 chrome.storage.onChanged.addListener((ch) => {
-  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.params) { applyFeatures(); applyProxy(); }
+  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.params || ch.bounce || ch.noskip || ch.sitesOff || ch.guardUntil) { applyFeatures(); applyProxy(); }
   if (ch.pending || ch.pauseUntil || ch.guardUntil) badge();
   // the sign-in guard was armed: wake up when it ends, so that what it held is done then and not at the next quarter-hour sweep
   if (ch.guardUntil && ch.guardUntil.newValue > Date.now()) chrome.alarms.create('unguard', { when: ch.guardUntil.newValue + 1000 });

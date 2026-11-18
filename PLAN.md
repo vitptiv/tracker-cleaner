@@ -765,3 +765,9 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   remembered server, so these clearings are of all saved copies.
 - S2b notification right of a stopped tracker (T22): blocked at once and once (`own[site].mute`), also while its own
   page is open or the user uses its site; nothing there is deleted by this. "Let it through again" gives it back.
+- S2c known passing sites are skipped (T30; `skip.js`, a page script registered while C27 runs): a pressed link to a
+  site already seen passing the browser along is changed to the one address on another site that it names. Never a
+  sign-in address, as link or as destination. The list (`skip`: the sites, none while paused, off or during a sign-in)
+  is written by the worker; "Let it through again" in the report takes a site off it. The lab's redirector passes the
+  browser along with an HTTP redirect (302); the first pass is seen only as it happens (`onBeforeRedirect`), when the
+  redirector has already been asked, so it cannot be stopped with the permissions there are.
