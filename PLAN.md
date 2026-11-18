@@ -994,10 +994,10 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   own history, T22 apart when only simulated, T34 not built). Why `.localhost` hosts lost the visited-site
   protection: `core.js` `realHost` strips `.localhost` (for the Fit-browser's proxied copies), and `usedSite`
   compared only that shortened name with the stopped list, which holds the name as Chrome has it. Not a suffix-table
-  bug, and it hits only names ending in `.localhost`; `usedSite` now compares both names (in H1's commit). It did
-  not change the count: the kinds concerned were not at the end before either.
-- After H1 to H11: A, of 35: 9 at the end; 14 arrived and tied to her; 25 arrived at all (before: 4; 13; 24 by the
-  same count). B0 the same; B 6; 9; 9. C 5; 7; 9. At the end in A beyond the four that no browser tool stops (T27,
+  bug, and it hits only names ending in `.localhost`; `usedSite` now compares both names (in H1's commit). Whether
+  it changed the count: not measured.
+- After H1 to H11: A, of 35: 9 at the end; 14 arrived and tied to her; 25 arrived at all (before: 4; 13; arrived at all:
+  not measured). B0 the same; B 6; 9; 9. C 5; 7; 9. At the end in A beyond the four that no browser tool stops (T27,
   T33, T31, T32): T17, T20, T21 (saved copies are no longer cleared at a stop that only blocks, nor at start: H1,
   H7), T22 (its notifications are blocked only at a clean-out, and Friendface is a site she uses: H1), T30 (Hop is
   passing only after its second destination, which is the trip's last pass: H4). The question "You use Friendface
@@ -1014,3 +1014,12 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   Remove is the user's own press and acts at once; it still never deletes a cookie that looks like a sign-in.
   A company she does not use is cleaned out by itself only after two visited sites and not while its site is held,
   as before. Setting C presses Remove with its other manual actions; A does not.
+- I3 `caveats` in `misses.json` is written by the run again (the hand edit of H11 is gone); the two inferences under
+  H11 now read "not measured".
+- After batch I: A, of 35: 9 at the end; 17 arrived and tied to her; 28 arrived at all. B0: 9; 14; 25. B: 6; 9; 9.
+  C: 5; 7; 9 (C presses Remove: T17, T20, T21, T22 go; left are T27, T30, T31, T32, T33). At the end in A: the four no
+  browser tool stops, T22 and T30 as expected, and still T17, T20, T21: the one clearing at the block (I1) comes in
+  step 1 or 3, and the copies found at the end are made afterwards on Friendface's own pages, which she keeps
+  using; they go with Remove (the question waits in A). A and B0 differ in "arrived and tied" in this run (T1, T2,
+  T8 in A only): Friendface was blocked in step 3 in A and in step 1 in B0. Why the block came later in A this
+  time: not found; in the run before both were blocked in step 1.

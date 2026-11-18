@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is setting A, the fresh install.",
- "headline": "A (fresh install, nothing changed), of the 35 kinds built: 9 at the end; 14 arrived and tied to her; 25 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 9 at the end; 14 arrived and tied to her; 25 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C: 5 at the end; 7 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
+ "headline": "A (fresh install, nothing changed), of the 35 kinds built: 9 at the end; 17 arrived and tied to her; 28 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 9 at the end; 14 arrived and tied to her; 25 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C: 5 at the end; 7 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
  "caveats": [
   "The five minutes of the sign-in guard after step 4 are cut to about a second in the measurement; since H2 that cut reaches only a sign-in on a shipped host, so the five-minute hold on the network's own site after its \"Sign in with\" page is not cut, and the question about a company she also uses does not come up within the trip.",
   "The lab does not use the fingerprint to tie visits together, so the page shield is not measured by these numbers.",
@@ -217,8 +217,9 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 6,
+    "removed": 7,
     "waiting": {
+     "unknown": 1,
      "bounce": 1
     },
     "blockRuleMatches": 0,
@@ -227,22 +228,34 @@
    },
    "rows": {
     "T1": {
-     "status": "stopped",
-     "records": 0,
-     "linked": 0,
-     "sites": [],
-     "via": [],
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "cookie sent with the like frame"
+     ],
+     "lastStep": 3,
      "atEnd": false,
-     "ever": false
+     "ever": true,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 3"
     },
     "T2": {
-     "status": "stopped",
-     "records": 0,
-     "linked": 0,
-     "sites": [],
-     "via": [],
+     "status": "tracked",
+     "records": 1,
+     "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "cookie sent with the like frame"
+     ],
+     "lastStep": 3,
      "atEnd": false,
-     "ever": false
+     "ever": true,
+     "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
     },
     "T3": {
      "status": "unlinked",
@@ -292,13 +305,19 @@
      "ever": false
     },
     "T8": {
-     "status": "stopped",
-     "records": 0,
-     "linked": 0,
-     "sites": [],
-     "via": [],
+     "status": "tracked",
+     "records": 2,
+     "linked": 2,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "per-site cookie sent from inside the site"
+     ],
+     "lastStep": 4,
      "atEnd": false,
-     "ever": false
+     "ever": true,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T9": {
      "status": "tracked",
@@ -378,7 +397,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "cause": "fired too late (ID already sent)"
     },
     "T16": {
      "status": "unlinked",
@@ -388,7 +407,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "cause": "fired too late (ID already sent)"
     },
     "T17": {
      "status": "tracked",
@@ -403,7 +422,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
+     "cause": "re-created after cleaning (new ID; re-linked by T8 T9)"
     },
     "T18": {
      "status": "kept on purpose: your own history, readable by no website",
@@ -450,7 +469,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
+     "cause": "re-created after cleaning (new ID; re-linked by T8 T9)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
@@ -466,7 +485,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
+     "cause": "re-created after cleaning (new ID; re-linked by T8 T9)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -650,11 +669,11 @@
     }
    },
    "counts": {
-    "tracked": 12,
+    "tracked": 15,
     "unlinked": 11,
-    "stopped": 10,
-    "arrived": 25,
-    "ever": 14,
+    "stopped": 7,
+    "arrived": 28,
+    "ever": 17,
     "atEnd": 9,
     "simulated": [],
     "own": [
@@ -682,8 +701,9 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 7,
+    "removed": 8,
     "waiting": {
+     "unknown": 1,
      "bounce": 1
     },
     "blockRuleMatches": 0,
@@ -868,7 +888,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "re-created after cleaning (new ID)"
+     "cause": "re-created after cleaning (new ID; re-linked by T9)"
     },
     "T18": {
      "status": "kept on purpose: your own history, readable by no website",
@@ -915,7 +935,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "re-created after cleaning (new ID)",
+     "cause": "re-created after cleaning (new ID; re-linked by T9)",
      "simulated": "needs the lab certificate"
     },
     "T21": {
@@ -931,7 +951,7 @@
      "lastStep": 8,
      "atEnd": true,
      "ever": true,
-     "cause": "re-created after cleaning (new ID)",
+     "cause": "re-created after cleaning (new ID; re-linked by T9)",
      "simulated": "needs the lab certificate"
     },
     "T22": {
@@ -1147,8 +1167,9 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 12,
+    "removed": 13,
     "waiting": {
+     "unknown": 1,
      "bounce": 1,
      "storage": 1
     },
@@ -1561,12 +1582,22 @@
     "complete": false
    },
    "manual": {
+    "approve unknown": {
+     "ok": true,
+     "done": 0,
+     "of": 0
+    },
     "approve bounce": {
      "ok": true,
      "done": 0,
      "of": 0
     },
     "approve storage": {
+     "ok": true,
+     "done": 1,
+     "of": 1
+    },
+    "remove what friendface.localhost keeps": {
      "ok": true,
      "done": 1,
      "of": 1
@@ -1664,7 +1695,7 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 25,
+    "removed": 28,
     "waiting": {
      "bounce": 1,
      "storage": 1
