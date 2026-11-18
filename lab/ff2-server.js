@@ -36,12 +36,19 @@ function start2({ port = 8300, logFile } = {}) {
   lab.collect = async (c) => {
     const p = c.url.pathname, site = c.site, host = site + '.localhost', cook = c.cookies;
     const id = cook.fp_id || ('fp-' + rid('', 5).slice(1)), fresh = !cook.fp_id;
-    const ids = ['ff2:' + host + ':' + id, c.p('m') && 'ff2m:' + c.p('m')];
+    const master = c.p('m') || (c.body || {}).m || '';   // the cookie-less master id, from the address or the posted body
+    const ids = ['ff2:' + host + ':' + id, master && 'ff2m:' + master];
     const setId = () => { if (fresh) c.setCookie(`fp_id=${id}; Path=/; Max-Age=31536000; SameSite=Lax`); };
     if (p === '/f/kit.js') return c.send(200, 'text/javascript', kitFor(), { 'Cache-Control': 'max-age=3600' });
     if (p === '/f/hit') { setId();
       store.record(ids, 'F1', `fp_id=${id}`, host, fresh ? 'first-party cookie set by the site’s own /f/ proxy' : 'first-party cookie sent back to the site');
       store.record(ids, 'F8', `${c.p('u') || c.url.href} (came from ${c.p('r') || 'nowhere'})`, host, 'the site’s own address and referrer, posted first-party');
+      // F2 (cookie-less first-party id): the kit keeps the master id only in this site's own storage and in the address
+      const b = c.body || {}, mid = c.p('m') || b.m, stores = b.stores || {};
+      if (mid) { const where = Object.keys(stores).filter((k) => stores[k]).map((k) => ({ local: 'localStorage', idb: 'IndexedDB', cache: 'cacheStorage' }[k] || k));
+        store.record(ids, 'F2', `ff2_id=${mid} (kept in ${where.join(', ') || 'the address only'}, no cookie)`, host,
+          (b.respawned || []).length ? 'put back from ' + (b.respawned || []).join(', ') + '; no cookie' : 'kept cookie-less in the site’s own storage'); }
+      if (b.fp && b.fp.code) store.record(ids, 'F6', b.fp.code, host, `graphics-draw ${b.fp.gl}, fonts ${b.fp.fonts}, screen+media ${b.fp.media}`);
       return lab.hit ? lab.hit(c, { id, ids, host }) : c.json({ ok: true }); }
     if (p === '/f/px.gif') { const tag = `"${id}"`, asked = c.q.headers['if-none-match'];
       if (asked === tag) { store.record(ids, 'F10', `ETag ${tag} on the site’s own image`, host, 'the browser revalidated the first-party image with If-None-Match');

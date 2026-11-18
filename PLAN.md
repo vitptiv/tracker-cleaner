@@ -1213,3 +1213,7 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   all thirdParty) never match. Kinds: F1 first-party id (a first-party cookie `fp_id` under each site's own name),
   F8 the site's own address+referrer posted first-party, F9 a loopback probe the collector makes server-side for the
   page, F10 an ETag on the site's own image. Tested at the HTTP level in `test/ff2-server.test.js`.
+- F2-2 cookie-less first-party id (`lab/ff2-kit.js`): the per-visitor master id is kept only in each site's own
+  localStorage, IndexedDB and cacheStorage and carried in the address (F2-3); never a cookie. The collector records
+  it (F2) and joins every site into one browser by that id. No cross-site-usable cookie of the collector is ever
+  set, so `followSweep` never raises a question. Tested in `test/ff2-kit.test.js`.
