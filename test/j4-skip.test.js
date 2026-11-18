@@ -1,6 +1,6 @@
 // J4 (third audit): a link is rewritten only for redirectors on the shipped list, or after the user's press on a question.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
-const { skipTo } = require('../extension/skip.js'), { PASSERS } = require('../extension/learn.js'), { buildReport, renderReport } = require('../extension/report-view.js');
+const { skipTo } = require('../extension/skip.js'), PASSERS = [], { buildReport, renderReport } = require('../extension/report-view.js');
 const enc = encodeURIComponent, PAGE = 'https://mail.example/inbox';
 const on = (o = {}) => ({ tabs: [{ id: 1, active: true, url: PAGE }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const pass = async (bg, to) => { await bg.redirect({ url: `https://hop.example/r?to=${enc(to)}`, redirectUrl: to + '?hid=h-77ab12cd34ef', type: 'main_frame' }); await bg.settle(); };
@@ -19,12 +19,15 @@ test('one destination, or no added ID, or a site the user opens: no question', a
   const one = await load(on()); await pass(one, 'https://blog.example/post'); await pass(one, 'https://blog.example/other'); assert.deepEqual(asks(one), []);
   const used = await load(on()); await used.opens('https://hop.example/home'); await used.closeTab(used.tabOf('https://hop.example/home')); await pass(used, 'https://blog.example/post'); await pass(used, 'https://shop.example/x'); assert.deepEqual(asks(used), []);
 });
-test('the shipped redirectors are skipped from the start, by exact host; each can be let through again', async () => {
+test('L6: there is no shipped list of redirectors: nothing is skipped before the user pressed Skip for that host', async () => {
   const bg = await load(on()); await bg.alarm('sweep');
-  assert.deepEqual(sites(bg), PASSERS); assert.ok(PASSERS.includes('l.facebook.com') && PASSERS.every((h) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h)));
-  assert.equal(skipTo(`https://l.facebook.com/l.php?u=${enc('https://blog.example/post')}&h=abc`, PAGE, PASSERS), 'https://blog.example/post');
-  for (const h of ['facebook.com', 'www.facebook.com', 'evil-l.facebook.com', 'l.facebook.com.evil.test', 'x.l.facebook.com']) assert.equal(skipTo(`https://${h}/l.php?u=${enc('https://blog.example/post')}`, PAGE, PASSERS), null, h);
-  await bg.send({ type: 'unskip', site: 'l.facebook.com' }); await bg.settle(); assert.equal(sites(bg).includes('l.facebook.com'), false);
+  assert.deepEqual(sites(bg), []); assert.equal(require('../extension/learn.js').PASSERS, undefined);
+  assert.equal(skipTo(`https://l.facebook.com/l.php?u=${enc('https://blog.example/post')}&h=abc`, PAGE, sites(bg)), null);
+});
+test('L6: more words that are never skipped: endsession, do_logout, disconnect', () => {
+  const to = enc('https://shop.example/done'), S = ['hop.example'];
+  for (const path of ['/connect/endsession', '/do_logout', '/disconnect', '/oauth2/disconnect']) assert.equal(skipTo(`https://hop.example${path}?to=${to}`, PAGE, S), null, path);
+  assert.equal(skipTo(`https://hop.example/r?a=do_logout&to=${to}`, PAGE, S), null);
 });
 test('never skipped: more words for signing out, paying and signing in, in the path or in what is handed over', () => {
   const to = enc('https://shop.example/done'), S = ['hop.example'];

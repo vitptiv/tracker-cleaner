@@ -6,7 +6,7 @@ const SKIP = typeof module !== 'undefined' ? { ...require('./guard.js'), ...requ
 const web = (u) => u.protocol === 'https:' || u.protocol === 'http:';
 // never skipped (1.25, H4): an address handed over as the way back (by its name), and a link that does something on the way
 const BACK = /^(return|returnto|return_to|returnurl|return_url|redirect|redirect_uri|redirect_url|continue|next|callback|back|success_url|cancel_url)$/i;
-const DOES = /^(logout|log-out|logoff|log-off|signout|sign-out|sign_out|wsignout[0-9.]*|pay|payment|payments|checkout|cart|auth|adfs|wp-login|verify|confirm|unsub|unsubscribe|subscribe|delete|remove)([-_.]|$)/i;
+const DOES = /^(logout|log-out|logoff|log-off|do_logout|signout|sign-out|sign_out|wsignout[0-9.]*|endsession|disconnect|pay|payment|payments|checkout|cart|auth|adfs|wp-login|verify|confirm|unsub|unsubscribe|subscribe|delete|remove)([-_.]|$)/i;
 // sites: the passing hosts, each by its exact name (the shipped ones, and those the user chose to skip). The one address on
 // another site that the link names, or null: never for a sign-in, never when a part of the path or a handed-over value says it does something.
 const skipTo = (href, base, sites) => {

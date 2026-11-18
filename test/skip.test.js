@@ -29,7 +29,7 @@ test('never on the way of a sign-in: a sign-in address as the link or as the des
   assert.equal(skipTo(hop(`to=${enc('https://accounts.google.com/o/oauth2/auth')}`), PAGE, SITES), null);
   assert.equal(skipTo(hop(`to=${enc('https://blog.example/login')}`), PAGE, SITES), null);
 });
-const { PASSERS } = require('../extension/learn.js');
+const PASSERS = [];   // (1.25, L6: no shipped list any more)
 const mine = (bg) => ((bg.state.storage.skip || { sites: [] }).sites).filter((x) => !PASSERS.includes(x));   // beside the shipped redirectors
 const choose = async (bg) => { await pass(bg); await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'skip it next time' }); await bg.settle(); };
 test('the list the page script gets: the hosts the user chose to skip (1.25, J4), while that cleaning may run; empty when paused, off or during a sign-in', async () => {

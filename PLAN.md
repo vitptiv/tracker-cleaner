@@ -1141,3 +1141,6 @@ other companies; the local network).
 - L3 the learned "cut this off addresses" questions are gone entirely (page text was rendered inside the question;
   SAMLRequest and otp were offered): no names a redirect adds are kept, no question, no rule, no `params` list, no
   `unparam` message. Only the shipped list of tracking tags (`rules-params.json`) is cut.
+- L6 there is no shipped list of redirectors any more (skipping l.facebook.com bypassed that site's own link check):
+  a link is rewritten only for a host the user pressed "Skip it" for. Never skipped, added: endsession, do_logout,
+  disconnect.

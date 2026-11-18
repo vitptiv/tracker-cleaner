@@ -432,8 +432,9 @@ async function applyFeatures() {
     if (JSON.stringify(old) !== JSON.stringify(want)) await installEach('session', (o) => chrome.declarativeNetRequest.updateSessionRules(o), old, want); } catch {}
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { skipok = [], noskip = [], skip: was } = await chrome.storage.local.get(['skipok', 'noskip', 'skip']);
-  // J4: only the shipped redirectors and the hosts the user chose with "Skip it next time?" (`skipok`); never one that was only learned
-  const skip = { sites: can('C27', cx) ? [...new Set([...PASSERS, ...skipok])].filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
+  // only the hosts the user chose with "Skip it next time?" (`skipok`): never one that was only learned (J4), and there is no
+  // shipped list (L6: skipping a site's own link check, such as l.facebook.com, takes away a warning that site gives)
+  const skip = { sites: can('C27', cx) ? skipok.filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
   if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
   try { const there = await chrome.scripting.getRegisteredContentScripts(), have = there.map((x) => x.id);
     const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(can('C32', cx) && !cx.hold.guard ? [SHIELD((cx.set.sitesOff || []).filter(isHost))] : [])], same = (x) => there.some((y) => y.id === x.id && JSON.stringify(y.excludeMatches || []) === JSON.stringify(x.excludeMatches || [])),
