@@ -393,7 +393,7 @@ test('what waits: nothing says so; put off says until when; paused or off greys 
   let r = buildReport(state({}, g({ postponedUntil: NOW + 3600e3 })), tab());
   assert.equal(r.waiting[0].line, 'Cookies Google uses to recognise you: 1 waiting, put off until 15:05');
   assert.equal(buildReport(state({}, g({ postponedUntil: 'restart' })), tab()).waiting[0].line, 'Cookies Google uses to recognise you: 1 waiting, put off until Chrome starts again');
-  assert.deepEqual(r.waiting[0].items, ['<b>NID on <i>x (its site keeps putting it back)']);
+  assert.deepEqual(r.waiting[0].items, ['<b>NID on <i>x (left alone for an hour: its site keeps putting it back; then removed again)']);
   assert.doesNotMatch(renderReport(r), /<b>NID|<i>x/);
   for (const o of [{ hold: { paused: true } }, { master: false }]) { const b = buttons(renderReport(buildReport(state(o, g()), tab()))).find((x) => x.label === 'Remove 1 cookie'); assert.equal(b.disabled, true); }
   // Wi-Fi: this user may not remove saved networks: no button, one sentence

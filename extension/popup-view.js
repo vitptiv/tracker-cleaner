@@ -73,8 +73,8 @@ const renderPopup = (state, tab) => {
     return `<div class="c" data-group="${esc(g.id)}"><div class="h"><b>${esc(g.title)}</b><select ${msg({ type: 'setMode', group: g.id })}>`
       + (g.ask === false ? ON_OFF : g.noAuto ? MODES.slice(0, 2) : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'
       + (cmd ? `<div class="m h"><span>${line}</span><button class="small" data-copy="node tools/inspect.js ${cmd}">Copy command</button></div>` : `<div class="m">${line}</div>`) + (hint ? `<div class="m">${hint}</div>` : '')
-      + (!k ? '' : `<div class="m">${k} of these ${k === 1 ? 'is no longer removed automatically: its site keeps putting it back, so it waits for you.'
-        : 'are no longer removed automatically: their sites keep putting them back, so they wait for you.'}</div>`)
+      + (!k ? '' : `<div class="m">${k} of these ${k === 1 ? 'is left alone for an hour because its site keeps putting it back; after that it is removed again.'
+        : 'are left alone for an hour because their sites keep putting them back; after that they are removed again.'}</div>`)
       + (g.id === 'cache' && mode !== 'off' && !n ? `<div class="b">${btn('Clean now', { type: 'drop', kind: 'servers' }, '', stopped)}</div>` : '')
       + (!n ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
         + `${btn('Until restart', { type: 'postpone', group: g.id, minutes: 'restart' }, 'small')}</div>`

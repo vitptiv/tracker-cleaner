@@ -55,8 +55,8 @@ const renderHistoryPage = (() => {
         kept: esc(sum([[n('keep'), 'that keeps you signed in', 'that keep you signed in'], [n('other'), 'that is on no tracker list', 'that are on no tracker list'],
           [n('allowed'), 'that you allowed', 'that you allowed'], [n('off'), 'on a site you told it not to clean', 'on sites you told it not to clean']])),
         removed: `${when(r)}. Still there and would be removed: ${esc(go)}`,
-        more: !loops ? '' : `<p>${loops === 1 ? '1 cookie is no longer removed automatically: its site keeps putting it back, so it waits for you in the popup.'
-          : `${num(loops)} cookies are no longer removed automatically: their sites keep putting them back, so they wait for you in the popup.`}</p>`,
+        more: !loops ? '' : `<p>${loops === 1 ? '1 cookie is left alone for an hour because its site keeps putting it back; after that it is removed again.'
+          : `${num(loops)} cookies are left alone for an hour because their sites keep putting them back; after that they are removed again.`}</p>`,
         after: 'Trackers recognise you less from one site to the next, and you stay signed in. Without Google&#39;s cookies you may be asked to prove you are human more often.',
         lists: [['Removed, day by day', r.per.map(([d, k]) => `${date(d)}: ${num(k)}`)], ['Removed most often', often],
           ['Still there: has a tracker&#39;s name', by.name], ['Still there: comes from a tracker&#39;s site', by.host], ['Still there: Google uses it to recognise you', by.google],

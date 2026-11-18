@@ -1161,3 +1161,10 @@ other companies; the local network).
   memory), and at most 20 questions wait at a time, most evidence first; pages under shared names (`SHARED`) go on a
   list of their own of 50 places (`mineShared`) and cannot push a real site off `mine`; the holds of the shipped
   sign-in families are outside the 200-site room that other sites' /login pages can fill (L4).
+- L7 page shield: the saved amount (`navigator.storage.estimate`) is no longer touched. Every way of rounding its
+  answer goes through the promise it returns, and a page that has replaced the promise's `constructor` is handed
+  the real promise. Declared as uncovered besides: VideoFrame.copyTo, WebGL2 getBufferSubData, AudioWorklet
+  (sound processed in a worklet never passes the replaced functions), and what J5 lists.
+- L8 loop breaker: a cookie its site puts back five times in ten minutes is left alone for one hour, not a day
+  (five re-sets kept a listed tracker's cookie for 24 hours), then removed again; the popup, the report and the
+  history page say exactly that.

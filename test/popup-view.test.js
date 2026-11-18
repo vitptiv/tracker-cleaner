@@ -160,10 +160,10 @@ test('the cache row says how much there is and when it is next offered, instead 
 test('a row with cookies that keep coming back says so, with the number, and marks them in the list', () => {
   const back = 'this site keeps putting it back', row = (items, looping) => rowOf(renderPopup(state({}, { google: { mode: 'auto', pending: items.length, looping, items } }), null), 'google');
   const one = row([item('google.com', 'NID', { cap: 'C04', why: back })], 1);
-  assert.ok(one.includes('<div class="m">1 of these is no longer removed automatically: its site keeps putting it back, so it waits for you.</div>'), one);
+  assert.ok(one.includes('<div class="m">1 of these is left alone for an hour because its site keeps putting it back; after that it is removed again.</div>'), one);
   assert.ok(one.includes('google.com · NID <span class="m">keeps coming back</span>'));
   const two = row([item('google.com', 'NID', { cap: 'C04', why: back }), item('youtube.com', 'YSC', { cap: 'C04', why: back }), item('google.com', 'OTZ', { cap: 'C04', why: 'google' })], 2);
-  assert.ok(two.includes('<div class="m">2 of these are no longer removed automatically: their sites keep putting them back, so they wait for you.</div>'));
+  assert.ok(two.includes('<div class="m">2 of these are left alone for an hour because their sites keep putting them back; after that they are removed again.</div>'));
   assert.equal(two.split('keeps coming back').length - 1, 2);
   assert.equal(row([item('google.com', 'OTZ', { cap: 'C04', why: 'google' })], 0).includes('no longer removed'), false);
 });

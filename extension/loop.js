@@ -1,9 +1,10 @@
 // Loop breaker: some sites set a cookie again the moment it is removed, and removing it over and over helps nobody
 // (found in use: google.com NID, 30 times in 9 minutes). Pure: background.js keeps
 // chrome.storage.local { loops: { '<site> <name>': { t: [times of the latest removals], until } } } and passes it in.
-// LOOP_N removals of the same cookie within LOOP_MS: it is left alone until `until` and waits in the approval queue
-// with the reason LOOP_WHY. Never a cookie value.
-const LOOP_N = 5, LOOP_MS = 10 * 60e3, LOOP_HOLD_MS = 24 * 3600e3, LOOP_WHY = 'this site keeps putting it back';
+// LOOP_N removals of the same cookie within LOOP_MS: it is left alone for LOOP_HOLD_MS (one hour; a day let a listed
+// tracker keep its cookie for a day by setting it five times, L8), shown in the queue with the reason LOOP_WHY, and then
+// removed again. Never a cookie value.
+const LOOP_N = 5, LOOP_MS = 10 * 60e3, LOOP_HOLD_MS = 3600e3, LOOP_WHY = 'this site keeps putting it back';
 const loopStuck = (loops, key, now) => ((loops || {})[key] || {}).until > now;
 // One more removal of `key`. Returns the new store, without what no longer matters: removals older than the window,
 // holds that have ended.

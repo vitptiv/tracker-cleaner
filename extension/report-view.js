@@ -110,7 +110,7 @@ const { buildReport, renderReport } = (() => {
       : `${it.site} is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?`,
  };
   const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
-    : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (its site keeps putting it back)' : '');
+    : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (left alone for an hour: its site keeps putting it back; then removed again)' : '');
   const waiting = (s) => (s.groups || []).filter((g) => Number(g.pending) > 0).map((g) => { const n = Number(g.pending), [verb, thing] = DOES[g.id] || ['Remove', 'item'], until = g.postponedUntil;
     const barred = g.id === 'wifi' && g.canDelete !== 'yes';   // the Wi-Fi helper says this user may not remove networks
     return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome starts again' : until > s.now ? `, put off until ${hhmm(until)}` : ''),

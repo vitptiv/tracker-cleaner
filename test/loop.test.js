@@ -5,8 +5,8 @@ const { LOOP_N, LOOP_MS, LOOP_HOLD_MS, LOOP_WHY, loopNote, loopStuck } = require
 const MIN = 60e3, HOUR = 60 * MIN, T = 1.8e12, K = 'example.com _ga';
 const noted = (times, loops = {}) => times.reduce((l, t) => loopNote(l, K, t), loops);
 
-test('loop.js: 5 removals within 10 minutes hold the cookie for 24 hours; fewer, or slower, do not', () => {
-  assert.deepEqual([LOOP_N, LOOP_MS, LOOP_HOLD_MS, LOOP_WHY], [5, 10 * MIN, 24 * HOUR, 'this site keeps putting it back']);
+test('loop.js: 5 removals within 10 minutes leave the cookie alone for one hour (1.25, L8: not a day); fewer, or slower, do not', () => {
+  assert.deepEqual([LOOP_N, LOOP_MS, LOOP_HOLD_MS, LOOP_WHY], [5, 10 * MIN, HOUR, 'this site keeps putting it back']);
   const four = noted([0, 1, 2, 3].map((i) => T + i * MIN));
   assert.equal(loopStuck(four, K, T + 4 * MIN), false);
   const five = loopNote(four, K, T + 4 * MIN);
@@ -64,13 +64,19 @@ test('a cookie removed twice a day is unaffected', async () => {
   for (let i = 0; i < 8; i++) { await put(bg); assert.deepEqual(await bg.names(), [], `removal ${i + 1}`); bg.now += 12 * HOUR; }
   assert.deepEqual(queued(bg, 'cookies'), []);
 });
-test('the breaker forgets after 24 hours: the cookie is removed again, by a new cookie event or by the sweep', async () => {
+test('the breaker pauses for one hour, then deleting goes on: the cookie is removed again, by a new cookie event or by the sweep', async () => {
   const live = await load(on());
-  await loop5(live); await put(live); live.now += 24 * HOUR;
+  await loop5(live); await put(live); live.now += HOUR;
   await put(live);
   assert.deepEqual(await live.names(), []);
   const swept = await load(on());
-  await loop5(swept); await put(swept); swept.now += 24 * HOUR;
+  await loop5(swept); await put(swept); swept.now += HOUR;
   await swept.alarm('sweep');
   assert.deepEqual(await swept.names(), []); assert.deepEqual(queued(swept, 'cookies'), []);
+});
+test('L8: the popup and the report say that it is left alone for an hour and then removed again', () => {
+  const { renderPopup } = require('../extension/popup-view.js'), { buildReport } = require('../extension/report-view.js');
+  const it = { cap: 'C03', kind: 'cookie', site: 'example.com', name: '_ga', why: 'this site keeps putting it back' }, g = { id: 'cookies', title: 'Trackers\' cookies', says: '', ask: true, mode: 'auto', pending: 1, items: [it], looping: 1 };
+  assert.ok(renderPopup({ now: 1, master: true, hold: {}, groups: [g] }, null).includes('1 of these is left alone for an hour because its site keeps putting it back; after that it is removed again.'));
+  assert.ok(buildReport({ now: 1, master: true, hold: {}, groups: [g] }, null).waiting[0].items[0].includes('left alone for an hour: its site keeps putting it back'));
 });

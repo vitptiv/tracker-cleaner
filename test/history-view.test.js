@@ -57,8 +57,8 @@ test('what was removed and when: today, the last 30 days, per day, and the cooki
 });
 test('cookies: the notice for a cookie its site keeps putting back', () => {
   const one = renderHistoryPage(state({}, { google: { pending: 1, looping: 1 } })), two = renderHistoryPage(state({}, { google: { looping: 1 }, cookies: { looping: 2 } }));
-  assert.ok(section(one, 'cookies').includes('<p>1 cookie is no longer removed automatically: its site keeps putting it back, so it waits for you in the popup.</p>'));
-  assert.ok(section(two, 'cookies').includes('<p>3 cookies are no longer removed automatically: their sites keep putting them back, so they wait for you in the popup.</p>'));
+  assert.ok(section(one, 'cookies').includes('<p>1 cookie is left alone for an hour because its site keeps putting it back; after that it is removed again.</p>'));
+  assert.ok(section(two, 'cookies').includes('<p>3 cookies are left alone for an hour because their sites keep putting them back; after that they are removed again.</p>'));
   assert.equal(renderHistoryPage(state()).includes('putting'), false);
 });
 test('saved copies of pages: what the extension cannot see it says so, and when the next clearing is due', () => {
