@@ -151,7 +151,7 @@ async function approve(group, site, name) {
   if (cx.hold.paused) return { ok: false, why: 'paused' };
   if (cx.set.master === false) return { ok: false, why: 'off' };
   let items = [];
-  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : it.kind !== 'used'; items = g.items.filter(mine);   // the group button never answers the question USED
+  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : it.kind !== 'used' && it.kind !== 'param'; items = g.items.filter(mine);   // the group button never answers the question USED, nor "cut this off addresses"
     g.items = g.items.filter((it) => !mine(it)); if (!g.items.length) delete p[group];
     return items.length > 0; });
   const cookies = items.some((it) => it.kind === 'cookie') ? await allCookies() : [], tabs = await chrome.tabs.query({});
@@ -313,7 +313,8 @@ const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.ho
   restoreAll: () => restore(() => true), drop,
   // the private history, for the extension's own page; "Clear history" empties it
   history: async () => ({ ok: true, ...historyTrim((await chrome.storage.local.get('history')).history, Date.now()) }),
-  clearHistory: async () => { await serial(() => chrome.storage.local.remove(['history', 'mine'])); return { ok: true }; } };
+  // the list of sites the user opens as pages (`mine`) stays: it is what keeps their cookies from being cleaned (H9)
+  clearHistory: async () => { await serial(() => chrome.storage.local.remove('history')); return { ok: true }; } };
 
 // ---- Drop (the audit view's buttons, popup-audit.js): one item now, because the user said so. Through here so
 // that pause and the master switch hold it back, it is in the action log, and a cookie can be undone.
@@ -563,6 +564,14 @@ chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) tabSite.delete(i
 chrome.tabs.onRemoved.addListener((id) => { tabSite.delete(id); });
 // for counting visited sites, every tenant of one shared name (two pages on github.io) is the same site: two of them never add up
 const tabKey = (page) => SHARED.find((s) => page.endsWith('.' + s)) || page;
+// At most NEW_HOUR companies are noted for the first time per visited site in an hour (in memory): a page that asks hundreds
+// of made-up hosts cannot fill the list. followStore gives the list, or null when this one may not be added now.
+const NEW_HOUR = 20, fresh = new Map();
+async function followStore(site, page) { const { follow = {} } = await chrome.storage.local.get('follow');
+  if (follow[site]) return follow;
+  const now = Date.now(), e = fresh.get(page); if (fresh.size > 500) fresh.clear();
+  if (!e || e.t < now - 3600e3) { fresh.set(page, { t: now, n: 1 }); return follow; }
+  return ++e.n > NEW_HOUR ? null : follow; }
 async function noteRequest(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
@@ -578,8 +587,8 @@ async function noteRequest(d) {
   if (seen.size > 5000) seen.clear();
   seen.add(key); await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
-  let full = false;
-  await serial(async () => { const next = followNote((await chrome.storage.local.get('follow')).follow, site, u.host, tabKey(page), false, Date.now(), sent);
+  let full = false; const salt = await saltNow();
+  await serial(async () => { const st = await followStore(site, page), next = st && followNote(st, site, u.host, `${salt} ${tabKey(page)}`, false, Date.now(), sent);
     if (next) { await chrome.storage.local.set({ follow: next }); full = followFull(next[site]); } });
   if (full) sweep('learned');
 }
@@ -606,8 +615,8 @@ async function noteAnswer(d) {
   if (!page || site === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
   await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
-  let full = false;
-  await serial(async () => { const next = followNote((await chrome.storage.local.get('follow')).follow, site, u.host, tabKey(page), true, Date.now());
+  let full = false; const salt = await saltNow();
+  await serial(async () => { const st = await followStore(site, page), next = st && followNote(st, site, u.host, `${salt} ${tabKey(page)}`, true, Date.now());
     if (next) { await chrome.storage.local.set({ follow: next }); full = followFull(next[site]); } });
   if (full) sweep('learned');
 }

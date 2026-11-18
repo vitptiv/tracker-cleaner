@@ -18,8 +18,8 @@ test('refused while paused or switched off', async () => {
   for (const storage of [{ master: true, pauseUntil: 1.8e12 + 60e3 }, { master: false }]) { const bg = await load({ storage });
     assert.equal((await bg.send({ type: 'clearBrowsing' })).ok, false); assert.deepEqual(cleared(bg), []); }
 });
-test('the popup says plainly what it does: all of it, and it cannot be put back; the press must be repeated', () => {
+test('the popup says plainly what it does: all of it, and it cannot be put back (how the press is confirmed: h9-limits.test.js)', () => {
   const html = renderPopup({ now: 1, master: true, hold: {}, groups: [] }, null);
-  assert.match(html, /<button data-twice="Press again: this clears all of your browsing history and cannot be put back" data-msg="[^"]*clearBrowsing[^"]*">Clear my browsing history<\/button>/);
+  assert.ok(html.includes('This clears all of it and cannot be put back.'));
   assert.ok(html.includes('Clears every page Chrome remembers you visited, on all sites. It cannot be put back. Tracker Cleaner never does this by itself.'));
 });

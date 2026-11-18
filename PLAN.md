@@ -977,3 +977,9 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   (C11, C25, C27, C28) stored as "Ask first" unless the user had chosen a mode (`held125`); blocking and the rules
   that delete nothing start at once. The popup's one-time line "New: Tracker Cleaner now cleans by itself." has two
   answers: OK takes those stored modes away again (by itself from then on), Keep asking leaves them.
+- H9 questions and limits: the group button never answers "cut this off addresses" (nor the question of H1); a name
+  with token, reset, code, key, auth, session or sig anywhere in it is never offered; the marks in `follow.on` are
+  made with the install's `salt`; over 300 candidates the least evidence goes first, and at most 20 new companies
+  are noted per visited site in an hour; "Clear my browsing history" shows a second, separate button that can be
+  pressed only a second later; neither history clearing empties `mine` any more (takes back that part of F5), and
+  the popup says so; a cleaned-out tracker's background program is removed even while its site is open (H1).

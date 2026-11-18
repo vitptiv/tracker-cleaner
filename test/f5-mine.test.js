@@ -20,10 +20,9 @@ test('each install hashes with its own random salt, and no site name or address 
   assert.notDeepEqual(one.state.storage.mine, two.state.storage.mine);
   assert.equal(JSON.stringify(one.state.storage).includes('a.example'), false);
 });
-test('"Clear history" also empties the list of sites opened as pages', async () => {
+test('"Clear history" leaves the list of sites opened as pages alone (changed by H9: emptying it exposed those sites\' cookies to cleaning)', async () => {
   const bg = await load(on()); await bg.opens('https://a.example/');
-  assert.equal(bg.state.storage.mine.length, 1);
-  await bg.send({ type: 'clearHistory' }); assert.equal('mine' in bg.state.storage, false);
+  await bg.send({ type: 'clearHistory' }); assert.equal(bg.state.storage.mine.length, 1);
 });
 test('a page that passes the browser on to another site within 3 seconds is not counted as opened', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://trk.example/interstitial' }] }));

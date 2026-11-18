@@ -32,7 +32,9 @@ const followNote = (store, site, host, page, ck, now, sent) => {
   const e = { on: old.on.includes(m) || old.on.length >= FOLLOW_N ? old.on : [...old.on, m], ck: !!old.ck || !!ck, sent: !!old.sent || !!sent,
     hosts: !host || old.hosts.includes(host) || old.hosts.length >= 5 ? old.hosts : [...old.hosts, host], t: now };
   if (e.on === old.on && e.ck === !!old.ck && e.sent === !!old.sent && e.hosts === old.hosts) return null;
-  return Object.fromEntries(Object.entries({ ...store, [site]: e }).sort((a, b) => b[1].t - a[1].t).slice(0, FOLLOW_MAX));
+  // over FOLLOW_MAX the least evidence goes first, then the longest unseen: junk cannot push out what was really learned (H9)
+  const weight = (x) => (x.sent ? 4 : 0) + (x.ck ? 2 : 0) + x.on.length;
+  return Object.fromEntries(Object.entries({ ...store, [site]: e }).sort((a, b) => weight(b[1]) - weight(a[1]) || b[1].t - a[1].t).slice(0, FOLLOW_MAX));
 };
 // A page address answered "go to `to`" (C27). When the address it was asked with names where the user wanted to go
 // (…?to=https://blog/post), whatever `to` carries beyond that was added on the way: returned are the names of the
@@ -40,9 +42,11 @@ const followNote = (store, site, host, page, ck, now, sent) => {
 // (a video, a list, a search, a page number): cutting those off every address would break sites.
 const NEVER_PARAM = new Set(('code state token id_token access_token refresh_token session_state nonce ticket samlresponse relaystate sig signature key client_id redirect_uri response_type scope '
   + 'v id q p s t u n c a list page lang locale url uri to next continue return callback search query type tab view sort order limit offset name user email sid session item product article post file path action format').split(' '));
+// nor a name that sounds like a sign-in or a key, wherever in the name (H9)
+const NEVER_PART = /token|reset|code|key|auth|session|sig/i;
 const bounceAdded = (from, to, any) => { try { const b = new URL(to);   // any: also under a name that is never offered for cutting (did it add an ID at all?)
   for (const [, v] of new URL(from).searchParams) { let want; try { want = new URL(v); } catch { continue; }
-    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && (any || !NEVER_PARAM.has(k.toLowerCase()))).map(([k]) => k); }
+    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && (any || !(NEVER_PARAM.has(k.toLowerCase()) || NEVER_PART.test(k)))).map(([k]) => k); }
   } catch {} return []; };
 const followFull = (e) => !!e && (e.on.length >= FOLLOW_N || e.sent === true);
 // S6: is the ID a site keeps for the user being handed to another company? Compared part by part: a part counts when it

@@ -57,7 +57,9 @@ out.addEventListener('click', (e) => { const b = e.target.closest('button'); if 
   // Chrome shows its own question for the history right, and only straight from a press
   if (b.dataset.perm === 'history') return chrome.permissions.request({ permissions: ['history'] }).then((ok) => ok ? send({ type: 'histOn', on: true }).then(() => show()) : show('Chrome did not allow it, so nothing changed.'), () => show('That did not work.'));
   if (b.dataset.permOff === 'history') return send({ type: 'histOn', on: false }).then(() => chrome.permissions.remove({ permissions: ['history'] })).then(() => show(), () => show());
-  if (b.dataset.twice && b.textContent !== b.dataset.twice) { b.textContent = b.dataset.twice; b.classList.add('warn'); return; }   // said plainly first, done at the second press
+  // a press that only shows a second, separate button, which can be pressed after its waiting time
+  if (b.dataset.reveal) { const box = document.getElementById(b.dataset.reveal), yes = box && box.querySelector('button[data-wait]'); if (!box) return;
+    box.hidden = false; if (yes) setTimeout(() => { yes.disabled = false; }, Number(yes.dataset.wait) || 1000); return; }
   if (b.dataset.msg) { b.disabled = true; act(b); } else auditClick(b).catch(() => { note.textContent = '✗ no answer from the audit server'; }); });
 out.addEventListener('change', (e) => { const el = e.target; if (el.dataset.msg) act(el, el.tagName === 'SELECT' ? { mode: el.value } : { on: el.checked }); });
 (async () => {

@@ -100,7 +100,9 @@ const renderPopup = (state, tab) => {
     : `<div class="m">Chrome will ask you to let Tracker Cleaner read your history. Only pages on trackers' own addresses are removed; nothing of your history is kept or sent anywhere.</div>`
       + `<div class="b"><button data-perm="history">Also remove trackers' pages from my history</button></div>`) + '</div>';
   const browsing = () => `<div class="c" data-row="browsing"><b>Your own browsing history</b><div class="m">Clears every page Chrome remembers you visited, on all sites. It cannot be put back. Tracker Cleaner never does this by itself.</div>`
-    + `<div class="b"><button data-twice="Press again: this clears all of your browsing history and cannot be put back" ${msg({ type: 'clearBrowsing' })}>Clear my browsing history</button></div></div>`;
+    + '<div class="m">The list of sites you use, which keeps their cookies safe from cleaning, is not cleared.</div>'
+    // a second, separate button that popup.js shows at the press and makes pressable a second later: not a double click
+    + `<div class="b"><button data-reveal="confirm-browsing">Clear my browsing history</button> <span id="confirm-browsing" hidden>This clears all of it and cannot be put back. <button data-wait="1000" disabled ${msg({ type: 'clearBrowsing' })}>Yes, clear all of my browsing history</button></span></div></div>`;
   const full = () => (s.stopped || []).length < 300 ? '' : '<p class="c">300 companies are stopped, the most Tracker Cleaner keeps, so new ones are not stopped. In the report you can let some through again.</p>';
   return status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + browsing() + exceptions() + audit();
 };

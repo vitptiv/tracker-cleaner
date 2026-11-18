@@ -24,7 +24,7 @@ test('on, two groups pending: switch and pause, each of the two rows has its cou
   assert.ok(html.includes('2 pending') && html.includes('1 pending'));
   assert.equal(count(html, '>Remove 2 cookies</button>'), 1); assert.equal(count(html, '>Remove 1 cookie</button>'), 1);
   for (const b of ['class="go">Remove ', '>Postpone 1 h</button>', '>Until restart</button>', '<details']) assert.equal(count(html, b), 2, b);
-  assert.equal(html.includes('<details open') || html.includes(' open>'), false); assert.equal(html.includes('disabled'), false);
+  assert.equal(html.includes('<details open') || html.includes(' open>'), false); assert.equal(/<button data-msg[^>]*class="[^"]*" disabled/.test(html) || /class="go" disabled/.test(html), false);   // (the second button of "Clear my browsing history" starts disabled: 1.25, H9)
   for (const s of ['example.com · _ga', 'doubleclick.net · id', 'google.com · NID', '<option value="auto" selected>']) assert.ok(html.includes(s), s);
   assert.equal(count(html, 'Nothing waiting'), GROUPS.length - 2);
   const msgs = [...html.matchAll(/data-msg="([^"]*)"/g)].map((m) => JSON.parse(m[1].replace(/&quot;/g, '"')));
