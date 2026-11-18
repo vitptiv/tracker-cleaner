@@ -17,21 +17,23 @@ test('two sites: nothing. The third: one question waits, nothing is blocked or d
   assert.equal(/news\.example|shop\.example|blog\.example|u-3fa9/.test(JSON.stringify(bg.state.storage)), false);
   assert.deepEqual(bg.called('storage.sync.set'), []); assert.deepEqual(bg.reports, []);
 });
-test('no ID, no question: a file server seen everywhere is left alone; an ID in the address counts like a cookie', async () => {
+test('no ID, no question: a file server seen everywhere is left alone; an ID in the address alone is no evidence (1.25, F1), a cookie of that company is', async () => {
   const bg = await load(on({ cookies: [{ name: 'lang', domain: '.cdn.example', value: 'en-US', sameSite: 'no_restriction' }, { name: 'sid', domain: '.own.example', value: 'a1b2c3d4e5f6', sameSite: 'lax' }] }));
   await three(bg, 'static.cdn.example'); await three(bg, 'own.example');
   assert.deepEqual(queued(bg), []);
   await three(bg, 'c.quiet.example', '/c.gif?uid=3fa9c2d1e07b4a55aa01');
+  assert.deepEqual(queued(bg), []);
+  await bg.setCookie({ url: 'https://c.quiet.example/', domain: '.quiet.example', name: 'q', value: 'q-3fa9c2d1e0', sameSite: 'no_restriction', secure: true }); await bg.alarm('sweep');
   assert.deepEqual(queued(bg).map((i) => i.site), ['quiet.example']);
 });
 test('Approve stops that one: blocked from other sites, its cookies deleted, sign-in pages let through; the other question stays', async () => {
-  const bg = await load(on({ cookies: [ID, { name: 'SID', domain: '.trk.example', value: 'keep-me-1234' }, { name: 'other', domain: '.else.example', value: 'x' }] }));
-  await three(bg); await three(bg, 'c.quiet.example', '/c.gif?uid=3fa9c2d1e07b4a55aa01');
+  const bg = await load(on({ cookies: [ID, { name: 'SID', domain: '.trk.example', value: 'keep-me-1234' }, { name: 'other', domain: '.else.example', value: 'x' }, { ...ID, name: 'q', domain: '.quiet.example' }] }));
+  await three(bg); await three(bg, 'c.quiet.example', '/c.gif');
   assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example' }), { ok: true, done: 1, of: 1 }); await bg.settle();
   const r = rule(bg);
   assert.deepEqual([r.action.type, r.condition.requestDomains, r.condition.domainType, r.condition.resourceTypes.includes('main_frame')], ['block', ['trk.example'], 'thirdParty', false]);
   assert.ok(r.condition.excludedInitiatorDomains.includes('accounts.google.com'));
-  assert.deepEqual(await bg.names(), ['SID', 'other']);
+  assert.deepEqual(await bg.names(), ['SID', 'other', 'q']);
   assert.deepEqual(queued(bg).map((i) => i.site), ['quiet.example']);
   assert.deepEqual((await bg.send({ type: 'state' })).stopped, ['trk.example']);
 });

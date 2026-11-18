@@ -53,7 +53,7 @@ test('a site that passes you along is cleaned by itself, but not one you also op
   await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), []); assert.deepEqual(bg.state.storage.params, ['hid']);
   bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
-  await bg.visit('https://hop.example/account'); await bg.redirect(hop); await bg.settle();
+  await bg.visit('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.params, ['hid']);
 });
 test('fresh install, a sign-in page in front: nothing is deleted or stopped', async () => {

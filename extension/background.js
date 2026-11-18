@@ -6,7 +6,7 @@
 importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js', 'learn.js');
 const REPORT = 'http://127.0.0.1:8088/audit/cleaner';
 // The cookie decisions and their settings (S) live in core.js, where the Node tests can reach them.
-const { S, realHost, reason, firstParty, isTrackerHost } = makeCore({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE });
+const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCore({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE });
 // The gate (registry.js): every action below first asks can(id, cx), which combines the stored settings,
 // the pause and the sign-in guard. Only 'run' acts; what gets 'ask' or 'held' goes to the approval queue.
 // The 8088 server still supplies lists, but cannot switch a capability on.
@@ -450,14 +450,20 @@ async function notePage(d) {
     if (!mine.includes(m)) await chrome.storage.local.set({ mine: [...mine, m].slice(-MINE_MAX) }); });
 }
 try { chrome.webRequest.onCompleted.addListener((d) => { notePage(d); }, { urls: ['<all_urls>'], types: ['main_frame'] }); } catch {}
-const signInCompany = (site) => site === 'github.com' || NEEDED.includes(site) || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
+const signInCompany = (site) => site === 'github.com' || isGoogleHost(site) || NEEDED.includes(site) || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
 const seen = new Set();   // what this worker has counted already, so that a page's hundred requests cost one look
+// The site a sighting is counted for is the one the user has in the tab (its address bar), never the frame that asked:
+// one page cannot stand for three sites by holding three frames. A request that belongs to no tab is not counted.
+const tabSite = new Map();
+const topSite = async (tabId) => { if (!tabSite.has(tabId)) { if (tabSite.size > 500) tabSite.clear(); tabSite.set(tabId, siteOf(hostOf(((await chrome.tabs.get(tabId).catch(() => null)) || {}).url))); } return tabSite.get(tabId); };
+chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) tabSite.delete(id); });
+chrome.tabs.onRemoved.addListener((id) => { tabSite.delete(id); });
 async function noteRequest(d) {
-  if (d.type === 'main_frame' || !d.initiator) return;
-  let u, from; try { u = new URL(d.url); from = new URL(d.initiator); } catch { return; }
-  if (!/^https?:$/.test(u.protocol) || !/^https?:$/.test(from.protocol)) return;
-  const site = siteOf(u.hostname), page = siteOf(from.hostname), id = idInUrl(d.url), key = `${u.host} ${page} ${id}`;
-  if (site === page || seen.has(key) || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
+  if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol)) return;
+  const site = siteOf(u.hostname), page = await topSite(d.tabId), key = `${u.host} ${page}`, id = false;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
+  if (!page || site === page || seen.has(key) || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
   if (seen.size > 5000) seen.clear();
   seen.add(key); await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
@@ -471,16 +477,20 @@ async function followSweep(cx, all, wait) {
   const v = verdict('C25', cx), stopped = cx.set.stopped || [];
   if (v === 'no') return;
   const hasId = (site) => all.some((c) => under(bare(c.domain), site) && (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
-  for (const [site, e] of Object.entries((await chrome.storage.local.get('follow')).follow || {})) {
-    if (!followFull(e) || stopped.includes(site) || later(cx, 'C25', site) || !(e.id || hasId(site))) continue;
+  const { follow = {}, stops = [] } = await chrome.storage.local.get(['follow', 'stops']), now = Date.now(), recent = stops.filter((t) => t > now - 3600e3), n = recent.length;
+  for (const [site, e] of Object.entries(follow)) {
+    if (!followFull(e) || stopped.includes(site) || later(cx, 'C25', site) || !hasId(site)) continue;
     const it = { cap: 'C25', kind: 'tracker', site, name: `followed you on ${FOLLOW_N} sites`, why: 'on no list', did: waitsAs(v) };
-    if (waits(v)) wait.push(it); else if (await stopTracker(site, visited(cx, site))) await logged([it], 'removed'); }
+    if (waits(v)) wait.push(it);
+    else if (recent.length >= STOPS_HOUR) wait.push({ ...it, did: 'queued' });   // too many in an hour to be an accident: the user is asked
+    else if (await stopTracker(site, visited(cx, site))) { recent.push(now); await logged([it], 'removed'); } }
+  if (recent.length !== n || stops.length !== n) await chrome.storage.local.set({ stops: recent });
 }
 // its sign-in cookies stay (KEEP_RE), and all of them while the user has its own site open
 async function stopTracker(site, keep) {
   if (!isHost(site)) return false;
   const { stopped = [] } = await chrome.storage.local.get('stopped');
-  if (!stopped.includes(site)) await chrome.storage.local.set({ stopped: [...stopped, site] });
+  if (!stopped.includes(site)) { if (stopped.length >= STOPPED_MAX) return false; await chrome.storage.local.set({ stopped: [...stopped, site] }); }
   await refreshBlacklist();
   const cx = await context(), gone = [];
   if (!keep) for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
@@ -573,6 +583,9 @@ async function ownSweep(cx, wait) {
   const v = verdict('C28', cx), done = [], now = Date.now();
   if (v === 'no') return;
   const { own = {}, stopped = [] } = await chrome.storage.local.get(['own', 'stopped']);   // read now: this sweep may just have stopped one
+  // what is kept per company goes with the company: `own` never outgrows the list of the stopped
+  const stale = Object.keys(own).filter((k) => k !== LISTED && !stopped.includes(k)); for (const k of stale) delete own[k];
+  if (stale.length) await chrome.storage.local.set({ own });
   // its notifications are blocked at once, also while its own page is open or the user uses its site: nothing there is deleted by this
   if (v === 'run') for (const site of stopped) if (!(own[site] || {}).mute) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${site}/*`, setting: 'block' });
     own[site] = { ...own[site], mute: true }; await chrome.storage.local.set({ own }); done.push({ cap: 'C28', kind: 'permission', site, name: 'notifications' }); } catch {}

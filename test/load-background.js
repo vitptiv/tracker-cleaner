@@ -13,7 +13,7 @@ module.exports = async function load({ dir = 'extension', limits, tor, ...init }
   const run = (f) => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
   // the clock: Date.now() and new Date() are bg.now; new Date(t) is the real thing
   const Clock = class extends Date { constructor(...a) { super(...(a.length ? a : [bg.now])); } static now() { return bg.now; } };
-  const ctx = vm.createContext({ chrome: bg.chrome, URL, console, Date: Clock, AbortSignal,
+  const ctx = vm.createContext({ chrome: bg.chrome, URL, console, Date: Clock, AbortSignal, crypto: globalThis.crypto,
     // timers never fire by themselves (1.20 batches its live report for 5 s); a test may call bg.timers[i]()
     setTimeout: (f) => bg.timers.push(f), clearTimeout: () => {},
     importScripts: (...files) => files.forEach(run),
@@ -30,6 +30,8 @@ module.exports = async function load({ dir = 'extension', limits, tor, ...init }
   bg.settle = async () => { for (let i = 0; i < 5; i++) await new Promise(setImmediate); };
   bg.alarm = async (name) => { await bg.fireAlarm(name); await bg.settle(); };
   bg.setCookie = async (c) => { await bg.chrome.cookies.set(c); await bg.settle(); };
+  // the user opens a page and stays: the timers started by it are run (the worker waits 3 s before it counts a page as opened)
+  bg.opens = async (url) => { await bg.visit(url); await bg.settle(); for (const t of bg.timers.splice(0)) t(); await bg.settle(); };
   bg.names = async () => (await bg.chrome.cookies.getAll({})).map((c) => c.name);
   run('background.js'); await bg.settle();
   return bg;

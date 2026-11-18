@@ -776,3 +776,12 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   B0 7 / 28, B 7 / 9, C 6 / 7. Gone at the end: T17, T20 (S2a), T30 (S2c: the second pass is skipped). T22 stays in
   the lab only: the block is set (logged), but the lab's "Allow" is a grant over the control channel that no
   extension setting overrides; in a real Chrome a user's own grant went granted -> denied (R6).
+
+### Fixes after the audit of 20f53e5 (F1 to F9)
+
+- F1 a hostile page could get any domain stopped. Now: a sighting is counted for the site in the tab's address bar,
+  never for a frame, and not at all without a tab; an ID in an address is no evidence, only a cookie of that company
+  that other sites can use (read from Chrome's cookie list, by flag and shape; no request header is read); `siteOf`
+  knows two-part country endings and treats every host under a shared name (`SHARED` in `learn.js`) as its own site;
+  Google's own sites in any country are never learned; at most 10 stops without a question in an hour, then
+  questions; never more than 300 stopped, and `own` is pruned with that list. Not the full public suffix list.

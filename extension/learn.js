@@ -9,10 +9,17 @@
 const NEEDED = ['hcaptcha.com', 'recaptcha.net', 'gstatic.com', 'googleapis.com', 'cloudflare.com', 'stripe.com', 'stripe.network', 'paypal.com', 'paypalobjects.com',
   'klarna.com', 'adyen.com', 'braintreegateway.com', 'auth0.com', 'okta.com', 'duosecurity.com'];
 const FOLLOW_N = 3, FOLLOW_MAX = 300, LATER_MS = 7 * 86400e3;
-// the name a site is known by: its last two labels, three under co.uk and the like
+// never more than STOPPED_MAX stopped companies, and at most STOPS_HOUR stopped without a question in an hour: the next ones are asked about
+const STOPPED_MAX = 300, STOPS_HOUR = 10;
+// Names under which anyone can rent a host of their own: there every host is a site of its own, so that one tenant can
+// never get the whole name, or a neighbour, stopped. A short built-in table, not the full public suffix list.
+const SHARED = ['cloudfront.net', 'amazonaws.com', 'github.io', 'githubusercontent.com', 'herokuapp.com', 'azurewebsites.net', 'azureedge.net', 'windows.net', 'appspot.com', 'pages.dev',
+  'workers.dev', 'netlify.app', 'vercel.app', 'web.app', 'firebaseapp.com', 'blogspot.com', 'wordpress.com', 'fastly.net', 'akamaized.net', 'akamaihd.net', 'edgekey.net', 'edgesuite.net', 'cloudflare.net',
+  'r2.dev', 'glitch.me', 'onrender.com', 'fly.dev', 'googleusercontent.com', 'web.core.windows.net', 'myshopify.com', 'wixsite.com', 'tumblr.com'];
+// the name a site is known by: its last two labels, three under co.uk, or.jp, com.au and the like, the whole host under a shared name
 const siteOf = (host) => { const h = String(host || '').toLowerCase().replace(/:\d+$/, ''), p = h.split('.');
-  if (/^[\d.]+$/.test(h) || h.includes('[')) return h;
-  return p.slice(p.length > 2 && p.at(-1).length === 2 && /^(co|com|org|net|ac|gov|edu)$/.test(p.at(-2)) ? -3 : -2).join('.'); };
+  if (/^[\d.]+$/.test(h) || h.includes('[') || SHARED.some((s) => h.endsWith('.' + s))) return h;
+  return p.slice(p.length > 2 && p.at(-1).length === 2 && /^(co|com|org|net|ac|gov|edu|or|ne|go|gob|nom|mil|sch|ltd|plc)$/.test(p.at(-2)) ? -3 : -2).join('.'); };
 // looks like a number given to one browser: 8 or more letters and digits mixed, or 10 or more digits
 const idLike = (v) => String(v ?? '').split(/[^A-Za-z0-9_-]+/).some((t) => t.length >= 8 && (/^\d{10,}$/.test(t) || (/\d/.test(t) && /[a-z]/i.test(t))));
 // a long random value in an address, under a name that is not a version or a time
@@ -35,4 +42,4 @@ const bounceAdded = (from, to) => { try { const b = new URL(to);
     if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.test(k)).map(([k]) => k); }
   } catch {} return []; };
 const followFull = (e) => !!e && e.on.length >= FOLLOW_N;
-if (typeof module !== 'undefined') module.exports = { NEEDED, FOLLOW_N, FOLLOW_MAX, LATER_MS, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };
+if (typeof module !== 'undefined') module.exports = { NEEDED, SHARED, FOLLOW_N, FOLLOW_MAX, LATER_MS, STOPPED_MAX, STOPS_HOUR, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };

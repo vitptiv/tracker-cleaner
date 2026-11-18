@@ -131,8 +131,12 @@ module.exports = function makeChrome(init = {}) {
     passes: (host, { reloaded = false } = {}) => state.dynamic.some((r) => { const under = (list) => (list || []).some((d) => host === d || host.endsWith('.' + d));
       return r.action.type === 'allowAllRequests' ? reloaded && under(r.condition.requestDomains) : r.action.type === 'allow' && under(r.condition.initiatorDomains); }),
     redirect: (d) => chrome.webRequest.onBeforeRedirect.fire(d),   // a page address answers "go to another address"
-    visit: (url) => chrome.webRequest.onCompleted.fire({ url, type: 'main_frame', statusCode: 200 }),   // the user opens a page
-    request: (d) => chrome.webRequest.onBeforeRequest.fire(d),   // a page asks for something
+    // a page that has no tab yet gets one, in the background: Chrome always says which tab a request belongs to
+    tabOf: (url) => { const o = new URL(url).origin; let t = state.tabs.find((x) => x.url && new URL(x.url).origin === o);
+      if (!t) state.tabs.push(t = { id: 9000 + state.tabs.length, windowId: 1, url: o + '/', active: false }); return t.id; },
+    visit: (url, tabId = fake.tabOf(url)) => chrome.webRequest.onCompleted.fire({ url, type: 'main_frame', statusCode: 200, tabId, frameId: 0 }),   // the user opens a page
+    // a page asks for something; without a tabId it is the top page at `initiator` that asks
+    request: (d) => chrome.webRequest.onBeforeRequest.fire(d.tabId === undefined && d.initiator ? { tabId: fake.tabOf(d.initiator), frameId: 0, ...d } : d),
     closeTab: async (id) => { state.tabs = state.tabs.filter((t) => t.id !== id); await chrome.tabs.onRemoved.fire(id, {}); },
     // a message as the popup sends it; `from` = another sender. No listener takes it: the answer is undefined, as in Chrome.
     send: (msg, from = { id: ID, url: `chrome-extension://${ID}/popup.html` }) => new Promise((reply) => {
