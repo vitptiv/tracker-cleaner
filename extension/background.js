@@ -131,8 +131,8 @@ async function carry(it, cookies, tabs, cx) {
     // approval is allowed during the sign-in guard, so it must not close a sign-in page itself
     if (!t || tabHost(t) !== it.site || isSignIn(t.url || t.pendingUrl)) return false;
     await chrome.tabs.remove(t.id); return true; }
-  // an approved stop is the user's own word: blocked, and cleaned out unless the user also uses that site (then the question USED follows)
-  if (it.kind === 'tracker') { if (!(await stopTracker(it.site))) return false; if (!visited(await context(), it.site)) await hardClean(it.site); return true; }
+  // an approved stop blocks; removing what the company saved is the next question (USED)
+  if (it.kind === 'tracker') return stopTracker(it.site);
   if (it.kind === 'used') return hardClean(it.site);
   if (it.kind === 'bounce') return cleanBounce(it.site);
   if (it.kind === 'param') return stripParam(it.name);
@@ -151,7 +151,7 @@ async function approve(group, site, name) {
   if (cx.hold.paused) return { ok: false, why: 'paused' };
   if (cx.set.master === false) return { ok: false, why: 'off' };
   let items = [];
-  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : it.kind !== 'used' && it.kind !== 'param'; items = g.items.filter(mine);   // the group button never answers the question USED, nor "cut this off addresses"
+  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : !['used', 'param', 'bounce'].includes(it.kind); items = g.items.filter(mine);   // the group button never answers a question that deletes something of a learned host or changes addresses
     g.items = g.items.filter((it) => !mine(it)); if (!g.items.length) delete p[group];
     return items.length > 0; });
   const cookies = items.some((it) => it.kind === 'cookie') ? await allCookies() : [], tabs = await chrome.tabs.query({});
@@ -622,11 +622,10 @@ async function noteAnswer(d) {
 }
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
-// A stop has two halves (1.25, H1). SOFT, by itself: the company is blocked when another site asks for it (`stopped`), and
-// nothing else. HARD (`hard`): its cookies are deleted, what it saved on its own site and its background program are
-// emptied, its notifications blocked, the saved copies cleared once. Hard by itself only for a company seen on FOLLOW_N
-// visited sites whose own site the user does not open as a page; for one the user also uses there is one question, once
-// (USED: Remove / Keep). A company learned at one sighting is never more than blocked. Built-in list entries are as before.
+// The principle (1.25, J1): what is learned from how pages behave may only BLOCK that company when another site asks for
+// it (`stopped`), which "Let it through again" undoes. Deleting anything of a learned company (`hard`: its cookies, what
+// it saved on its own site, its background program, its notifications) is never done by itself: there is one question,
+// once (USED: Remove / Keep), and only the user's press on Remove does it. Built-in list entries are cleaned as before.
 const USED = 'what it keeps to follow you';
 async function followSweep(cx, all, wait) {
   const v = verdict('C25', cx), stopped = cx.set.stopped || [];
@@ -647,10 +646,8 @@ async function followSweep(cx, all, wait) {
       // a saved copy can carry the ID past the block: all saved copies are cleared once, at most once an hour in total (I1)
       const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt');
       if (!(softClearAt > now - 3600e3) && can('C11', cx)) { await chrome.storage.local.set({ softClearAt: now }); await copiesNow(cx); } }
-    if (hard.includes(site)) continue;
-    // a company the user also uses: the question at once, also at one sighting and while its site is held (the answer is the user's own press)
-    if (visited(cx, site)) { if (!later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: 'you use it', did: 'queued' }); }
-    else if (many && v === 'run' && !guarded(cx, site)) await hardClean(site); }
+    // deleting anything of a learned company is never done by itself (J1): one question, once, answered by the user's own press
+    if (!hard.includes(site) && !later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: String(e.on.length), did: 'queued' }); }
   if (stops.length !== n) await chrome.storage.local.set({ stops: recent });
 }
 async function stopTracker(site) {
@@ -715,9 +712,9 @@ async function bounceSweep(cx, wait) {
   for (const [site, e] of Object.entries((await chrome.storage.local.get('bounce')).bounce || {})) {
     const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === site) ? [{ kind: 'bounce', name: PASSED }] : []), ...e.params.filter((p) => !cut.includes(p)).map((name) => ({ kind: 'param', name }))];
     for (const x of asks) { const it = { cap: 'C27', site, why: 'a redirect', did: waitsAs(v), ...x };
-      if (later(cx, 'C27', site, x.name) || guarded(cx, site) || (x.kind === 'bounce' && v === 'run' && visited(cx, site))) continue;
-      // a tag is never cut off by itself: the rule works on every address of every site, so it is always a question (1.25, F2)
-      if (waits(v) || x.kind === 'param') wait.push({ ...it, did: v === 'held' ? 'held' : 'queued' }); else if (await carry(it).catch(() => false)) done.push(it); } }
+      if (later(cx, 'C27', site, x.name)) continue;
+      // never by itself (F2, J1): a tag is cut off, and what a passing site saved is deleted, only after the user's press on its question
+      wait.push({ ...it, did: v === 'held' ? 'held' : 'queued' }); } }
   await logged(done, 'removed');
 }
 async function cleanBounce(site) {

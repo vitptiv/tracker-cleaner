@@ -1023,3 +1023,15 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   using; they go with Remove (the question waits in A). A and B0 differ in "arrived and tied" in this run (T1, T2,
   T8 in A only): Friendface was blocked in step 3 in A and in step 1 in B0. Why the block came later in A this
   time: not found; in the run before both were blocked in step 1.
+
+### Fixes after the third audit (a72e23c): J1 to J8
+
+The principle: evidence learned from how pages behave may only trigger a block of that exact host as third party,
+which can be undone. Deleting anything, or changing where a press on a link goes, happens by itself only for hosts
+on the shipped lists; for anything learned it needs the user's press on one plain question.
+
+- J1 no clean-out by itself for a learned company (the "two visited sites and not used" path of H1 is gone) and
+  no cleaning by itself of a passing site (one visit through a redirecting address of a bank had its cookies and
+  storage wiped). Each is one question per host: "X follows you on N sites. It is already blocked on other sites.
+  Also remove what it saved here?" Remove / Keep; for a passing site its own question with Remove / Keep. No
+  group button answers them. Hosts on the shipped lists are cleaned as before.

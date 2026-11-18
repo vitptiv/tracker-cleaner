@@ -34,15 +34,16 @@ test('a page that passes the browser on to another site within 3 seconds is not 
   await closed.visit('https://trk.example/', 1); await closed.closeTab(1); for (const t of closed.timers.splice(0)) t(); await closed.settle();
   assert.deepEqual(closed.state.storage.mine || [], []);
 });
-test('a stop without a question never deletes a cookie that looks like a sign-in (HttpOnly and Secure, or a sign-in name), at the stop or later', async () => {
+test('Remove never deletes a cookie that looks like a sign-in (HttpOnly and Secure, or a sign-in name), at the press or later', async () => {
   const bg = await load(on({ cookies: [c('uid'), c('sess', { httpOnly: true, secure: true }), c('SID'), c('half', { httpOnly: true, secure: false })] }));
-  await three(bg);
+  await three(bg); await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.deepEqual(bg.state.storage.stopped, ['trk.example']); assert.deepEqual(await bg.names(), ['sess', 'SID']);
   await bg.alarm('sweep'); await bg.alarm('sweep');
   assert.deepEqual(await bg.names(), ['sess', 'SID']);
 });
-test('the same holds when a passing site is cleaned by itself', async () => {
+test('the same holds when a passing site is cleaned at the user\'s press', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }], cookies: [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }, { name: 'sess', domain: '.hop.example', value: 's-77ab12cd34ef', httpOnly: true, secure: true }] }));
   await bg.redirect({ url: 'https://go.hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post', type: 'main_frame' }); await bg.settle();
+  await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'passed you on without showing a page' }); await bg.settle();
   assert.deepEqual(await bg.names(), ['sess']);
 });

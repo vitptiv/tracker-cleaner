@@ -18,7 +18,7 @@ test('OK: from then on by itself. Keep asking: it stays as it was, and the line 
   const ok = await update({}); await two(ok);
   assert.deepEqual(await ok.send({ type: 'seen', auto: true }), { ok: true }); await ok.settle();
   for (const id of NEW) assert.equal(mayRun(id, ok.state.storage), 'run', id);
-  assert.deepEqual(ok.state.storage.stopped, ['trk.example']); assert.deepEqual(await ok.names(), []);
+  assert.deepEqual(ok.state.storage.stopped, ['trk.example']); assert.deepEqual(await ok.names(), ['uid']);   // blocked by itself; deleting is the question's (J1)
   assert.equal(renderPopup(await ok.send({ type: 'state' }), null).includes('New: Tracker Cleaner'), false);
   const keep = await update({}); await two(keep);
   assert.deepEqual(await keep.send({ type: 'seen', auto: false }), { ok: true }); await keep.settle(); keep.now += 3600e3; await keep.alarm('sweep');

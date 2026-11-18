@@ -15,8 +15,9 @@ test('opened as a page, then stopped: its cookie is still there after the next s
   assert.deepEqual(await bg.names(), ['c_user', 'xs']); assert.deepEqual(bg.called('cookies.remove'), []);
   assert.equal(bg.state.dynamic.some((r) => r.id === 100001 && r.condition.requestDomains.includes('trk.example')), true, 'it is still blocked on other sites');
 });
-test('never opened as a page: its cookies go at the stop and whenever they come back, as before', async () => {
+test('never opened as a page: its cookies go when the user presses Remove (1.25, J1), and from then on whenever they come back', async () => {
   const bg = await load(on()); await three(bg);
+  assert.deepEqual(await bg.names(), ['c_user']); await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.deepEqual(await bg.names(), []);
   await bg.setCookie({ url: 'https://px.trk.example/', domain: '.trk.example', name: 'uid2', value: 'x-77ab12cd34ef', sameSite: 'no_restriction', secure: true });
   assert.deepEqual(await bg.names(), []);

@@ -9,9 +9,10 @@ test('the group button never answers a "cut this off addresses" question; its ow
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] }));
   await bg.redirect({ url: `https://go.hop.example/r?to=${enc('https://blog.example/post')}`, redirectUrl: `https://blog.example/post?hid=${ID}`, type: 'main_frame' }); await bg.settle();
   const waiting = () => ((bg.state.storage.pending || {}).bounce || { items: [] }).items.map((i) => [i.kind, i.name]);
-  assert.deepEqual(waiting(), [['param', 'hid']]);
+  const BOTH = [['bounce', 'passed you on without showing a page'], ['param', 'hid']];
+  assert.deepEqual(waiting(), BOTH);
   await bg.send({ type: 'approve', group: 'bounce' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.params || [], []); assert.deepEqual(waiting(), [['param', 'hid']]);
+  assert.deepEqual(bg.state.storage.params || [], []); assert.deepEqual(waiting(), BOTH);
   await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'hid' }); assert.deepEqual(bg.state.storage.params, ['hid']);
 });
 test('names that sound like a sign-in or a key are never offered: token, reset, code, key, auth, session, sig, anywhere in the name', () => {
@@ -51,6 +52,7 @@ test('clearing either history leaves the list of sites the user opens as pages a
 test('a cleaned-out tracker\'s background program is removed even while its own site is open', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }], cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
   await req(bg, 'https://px.trk.example/p.gif', 'news.example'); await req(bg, 'https://px.trk.example/p.gif', 'shop.example');
+  await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.deepEqual(bg.state.storage.hard, ['trk.example']);
   const workers = bg.called('browsingData.remove').filter((c) => c.args[1].serviceWorkers && (c.args[0].origins || []).includes('https://trk.example'));
   assert.equal(workers.length, 1); assert.deepEqual(Object.keys(workers[0].args[1]), ['serviceWorkers'], 'more than the background program was removed while the site is open');

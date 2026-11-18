@@ -5,7 +5,7 @@ const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12,
 const cookie = (domain, o = {}) => ({ name: 'uid', domain, value: 'u-3fa9c2d1e0', sameSite: 'no_restriction', ...o });
 const req = async (bg, url, page, o = {}) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script', ...o }); await bg.settle(); };
 const three = async (bg, url) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, url, p); };
-const asked = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.map((i) => i.site);
+const asked = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.filter((i) => i.kind === 'tracker').map((i) => i.site);   // "Stop it?" questions
 const CF = 'https://d111.cloudfront.net/a.js?u=3fa9c2d1e07b4a55aa01';
 
 test('the audit scenario: one page with three frames of other origins asks a shared host with an ID in the address: nothing is stopped or asked', async () => {
@@ -28,7 +28,7 @@ test('a shared host is learned by its full name: only that host is stopped, its 
   await three(bg, CF);
   assert.deepEqual(bg.state.storage.stopped, ['d111.cloudfront.net']);
   assert.deepEqual(bg.state.dynamic.find((r) => r.id === 100001).condition.requestDomains, ['d111.cloudfront.net']);
-  assert.deepEqual(await bg.names(), ['other']);
+  assert.deepEqual(await bg.names(), ['uid', 'other']);   // blocked only (1.25, J1)
 });
 test('siteOf: country suffixes of two parts and shared hosts', () => {
   for (const [h, s] of [['a.b.example.com', 'example.com'], ['www.bbc.co.uk', 'bbc.co.uk'], ['x.y.or.jp', 'y.or.jp'], ['shop.foo.com.au', 'foo.com.au'], ['a.b.gov.uk', 'b.gov.uk'], ['a.foo.com.br', 'foo.com.br'],

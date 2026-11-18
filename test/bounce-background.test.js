@@ -34,9 +34,9 @@ test('Approve the first: its cookies and storage go, the sign-in cookie stays. A
   await pass(bg); assert.deepEqual(queued(bg), [ASK[0]]);          // the next pass asks about what it saved this time
   assert.deepEqual(await bg.send({ type: 'unparam', name: 'xclid' }), { ok: true, params: [] }); await bg.settle(); assert.equal(rule(bg), undefined);
 });
-test('automatic: cleaned after every pass without a question; the added tag is still a question (1.25, F2)', async () => {
+test('automatic: still nothing by itself (1.25, F2 and J1): both are questions', async () => {
   const bg = await load(on({ storage: { modes: { C27: 'auto' } } })); await pass(bg);
-  assert.deepEqual(await bg.names(), ['SID', 'own']); assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg), [['param', 'hop.example', 'xclid']]);
+  assert.deepEqual(await bg.names(), ['hop_id', 'SID', 'own']); assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg), [['bounce', 'hop.example', 'passed you on without showing a page'], ['param', 'hop.example', 'xclid']]);
 });
 test('left alone: a sign-in on the way, a sign-in going on, a site open in a tab, the same site, a frame, the group off', async () => {
   const bg = await load(on());

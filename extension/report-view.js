@@ -103,7 +103,7 @@ const { buildReport, renderReport } = (() => {
   const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
   // things asked one by one, in one sentence each, with Approve and Not now
   const ASKS = { tracker: (it) => `${it.site} ${it.name}. Stop it?`,
-    used: (it) => `You use ${it.site}, and it follows you on other sites. Remove what it keeps to do that?`,
+    used: (it) => `${it.site} follows you on ${Number(it.why) || 1} site${Number(it.why) > 1 ? 's' : ''}. It is already blocked on other sites. Also remove what it saved here?`,
     bounce: (it) => `${it.site} passed you on to another site without showing you a page. Delete what it saved in your browser?`,
     own: (it) => it.site === 'the listed trackers' ? 'Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?'
       : `${it.site} is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?`,
@@ -115,7 +115,7 @@ const { buildReport, renderReport } = (() => {
     return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome starts again' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
       button: barred ? '' : g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
       note: barred ? 'This user is not allowed to remove saved networks without a password, so nothing can be removed from here.' : g.id === 'wifi' ? 'Removing a saved network cannot be undone here.' : '',
-      asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it), ...(it.kind === 'used' ? { yes: 'Remove', no: 'Keep' } : {}) })),
+      asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it), ...(it.kind === 'used' || it.kind === 'bounce' ? { yes: 'Remove', no: 'Keep' } : {}) })),
       items: (g.items || []).filter((it) => !ASKS[it.kind]).map(waitItem) }; });
 
   // ---- What no cleaning reaches: said plainly, one line each, instead of a button that would do nothing

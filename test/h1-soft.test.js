@@ -20,19 +20,15 @@ test('the audit scenario: a page hands its own ID to the bank and the bank answe
   assert.deepEqual(hardCalls(bg, 'bank.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });   // cache: all saved copies once after the block (I1), which costs her only speed
   assert.deepEqual((await bg.names()).sort(), ['prefs', 'sess', 'x']); assert.deepEqual(bg.state.storage.hard || [], []);
 });
-test('seen on two visited sites and not a site the user opens: what it keeps is cleaned out by itself (cookies, its own storage and worker, notifications, saved copies once)', async () => {
+test('seen on two visited sites: blocked and the saved copies cleared once; what it keeps is cleaned out at the press on Remove (1.25, J1: never by itself)', async () => {
   const bg = await load(on({ cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
   await req(bg, 'https://px.trk.example/p.gif', 'news.example'); assert.deepEqual(bg.state.storage.stopped || [], []);
   await req(bg, 'https://px.trk.example/p.gif', 'shop.example');
-  assert.deepEqual([bg.state.storage.stopped, bg.state.storage.hard], [['trk.example'], ['trk.example']]); assert.deepEqual(await bg.names(), []);
-  const h = hardCalls(bg, 'trk.example'); assert.ok(h.storage >= 1 && h.notifications === 1 && h.cache === 2, JSON.stringify(h));   // saved copies: once after the block (I1), once at the clean-out
-});
-test('stopped at one sighting, then seen on a second site: cleaned out then', async () => {
-  const bg = await load(on({ cookies: [{ ...FP, domain: 'news.example' }, { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
-  await answer(bg, 'https://px.trk.example/kit.js', 'news.example'); await req(bg, 'https://px.trk.example/e?fp=k9x2m4q8r1t7', 'news.example');
-  assert.deepEqual(bg.state.storage.stopped, ['trk.example']); assert.deepEqual(bg.state.storage.hard || [], []); assert.ok((await bg.names()).includes('uid'));
-  await req(bg, 'https://px.trk.example/kit.js', 'shop.example');
-  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.equal((await bg.names()).includes('uid'), false);
+  assert.deepEqual([bg.state.storage.stopped, bg.state.storage.hard || []], [['trk.example'], []]); assert.deepEqual(await bg.names(), ['uid']);
+  assert.deepEqual(hardCalls(bg, 'trk.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });
+  await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); await bg.alarm('sweep');
+  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.deepEqual(await bg.names(), []);
+  const h = hardCalls(bg, 'trk.example'); assert.ok(h.storage >= 1 && h.notifications === 1, JSON.stringify(h));
 });
 test('a company the user also uses: blocked elsewhere, and one question once; Remove cleans it out but keeps what looks like a sign-in, Keep ends the matter', async () => {
   for (const answerIs of ['Remove', 'Keep']) {
@@ -41,7 +37,7 @@ test('a company the user also uses: blocked elsewhere, and one question once; Re
     assert.deepEqual(bg.state.storage.stopped, ['bank.example']); assert.deepEqual(hardCalls(bg, 'bank.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });   // cache: all saved copies once after the block (I1), which costs her only speed
     assert.deepEqual(asks(bg), [['used', 'bank.example']]);
     const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
-    assert.ok(html.includes('You use bank.example, and it follows you on other sites. Remove what it keeps to do that?')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
+    assert.ok(html.includes('bank.example follows you on 2 sites. It is already blocked on other sites. Also remove what it saved here?')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
     if (answerIs === 'Remove') { assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'bank.example', name: 'what it keeps to follow you' }), { ok: true, done: 1, of: 1 }); await bg.settle();
       assert.deepEqual(await bg.names(), ['sess']); assert.deepEqual(bg.state.storage.hard, ['bank.example']); }
     else { await bg.send({ type: 'notNow', group: 'unknown', site: 'bank.example', name: 'what it keeps to follow you' }); bg.now += 30 * 86400e3; await bg.alarm('sweep');
@@ -57,7 +53,7 @@ test('the group button never answers that question', async () => {
 test('the hourly limit holds inside one sweep: fifteen ready at once, ten stopped, five asked about', async () => {
   const sites = Array.from({ length: 15 }, (_, i) => `trk${i}.example`), follow = Object.fromEntries(sites.map((s) => [s, { on: ['a', 'b'], ck: true, sent: false, hosts: [], t: 1 }]));
   const bg = await load(on({ storage: { follow } })); await bg.alarm('sweep');
-  assert.equal(bg.state.storage.stopped.length, 10); assert.equal(asks(bg).length, 5);
+  assert.equal(bg.state.storage.stopped.length, 10); assert.equal(asks(bg).filter(([k]) => k === 'tracker').length, 5);
 });
 test('two tenants of one shared host count as one visited site', async () => {
   const bg = await load(on({ cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));

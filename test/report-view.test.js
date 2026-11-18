@@ -420,10 +420,10 @@ test('R1: a cookie of a company that was stopped and cleaned out is called a tra
 });
 
 // ---- 1.24, R5: a site that only passes the user along
-test('R5: two questions about a site that passed the user on, each with its own Approve and Not now; chosen tags can be given back', () => {
+test('R5: two questions about a site that passed the user on, each with its own two buttons; chosen tags can be given back', () => {
   const items = [{ cap: 'C27', kind: 'bounce', site: 'hop.example', name: 'passed you on without showing a page' }, { cap: 'C27', kind: 'param', site: 'hop.example', name: 'xclid' }];
   const html = renderReport(buildReport(state({ params: ['oldid'] }, { bounce: { pending: 2, items } }), tab())), t = text(html);
-  assert.ok(t.includes('hop.example passed you on to another site without showing you a page. Delete what it saved in your browser?ApproveNot now'));
+  assert.ok(t.includes('hop.example passed you on to another site without showing you a page. Delete what it saved in your browser?RemoveKeep'));
   assert.ok(t.includes('hop.example added "xclid" to the address of the page it sent you to, so that page can recognise you. Cut it off from now on?ApproveNot now'));
   assert.ok(html.includes('{&quot;type&quot;:&quot;approve&quot;,&quot;group&quot;:&quot;bounce&quot;,&quot;site&quot;:&quot;hop.example&quot;,&quot;name&quot;:&quot;xclid&quot;}'));
   assert.ok(t.includes('Tags you chose to cut off addresses (1)oldidStop cutting it off'));

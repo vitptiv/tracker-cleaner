@@ -26,26 +26,27 @@ test('no ID, no question: a file server seen everywhere is left alone; an ID in 
   await bg.setCookie({ url: 'https://c.quiet.example/', domain: '.quiet.example', name: 'q', value: 'q-3fa9c2d1e0', sameSite: 'no_restriction', secure: true }); await bg.alarm('sweep');
   assert.deepEqual(queued(bg).map((i) => i.site), ['quiet.example']);
 });
-test('Approve stops that one: blocked from other sites, its cookies deleted, sign-in pages let through; the other question stays', async () => {
+test('Approve stops that one: blocked from other sites, sign-in pages let through; deleting its cookies is the next question (1.25, J1); the other question stays', async () => {
   const bg = await load(on({ cookies: [ID, { name: 'SID', domain: '.trk.example', value: 'keep-me-1234' }, { name: 'other', domain: '.else.example', value: 'x' }, { ...ID, name: 'q', domain: '.quiet.example' }] }));
   await three(bg); await three(bg, 'c.quiet.example', '/c.gif');
   assert.deepEqual(await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example' }), { ok: true, done: 1, of: 1 }); await bg.settle();
   const r = rule(bg);
   assert.deepEqual([r.action.type, r.condition.requestDomains, r.condition.domainType, r.condition.resourceTypes.includes('main_frame')], ['block', ['trk.example'], 'thirdParty', false]);
   assert.ok(r.condition.excludedInitiatorDomains.includes('accounts.google.com'));
-  assert.deepEqual(await bg.names(), ['SID', 'other', 'q']);
-  assert.deepEqual(queued(bg).map((i) => i.site), ['quiet.example']);
+  assert.deepEqual(await bg.names(), ['uid', 'SID', 'other', 'q']); await bg.alarm('sweep');
+  assert.deepEqual(queued(bg).map((i) => [i.kind, i.site]).sort(), [['tracker', 'quiet.example'], ['used', 'trk.example']]);
+  await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); assert.deepEqual(await bg.names(), ['SID', 'other', 'q']);
   assert.deepEqual((await bg.send({ type: 'state' })).stopped, ['trk.example']);
 });
 test('automatic: stopped at the third site without a question; held while a sign-in is going on, done when it is over', async () => {
   let bg = await load(on({ storage: { modes: { C25: 'auto' } } }));
   await three(bg);
-  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), []); assert.deepEqual(queued(bg), []);
+  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), ['uid']); assert.deepEqual(queued(bg).map((i) => i.kind), ['used']);
   bg = await load(on({ storage: { modes: { C25: 'auto' } }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/' }] }));
   await three(bg);
   assert.equal(rule(bg), undefined); assert.deepEqual(bg.destructive(), []); assert.deepEqual(queued(bg).map((i) => i.site), ['trk.example']);
   await bg.navigate(1, 'https://www.news.example/'); bg.now += 6 * 60e3; await bg.alarm('sweep');
-  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(queued(bg), []);
+  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(queued(bg).map((i) => i.kind), ['used']);
 });
 test('never learned: a sign-in company, a sign-in address, a listed tracker, the site itself; nothing at all when switched off', async () => {
   const bg = await load(on({ cookies: [{ name: 'NID', domain: '.google.com', value: 'abc123def456', sameSite: 'no_restriction' }] }));

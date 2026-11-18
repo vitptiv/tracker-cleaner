@@ -7,10 +7,10 @@ const pass = async (bg, added) => { await bg.redirect({ url: `https://go.hop.exa
 const asked = (bg) => ((bg.state.storage.pending || {}).bounce || { items: [] }).items.filter((i) => i.kind === 'param').map((i) => [i.site, i.name]);
 const cutRule = (bg) => bg.state.dynamic.find((r) => r.id === 100002);
 
-test('everything automatic: an added tag is never cut by itself, it becomes one question; the passing site is still cleaned by itself', async () => {
+test('everything automatic: an added tag is never cut by itself, it becomes one question; nor is the passing site cleaned by itself (1.25, J1)', async () => {
   const bg = await load(on()); await pass(bg, `hid=${ID}`);
   assert.deepEqual(bg.state.storage.params || [], []); assert.equal(cutRule(bg), undefined);
-  assert.deepEqual(asked(bg), [['hop.example', 'hid']]); assert.deepEqual(await bg.names(), []);
+  assert.deepEqual(asked(bg), [['hop.example', 'hid']]); assert.deepEqual(await bg.names(), ['hop_id']);
   assert.deepEqual(await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'hid' }), { ok: true, done: 1, of: 1 }); await bg.settle();
   assert.deepEqual(bg.state.storage.params, ['hid']); assert.deepEqual(cutRule(bg).action.redirect.transform.queryTransform.removeParams, ['hid']);
 });

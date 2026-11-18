@@ -8,7 +8,7 @@ const FP = { name: '_ffp', domain: 'news.example', value: 'ffp.1.1700000000.k9x2
 const req = async (bg, url, page, o = {}) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script', ...o }); await bg.settle(); };
 const answer = async (bg, url, page, setCookie) => { await bg.answer({ url, initiator: `https://www.${page}`, type: 'script', responseHeaders: setCookie ? [{ name: 'Set-Cookie', value: setCookie }] : [] }); await bg.settle(); };
 const stopped = (bg) => bg.state.storage.stopped || [];
-const asked = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.map((i) => i.site);
+const asked = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.filter((i) => i.kind === 'tracker').map((i) => i.site);   // "Stop it?" questions
 const SET = 'tid=t-77ab12cd34ef; Path=/; Max-Age=31536000; SameSite=None; Secure';
 
 test('two visited sites and a cookie of that company are enough; one site is not', async () => {

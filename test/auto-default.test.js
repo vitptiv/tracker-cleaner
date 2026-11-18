@@ -30,14 +30,16 @@ test('fresh install: a tracker cookie goes, a Google identity cookie waits for a
   assert.deepEqual(await bg.names(), ['NID', 'SID']);
   assert.deepEqual(bg.state.storage.pending.google.items.map((i) => i.name), ['NID']);
 });
-test('fresh install: a company seen on three sites is stopped at once; what it saved on its own site and its saved copies go too', async () => {
+test('fresh install: a company seen on several sites is blocked at once and the saved copies are cleared; what it saved goes only at the press on Remove (1.25, J1)', async () => {
   const bg = await fresh({ cookies: [ID] });
   await three(bg);
-  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), []);
+  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);
+  await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); await bg.alarm('sweep');
+  assert.deepEqual(await bg.names(), []);
   assert.ok(emptied(bg).includes('https://trk.example') && emptied(bg).includes('https://px.trk.example'), 'its own storage was not emptied');
   assert.ok(bg.called('browsingData.remove').some((c) => c.args[1].cache && c.args[0].since === 0), 'the saved copies were not cleared after the stop');
   assert.equal(bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes('trk.example')).length, 1);
-  assert.deepEqual(((bg.state.storage.pending || {}).unknown || { items: [] }).items, []);
+  assert.deepEqual(((bg.state.storage.pending || {}).unknown || { items: [] }).items, []);   // answered: nothing waits
 });
 test('a company whose own site you open as a page is blocked on other sites, but its cookies and what it saved stay: you may be signed in there', async () => {
   const bg = await fresh({ cookies: [ID] });
@@ -46,15 +48,16 @@ test('a company whose own site you open as a page is blocked on other sites, but
   assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);
   assert.equal(/trk\.example\/home/.test(JSON.stringify(bg.state.storage)), false, 'the address of a visited page is stored');
 });
-test('a site that passes you along is cleaned by itself, but not one you also open as a page', async () => {
+test('a site that passes you along is never cleaned by itself (1.25, J1): one question, and Remove cleans it', async () => {
   const hop = { url: 'https://go.hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post?hid=h-77ab12cd34ef', type: 'main_frame' };
   const cookies = [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }];
   let bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.redirect(hop); await bg.settle();
-  assert.deepEqual(await bg.names(), []); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['hid']);   // the tag: a question, never by itself (F2)
+  assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['passed you on without showing a page', 'hid']);   // two questions, nothing by itself
+  await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'passed you on without showing a page' }); await bg.settle(); assert.deepEqual(await bg.names(), []);
   bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.opens('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
-  assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['hid']);   // the tag: a question, never by itself (F2)
+  assert.deepEqual(await bg.names(), ['hop_id']);
 });
 test('fresh install, a sign-in page in front: nothing is deleted or stopped', async () => {
   const bg = await fresh({ cookies: [ID, { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }], tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] });
