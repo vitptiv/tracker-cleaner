@@ -789,3 +789,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   cut by itself: it is always one question (site and name), and names pages need (`NEVER_PARAM` in `learn.js`: v, id,
   q, list, page, client_id, ...) or values that do not look like an ID are never offered. The automatic defence is
   S2c. Cleaning what the passing site saved stays automatic.
+- F3 the "opened as a page" protection lasted only until the next sweep. Now the one judge of every cookie
+  (`spared`, used by the sweep, the cookie event and Approve) keeps the cookies of a stopped company whose site the
+  user opens as a page; built-in list entries are judged as before. Not updated: the report still words such a
+  cookie as "comes from a tracker's site".

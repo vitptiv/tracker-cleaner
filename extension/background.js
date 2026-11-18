@@ -48,8 +48,12 @@ const spared = (c, cx, noBlack) => {
   const r = reason(c, noBlack);
   if (!r || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s))) return null;
   if (r !== 'blacklist' && (cx.set.allow || []).some((a) => a.site === bare(c.domain) && a.name === c.name)) return null;
-  return r === 'host' && firstParty(c, cx.hosts) ? null : r;
+  return r === 'host' && (firstParty(c, cx.hosts) || usedSite(c, cx)) ? null : r;
 };
+// a cookie of a company that was stopped here (on no built-in list) whose site the user opens as a page: the user may be
+// signed in there, so no sweep and no cookie event deletes it; the company is only blocked on other sites
+const usedSite = (c, cx) => { const h = realHost(c.domain), s = (cx.set.stopped || []).find((x) => under(h, x));
+  return !!s && !DOMAINS.some((d) => under(h, d)) && (cx.set.mine || []).includes(mark(s)); };
 // [reason, verdict] for a cookie. A blacklisted cookie whose capability only asks is still deleted when
 // another rule that runs wants it gone (a tracker name, allow-list mode); otherwise it waits in the queue.
 // Loop breaker (loop.js): a cookie that would be removed, but that its site has put back LOOP_N times in a row, is not
