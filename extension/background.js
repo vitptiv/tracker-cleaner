@@ -576,8 +576,10 @@ async function noteRequest(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
   if (!/^https?:$/.test(u.protocol)) return;
-  const site = siteOf(u.hostname), page = await topSite(d.tabId), key = `${u.host} ${page}`;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
-  if (!page || site === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
+  // co: the company, to tell "another company" from the site's own hosts. site: the exact host; everything learned and
+  // blocked is kept per exact host, never per company or per shared name (J2)
+  const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d.tabId), key = `${u.host} ${page}`;   // an ID in the address is no evidence (anyone can write one): followSweep asks for a real cookie
+  if (!page || co === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(co)) return;
   // S6: does this request hand the company the ID that the visited site keeps for the user (address or what is sent)?
   let sent = false;
   if (!handed.has(`${site} ${page}`)) try { const ids = await ownIds(page);
@@ -611,8 +613,8 @@ async function noteAnswer(d) {
   const ok = (d.responseHeaders || []).some((h) => String(h.name).toLowerCase() === 'set-cookie' && /;\s*samesite=none/i.test(h.value) && idLike(String(h.value).split(';')[0].split('=').slice(1).join('=')));
   let u; try { u = new URL(d.url); } catch { return; }
   if (!ok || !/^https?:$/.test(u.protocol)) return;
-  const site = siteOf(u.hostname), page = await topSite(d.tabId);
-  if (!page || site === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
+  const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d.tabId);
+  if (!page || co === page || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(co)) return;
   await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   let full = false; const salt = await saltNow();
@@ -630,7 +632,8 @@ const USED = 'what it keeps to follow you';
 async function followSweep(cx, all, wait) {
   const v = verdict('C25', cx), stopped = cx.set.stopped || [];
   if (v === 'no') return;
-  const hasId = (site) => all.some((c) => under(bare(c.domain), site) && (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
+  const hasId = (site) => all.some((c) => under(site, bare(c.domain)) &&   // a cookie Chrome would send to that host
+    (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
   const { follow = {}, stops = [], hard = [] } = await chrome.storage.local.get(['follow', 'stops', 'hard']), now = Date.now(), recent = stops.filter((t) => t > now - 3600e3), n = recent.length;
   for (const [site, e] of Object.entries(follow)) {
     // evidence: on FOLLOW_N sites, a cookie of its own that other sites can use (in Chrome's list, or tried in its answer);
@@ -691,11 +694,11 @@ const BOUNCE_MAX = 100, PASSED = 'passed you on without showing a page';
 async function noteRedirect(d) {
   if (d.type !== 'main_frame') return;
   let a, b; try { a = new URL(d.url); b = new URL(d.redirectUrl); } catch { return; }
-  const site = siteOf(a.hostname);
-  if (!/^https?:$/.test(a.protocol) || !/^https?:$/.test(b.protocol) || site === siteOf(b.hostname) || isSignIn(d.url) || isSignIn(d.redirectUrl) || signInCompany(site)) return;
+  const co = siteOf(a.hostname), site = a.hostname.toLowerCase();   // kept per exact host (J2)
+  if (!/^https?:$/.test(a.protocol) || !/^https?:$/.test(b.protocol) || co === siteOf(b.hostname) || isSignIn(d.url) || isSignIn(d.redirectUrl) || signInCompany(co)) return;
   await ready;
   const cx = await context();
-  if (mayRun('C27', cx.set) === 'no' || cx.hold.guard || cx.hosts.some((h) => siteOf(h) === site)) return;
+  if (mayRun('C27', cx.set) === 'no' || cx.hold.guard || cx.hosts.some((h) => siteOf(h) === co)) return;
   // to: a hash per site it sent the browser on to (at most 3); id: it added an ID to the address on the way. skip.js gets a
   // site only with both (two different destinations and an added ID): one safe-link redirect makes no passing site (H4)
   const salt = await saltNow(), dest = mark(`${salt} ${siteOf(b.hostname)}`);

@@ -3,7 +3,7 @@ const test = require('node:test'), assert = require('node:assert'), load = requi
 const { bounceAdded } = require('../extension/learn.js');
 const ID = 'h-77ab12cd34ef', enc = encodeURIComponent;
 const on = (o = {}) => ({ cookies: [{ name: 'hop_id', domain: '.hop.example', value: ID }], tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
-const pass = async (bg, added) => { await bg.redirect({ url: `https://go.hop.example/r?to=${enc('https://blog.example/post')}`, redirectUrl: `https://blog.example/post?${added}`, type: 'main_frame' }); await bg.settle(); };
+const pass = async (bg, added) => { await bg.redirect({ url: `https://hop.example/r?to=${enc('https://blog.example/post')}`, redirectUrl: `https://blog.example/post?${added}`, type: 'main_frame' }); await bg.settle(); };
 const asked = (bg) => ((bg.state.storage.pending || {}).bounce || { items: [] }).items.filter((i) => i.kind === 'param').map((i) => [i.site, i.name]);
 const cutRule = (bg) => bg.state.dynamic.find((r) => r.id === 100002);
 
@@ -18,7 +18,7 @@ test('the audit scenario: names pages need (v, client_id, list and the like) are
   const names = ['v', 'client_id', 'list', 'id', 'q', 'p', 's', 't', 'code', 'state', 'redirect_uri', 'token', 'key', 'lang', 'page', 'url', 'next', 'search', 'query', 'user', 'email', 'session', 'sid', 'ID', 'Page'];
   const bg = await load(on()); await pass(bg, names.map((n) => `${n}=${ID}`).join('&'));
   assert.deepEqual(asked(bg), []); assert.deepEqual(bg.state.storage.params || [], []);
-  assert.deepEqual(bounceAdded(`https://go.hop.example/r?to=${enc('https://blog.example/post')}`, `https://blog.example/post?${names.map((n) => `${n}=${ID}`).join('&')}`), []);
+  assert.deepEqual(bounceAdded(`https://hop.example/r?to=${enc('https://blog.example/post')}`, `https://blog.example/post?${names.map((n) => `${n}=${ID}`).join('&')}`), []);
 });
 test('a value that does not look like an ID is not offered either; at most 10 names per site are remembered', async () => {
   const bg = await load(on()); await pass(bg, 'ref=newsletter&color=blue&n=12');

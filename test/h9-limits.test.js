@@ -7,7 +7,7 @@ const req = async (bg, url, page) => { await bg.request({ url, initiator: `https
 
 test('the group button never answers a "cut this off addresses" question; its own button does', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] }));
-  await bg.redirect({ url: `https://go.hop.example/r?to=${enc('https://blog.example/post')}`, redirectUrl: `https://blog.example/post?hid=${ID}`, type: 'main_frame' }); await bg.settle();
+  await bg.redirect({ url: `https://hop.example/r?to=${enc('https://blog.example/post')}`, redirectUrl: `https://blog.example/post?hid=${ID}`, type: 'main_frame' }); await bg.settle();
   const waiting = () => ((bg.state.storage.pending || {}).bounce || { items: [] }).items.map((i) => [i.kind, i.name]);
   const BOTH = [['bounce', 'passed you on without showing a page'], ['param', 'hid']];
   assert.deepEqual(waiting(), BOTH);
@@ -21,7 +21,7 @@ test('names that sound like a sign-in or a key are never offered: token, reset, 
 });
 test('the marks of the sites a company was seen on are made with this install\'s random value', async () => {
   const one = await load(on()), two = await load(on());
-  await req(one, 'https://px.trk.example/p.gif', 'news.example'); await req(two, 'https://px.trk.example/p.gif', 'news.example');
+  await req(one, 'https://trk.example/p.gif', 'news.example'); await req(two, 'https://trk.example/p.gif', 'news.example');
   assert.equal(one.state.storage.follow['trk.example'].on.length, 1); assert.notDeepEqual(one.state.storage.follow['trk.example'].on, two.state.storage.follow['trk.example'].on);
 });
 test('300 junk requests do not push out what was really learned: the least evidence goes first', () => {
@@ -51,7 +51,7 @@ test('clearing either history leaves the list of sites the user opens as pages a
 });
 test('a cleaned-out tracker\'s background program is removed even while its own site is open', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }], cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
-  await req(bg, 'https://px.trk.example/p.gif', 'news.example'); await req(bg, 'https://px.trk.example/p.gif', 'shop.example');
+  await req(bg, 'https://trk.example/p.gif', 'news.example'); await req(bg, 'https://trk.example/p.gif', 'shop.example');
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.deepEqual(bg.state.storage.hard, ['trk.example']);
   const workers = bg.called('browsingData.remove').filter((c) => c.args[1].serviceWorkers && (c.args[0].origins || []).includes('https://trk.example'));

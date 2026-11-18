@@ -1,7 +1,7 @@
 // F3 (audit): the cookies of a company whose site the user opens as a page must survive every deleting path, not only the stop.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const req = async (bg, host, page) => { await bg.request({ url: `https://${host}/px.gif`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
-const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'px.trk.example', p); };
+const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'trk.example', p); };
 const USER = { name: 'c_user', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };
 const on = (o = {}) => ({ cookies: [USER], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 
@@ -19,7 +19,7 @@ test('never opened as a page: its cookies go when the user presses Remove (1.25,
   const bg = await load(on()); await three(bg);
   assert.deepEqual(await bg.names(), ['c_user']); await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.deepEqual(await bg.names(), []);
-  await bg.setCookie({ url: 'https://px.trk.example/', domain: '.trk.example', name: 'uid2', value: 'x-77ab12cd34ef', sameSite: 'no_restriction', secure: true });
+  await bg.setCookie({ url: 'https://trk.example/', domain: '.trk.example', name: 'uid2', value: 'x-77ab12cd34ef', sameSite: 'no_restriction', secure: true });
   assert.deepEqual(await bg.names(), []);
 });
 test('a tracker on the built-in list is judged as before, also when its site was opened as a page', async () => {

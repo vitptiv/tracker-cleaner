@@ -4,7 +4,7 @@ const test = require('node:test'), assert = require('node:assert'), load = requi
 const { DOMAINS } = require('../extension/lists.js');
 const OWN = 'what it saved on its own site', LISTED = 'the listed trackers', DAY = 24 * 3600e3;
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, stopped: ['trk.example'], hard: ['trk.example'],
-  follow: { 'trk.example': { on: ['a', 'b', 'c'], id: true, hosts: ['px.trk.example:8443'], t: 1 } }, ...o.storage } });
+  follow: { 'trk.example': { on: ['a', 'b', 'c'], id: true, hosts: ['trk.example:8443'], t: 1 } }, ...o.storage } });
 const queued = (bg) => ((bg.state.storage.pending || {}).own || { items: [] }).items.map((i) => [i.cap, i.kind, i.site, i.name]);
 const emptied = (bg) => bg.called('browsingData.remove').map((c) => c.args), blocked = (bg) => bg.called('contentSettings.set').map((c) => c.args[0]);
 
@@ -16,7 +16,7 @@ test('Approve for one company: its storage and background program go, its notifi
   const bg = await load(on()); await bg.alarm('sweep');
   assert.deepEqual(await bg.send({ type: 'approve', group: 'own', site: 'trk.example', name: OWN }), { ok: true, done: 1, of: 1 }); await bg.settle();
   const [[what, kinds]] = emptied(bg);
-  assert.deepEqual(what.origins, ['https://trk.example', 'http://trk.example', 'https://www.trk.example', 'http://www.trk.example', 'https://px.trk.example:8443', 'http://px.trk.example:8443']);
+  assert.deepEqual(what.origins, ['https://trk.example', 'http://trk.example', 'https://www.trk.example', 'http://www.trk.example', 'https://trk.example:8443', 'http://trk.example:8443']);
   assert.deepEqual(kinds, { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true });
   assert.deepEqual(blocked(bg), [{ primaryPattern: '*://*.trk.example/*', setting: 'block' }]);
   assert.deepEqual(queued(bg), []);

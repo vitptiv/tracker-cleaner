@@ -14,7 +14,7 @@ const asks = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] })
 
 test('the audit scenario: a page hands its own ID to the bank and the bank answers with a cookie: the bank is blocked on other sites and nothing else happens to it', async () => {
   const bg = await load(on({ cookies: [FP, ...bank()] }));
-  await answer(bg, 'https://www.bank.example/f', 'evil.example'); await req(bg, 'https://www.bank.example/f?u=k9x2m4q8r1t7', 'evil.example');
+  await answer(bg, 'https://bank.example/f', 'evil.example'); await req(bg, 'https://bank.example/f?u=k9x2m4q8r1t7', 'evil.example');
   await bg.alarm('sweep'); await bg.alarm('sweep');
   assert.deepEqual(bg.state.storage.stopped, ['bank.example']); assert.deepEqual(blockedSites(bg), ['bank.example']);
   assert.deepEqual(hardCalls(bg, 'bank.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });   // cache: all saved copies once after the block (I1), which costs her only speed
@@ -22,8 +22,8 @@ test('the audit scenario: a page hands its own ID to the bank and the bank answe
 });
 test('seen on two visited sites: blocked and the saved copies cleared once; what it keeps is cleaned out at the press on Remove (1.25, J1: never by itself)', async () => {
   const bg = await load(on({ cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
-  await req(bg, 'https://px.trk.example/p.gif', 'news.example'); assert.deepEqual(bg.state.storage.stopped || [], []);
-  await req(bg, 'https://px.trk.example/p.gif', 'shop.example');
+  await req(bg, 'https://trk.example/p.gif', 'news.example'); assert.deepEqual(bg.state.storage.stopped || [], []);
+  await req(bg, 'https://trk.example/p.gif', 'shop.example');
   assert.deepEqual([bg.state.storage.stopped, bg.state.storage.hard || []], [['trk.example'], []]); assert.deepEqual(await bg.names(), ['uid']);
   assert.deepEqual(hardCalls(bg, 'trk.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); await bg.alarm('sweep');
@@ -33,7 +33,7 @@ test('seen on two visited sites: blocked and the saved copies cleared once; what
 test('a company the user also uses: blocked elsewhere, and one question once; Remove cleans it out but keeps what looks like a sign-in, Keep ends the matter', async () => {
   for (const answerIs of ['Remove', 'Keep']) {
     const bg = await load(on({ cookies: bank() })); await bg.opens('https://www.bank.example/home'); await bg.closeTab(bg.tabOf('https://www.bank.example/home'));
-    await req(bg, 'https://www.bank.example/w.js', 'news.example'); await req(bg, 'https://www.bank.example/w.js', 'shop.example'); await bg.alarm('sweep');
+    await req(bg, 'https://bank.example/w.js', 'news.example'); await req(bg, 'https://bank.example/w.js', 'shop.example'); await bg.alarm('sweep');
     assert.deepEqual(bg.state.storage.stopped, ['bank.example']); assert.deepEqual(hardCalls(bg, 'bank.example'), { cookies: 0, storage: 0, cache: 1, notifications: 0 });   // cache: all saved copies once after the block (I1), which costs her only speed
     assert.deepEqual(asks(bg), [['used', 'bank.example']]);
     const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
@@ -46,7 +46,7 @@ test('a company the user also uses: blocked elsewhere, and one question once; Re
 });
 test('the group button never answers that question', async () => {
   const bg = await load(on({ cookies: bank() })); await bg.opens('https://www.bank.example/home'); await bg.closeTab(bg.tabOf('https://www.bank.example/home'));
-  await req(bg, 'https://www.bank.example/w.js', 'news.example'); await req(bg, 'https://www.bank.example/w.js', 'shop.example'); await bg.alarm('sweep');
+  await req(bg, 'https://bank.example/w.js', 'news.example'); await req(bg, 'https://bank.example/w.js', 'shop.example'); await bg.alarm('sweep');
   await bg.send({ type: 'approve', group: 'unknown' }); await bg.settle();
   assert.deepEqual((await bg.names()).sort(), ['prefs', 'sess']); assert.deepEqual(asks(bg), [['used', 'bank.example']]);
 });
@@ -57,8 +57,8 @@ test('the hourly limit holds inside one sweep: fifteen ready at once, ten stoppe
 });
 test('two tenants of one shared host count as one visited site', async () => {
   const bg = await load(on({ cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
-  await bg.request({ url: 'https://px.trk.example/p.gif', initiator: 'https://one.github.io', type: 'image' }); await bg.settle();
-  await bg.request({ url: 'https://px.trk.example/p.gif', initiator: 'https://two.github.io', type: 'image' }); await bg.settle(); await bg.alarm('sweep');
+  await bg.request({ url: 'https://trk.example/p.gif', initiator: 'https://one.github.io', type: 'image' }); await bg.settle();
+  await bg.request({ url: 'https://trk.example/p.gif', initiator: 'https://two.github.io', type: 'image' }); await bg.settle(); await bg.alarm('sweep');
   assert.deepEqual(bg.state.storage.stopped || [], []);
 });
 test('"Let it through again" takes a company off both lists', async () => {

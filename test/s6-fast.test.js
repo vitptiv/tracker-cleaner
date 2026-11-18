@@ -14,13 +14,13 @@ const SET = 'tid=t-77ab12cd34ef; Path=/; Max-Age=31536000; SameSite=None; Secure
 test('two visited sites and a cookie of that company are enough; one site is not', async () => {
   assert.equal(FOLLOW_N, 2);
   const bg = await load(on({ cookies: [cookie('.trk.example')] }));
-  await req(bg, 'https://px.trk.example/p.gif', 'news.example'); await req(bg, 'https://px.trk.example/p.gif', 'news.example'); assert.deepEqual(stopped(bg), []);
-  await req(bg, 'https://px.trk.example/p.gif', 'shop.example'); assert.deepEqual(stopped(bg), ['trk.example']);
+  await req(bg, 'https://trk.example/p.gif', 'news.example'); await req(bg, 'https://trk.example/p.gif', 'news.example'); assert.deepEqual(stopped(bg), []);
+  await req(bg, 'https://trk.example/p.gif', 'shop.example'); assert.deepEqual(stopped(bg), ['trk.example']);
 });
 test('evidence also when the company tries to set an ID cookie that other sites can use (it is not saved any more): seen in its answer, kept as a yes or no', async () => {
   const bg = await load(on());
-  await req(bg, 'https://px.trk.example/p.gif', 'news.example'); await answer(bg, 'https://px.trk.example/p.gif', 'news.example', SET);
-  await req(bg, 'https://px.trk.example/p.gif', 'shop.example');
+  await req(bg, 'https://trk.example/p.gif', 'news.example'); await answer(bg, 'https://trk.example/p.gif', 'news.example', SET);
+  await req(bg, 'https://trk.example/p.gif', 'shop.example');
   assert.deepEqual(stopped(bg), ['trk.example']);
   assert.equal(/t-77ab12cd34ef|tid=/.test(JSON.stringify(bg.state.storage)), false, 'something of the cookie is stored');
   const plain = await load(on());   // a cookie that is no ID, or that other sites cannot use, is no evidence
@@ -31,9 +31,9 @@ test('evidence also when the company tries to set an ID cookie that other sites 
 test('at once, on the first site: the ID the site keeps for you is seen going to another company, in the address or in what is sent, and that company answers with an ID cookie', async () => {
   for (const how of ['address', 'form', 'body']) {
     const bg = await load(on({ cookies: [FP] }));
-    await answer(bg, 'https://px.trk.example/kit.js', 'news.example', SET);
+    await answer(bg, 'https://trk.example/kit.js', 'news.example', SET);
     const body = how === 'form' ? { requestBody: { formData: { fp: ['k9x2m4q8r1t7'] } } } : how === 'body' ? { requestBody: { raw: [{ bytes: new TextEncoder().encode('{"ev":"view","fp":"ffp.1.1700000000.k9x2m4q8r1t7"}').buffer }] } } : {};
-    await req(bg, 'https://px.trk.example/e' + (how === 'address' ? '?fp=ffp.1.1700000000.k9x2m4q8r1t7' : ''), 'news.example', { method: 'POST', ...body });
+    await req(bg, 'https://trk.example/e' + (how === 'address' ? '?fp=ffp.1.1700000000.k9x2m4q8r1t7' : ''), 'news.example', { method: 'POST', ...body });
     assert.deepEqual(stopped(bg), ['trk.example'], how);
     assert.equal(JSON.stringify(bg.state.storage).includes('k9x2m4q8r1t7'), false, 'the value is stored'); assert.equal(JSON.stringify(bg.reports).includes('k9x2m4q8r1t7'), false);
   }
@@ -42,11 +42,11 @@ test('not at once: no answer with an ID cookie (a cookie in the jar is not enoug
   const quiet = await load(on({ cookies: [FP, cookie('.victim.example')] }));   // the audit's kind of attack: a page hands its own ID to a company that has a cookie but never asked for anything
   await req(quiet, 'https://www.victim.example/x?u=k9x2m4q8r1t7', 'news.example'); await quiet.alarm('sweep');
   assert.deepEqual(stopped(quiet), []); assert.deepEqual(asked(quiet), []); assert.deepEqual(quiet.called('cookies.remove'), []);
-  const hidden = await load(on({ cookies: [{ ...FP, httpOnly: true }] })); await answer(hidden, 'https://px.trk.example/kit.js', 'news.example', SET);
-  await req(hidden, 'https://px.trk.example/e?fp=k9x2m4q8r1t7', 'news.example'); assert.deepEqual(stopped(hidden), []);
+  const hidden = await load(on({ cookies: [{ ...FP, httpOnly: true }] })); await answer(hidden, 'https://trk.example/kit.js', 'news.example', SET);
+  await req(hidden, 'https://trk.example/e?fp=k9x2m4q8r1t7', 'news.example'); assert.deepEqual(stopped(hidden), []);
   const plain = await load(on({ cookies: [{ name: 'lang', domain: 'news.example', value: 'en-US' }, { name: 'n', domain: 'news.example', value: 'abc1234' }, { name: 't', domain: 'news.example', value: '1700000000' }] }));
-  await answer(plain, 'https://px.trk.example/kit.js', 'news.example', SET);
-  await req(plain, 'https://px.trk.example/e?l=en-US&n=abc1234&t=1700000000', 'news.example'); assert.deepEqual(stopped(plain), []);
+  await answer(plain, 'https://trk.example/kit.js', 'news.example', SET);
+  await req(plain, 'https://trk.example/e?l=en-US&n=abc1234&t=1700000000', 'news.example'); assert.deepEqual(stopped(plain), []);
   const own = await load(on({ cookies: [FP] })); await answer(own, 'https://cdn.news.example/a.js', 'news.example', SET);
   await req(own, 'https://cdn.news.example/e?fp=k9x2m4q8r1t7', 'news.example'); assert.deepEqual(stopped(own), []); assert.deepEqual(own.state.storage.follow || {}, {});
 });
@@ -68,14 +68,14 @@ test('the F1 scenario under the new rules: frames of one page, a shared host, a 
 test('still at most 10 by itself in an hour', async () => {
   const sites = Array.from({ length: 11 }, (_, i) => `trk${i}.example`);
   const bg = await load(on({ cookies: [FP] }));
-  for (const s of sites) { await answer(bg, `https://px.${s}/kit.js`, 'news.example', SET); await req(bg, `https://px.${s}/e?fp=k9x2m4q8r1t7`, 'news.example'); }
+  for (const s of sites) { await answer(bg, `https://${s}/kit.js`, 'news.example', SET); await req(bg, `https://${s}/e?fp=k9x2m4q8r1t7`, 'news.example'); }
   assert.equal(stopped(bg).length, 10); assert.deepEqual(asked(bg), ['trk10.example']);
 });
 test('the comparison: parts of 8 or more letters and digits mixed, or 16 or more digits; by hash, with the worker\'s own random value', () => {
   assert.deepEqual(syncTokens('ffp.1.1700000000.k9x2m4q8r1t7&x=abc1234&y=1234567890123456&z=abcdefghij'), ['k9x2m4q8r1t7', '1234567890123456']);
   const h = idHashes([FP, { name: 'h', value: 'zz99yy88xx77', httpOnly: true }], 'salt-a');
   assert.equal(h.size, 1); assert.equal([...h].some((x) => String(x).includes('k9x2')), false);
-  assert.equal(carries(h, 'https://px.trk.example/e?fp=k9x2m4q8r1t7', 'salt-a'), true); assert.equal(carries(h, 'https://px.trk.example/e?fp=k9x2m4q8r1t8', 'salt-a'), false);
+  assert.equal(carries(h, 'https://trk.example/e?fp=k9x2m4q8r1t7', 'salt-a'), true); assert.equal(carries(h, 'https://trk.example/e?fp=k9x2m4q8r1t8', 'salt-a'), false);
   assert.notDeepEqual([...idHashes([FP], 'salt-b')], [...h]);
   const t = Date.now(); syncTokens('a1'.repeat(500000)); carries(h, 'x'.repeat(1e6), 'salt-a'); assert.ok(Date.now() - t < 500, 'slow on a long text');
   let s = followNote(undefined, 't.example', 'px.t.example', 'news.example', false, 1); assert.equal(followFull(s['t.example']), false);

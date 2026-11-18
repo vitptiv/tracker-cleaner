@@ -5,7 +5,7 @@ const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12,
 const SET = 'tid=t-77ab12cd34ef; Path=/; SameSite=None; Secure', FP = { name: '_fp', domain: 'news.example', value: 'k9x2m4q8r1t7' };
 const req = async (bg, url, page) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script' }); await bg.settle(); };
 const answer = async (bg, url, page) => { await bg.answer({ url, initiator: `https://www.${page}`, type: 'script', responseHeaders: [{ name: 'Set-Cookie', value: SET }] }); await bg.settle(); };
-const soft = async (bg, site) => { await answer(bg, `https://px.${site}/kit.js`, 'news.example'); await req(bg, `https://px.${site}/e?fp=k9x2m4q8r1t7`, 'news.example'); };
+const soft = async (bg, site) => { await answer(bg, `https://${site}/kit.js`, 'news.example'); await req(bg, `https://${site}/e?fp=k9x2m4q8r1t7`, 'news.example'); };
 const clears = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length;
 const asks = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.map((i) => [i.kind, i.site]);
 

@@ -3,7 +3,7 @@ const test = require('node:test'), assert = require('node:assert'), load = requi
 const { renderPopup } = require('../extension/popup-view.js'), { mayRun } = require('../extension/registry.js'), { NET_BASE } = require('../extension/net-rules.js');
 const ID = { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };
 const update = async (storage, o = {}) => { const bg = await load({ cookies: [ID], ...o, storage: { master: true, cacheClearedAt: 0, ...storage } }); await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.24' }); await bg.settle(); return bg; };
-const two = async (bg) => { for (const p of ['news.example', 'shop.example']) { await bg.request({ url: 'https://px.trk.example/p.gif', initiator: `https://www.${p}`, type: 'image' }); await bg.settle(); } };
+const two = async (bg) => { for (const p of ['news.example', 'shop.example']) { await bg.request({ url: 'https://trk.example/p.gif', initiator: `https://www.${p}`, type: 'image' }); await bg.settle(); } };
 const NEW = ['C11', 'C25', 'C27', 'C28'];
 
 test('updated with cleaning on: blocking and the header rules start at once, but the four groups that are new to "by itself" keep asking until the line is answered', async () => {

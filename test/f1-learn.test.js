@@ -16,11 +16,11 @@ test('the audit scenario: one page with three frames of other origins asks a sha
 });
 test('a request that belongs to no tab is not counted', async () => {
   const bg = await load(on({ cookies: [cookie('.trk.example')] }));
-  for (const p of ['news.example', 'shop.example', 'blog.example']) { await bg.request({ url: 'https://px.trk.example/p.gif', initiator: `https://www.${p}`, type: 'image', tabId: -1 }); await bg.settle(); }
+  for (const p of ['news.example', 'shop.example', 'blog.example']) { await bg.request({ url: 'https://trk.example/p.gif', initiator: `https://www.${p}`, type: 'image', tabId: -1 }); await bg.settle(); }
   assert.deepEqual(bg.state.storage.stopped || [], []); assert.deepEqual(bg.state.storage.follow || {}, {});
 });
 test('three visited sites and an ID in the address, but no cookie of that host: no evidence, nothing happens', async () => {
-  const bg = await load(on()); await three(bg, CF); await three(bg, 'https://c.quiet.example/c.gif?uid=3fa9c2d1e07b4a55aa01'); await bg.alarm('sweep');
+  const bg = await load(on()); await three(bg, CF); await three(bg, 'https://quiet.example/c.gif?uid=3fa9c2d1e07b4a55aa01'); await bg.alarm('sweep');
   assert.deepEqual(bg.state.storage.stopped || [], []); assert.deepEqual(asked(bg), []); assert.deepEqual(bg.called('cookies.remove'), []);
 });
 test('a shared host is learned by its full name: only that host is stopped, its neighbours and the shared name are not', async () => {
@@ -46,7 +46,7 @@ test("Google's own sites in any country are never learned", async () => {
 test('at most 10 are stopped by itself in an hour: the eleventh becomes a question; an hour later it is stopped', async () => {
   const sites = Array.from({ length: 11 }, (_, i) => `trk${i}.example`);
   const bg = await load(on({ cookies: sites.map((s) => cookie('.' + s)) }));
-  for (const s of sites) await three(bg, `https://px.${s}/p.gif`);
+  for (const s of sites) await three(bg, `https://${s}/p.gif`);
   assert.equal(bg.state.storage.stopped.length, 10); assert.deepEqual(asked(bg), ['trk10.example']);
   bg.now += 61 * 60e3; await bg.alarm('sweep');
   assert.equal(bg.state.storage.stopped.length, 11); assert.deepEqual(asked(bg), []);
@@ -54,7 +54,7 @@ test('at most 10 are stopped by itself in an hour: the eleventh becomes a questi
 test('never more than 300 stopped companies, and what is kept about them is bounded with the list', async () => {
   const stopped = Array.from({ length: 300 }, (_, i) => `old${i}.example`);
   const bg = await load(on({ cookies: [cookie('.trk.example')], storage: { stopped, own: { 'gone.example': { ok: true, at: 1 } } } }));
-  await three(bg, 'https://px.trk.example/p.gif'); await bg.alarm('sweep');
+  await three(bg, 'https://trk.example/p.gif'); await bg.alarm('sweep');
   assert.equal(bg.state.storage.stopped.length, 300); assert.equal(bg.state.storage.stopped.includes('trk.example'), false);
   assert.deepEqual(await bg.names(), ['uid']); assert.equal('gone.example' in (bg.state.storage.own || {}), false);
 });

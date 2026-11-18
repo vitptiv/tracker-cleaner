@@ -2,7 +2,7 @@
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const { cap, mayRun } = require('../extension/registry.js'), { renderPopup } = require('../extension/popup-view.js');
 const req = async (bg, host, page, path = '/px.gif') => { await bg.request({ url: `https://${host}${path}`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
-const three = async (bg, host = 'px.trk.example') => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, host, p); };
+const three = async (bg, host = 'trk.example') => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, host, p); };
 const ID = { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };
 const fresh = async (o = {}) => { const bg = await load(o); await bg.chrome.runtime.onInstalled.fire({ reason: 'install' }); await bg.settle(); return bg; };
 const rule = (bg) => bg.state.dynamic.find((r) => r.id === 100001);
@@ -36,7 +36,7 @@ test('fresh install: a company seen on several sites is blocked at once and the 
   assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); await bg.alarm('sweep');
   assert.deepEqual(await bg.names(), []);
-  assert.ok(emptied(bg).includes('https://trk.example') && emptied(bg).includes('https://px.trk.example'), 'its own storage was not emptied');
+  assert.ok(emptied(bg).includes('https://trk.example') && emptied(bg).includes('https://trk.example'), 'its own storage was not emptied');
   assert.ok(bg.called('browsingData.remove').some((c) => c.args[1].cache && c.args[0].since === 0), 'the saved copies were not cleared after the stop');
   assert.equal(bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes('trk.example')).length, 1);
   assert.deepEqual(((bg.state.storage.pending || {}).unknown || { items: [] }).items, []);   // answered: nothing waits
@@ -49,7 +49,7 @@ test('a company whose own site you open as a page is blocked on other sites, but
   assert.equal(/trk\.example\/home/.test(JSON.stringify(bg.state.storage)), false, 'the address of a visited page is stored');
 });
 test('a site that passes you along is never cleaned by itself (1.25, J1): one question, and Remove cleans it', async () => {
-  const hop = { url: 'https://go.hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post?hid=h-77ab12cd34ef', type: 'main_frame' };
+  const hop = { url: 'https://hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post?hid=h-77ab12cd34ef', type: 'main_frame' };
   const cookies = [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }];
   let bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.redirect(hop); await bg.settle();

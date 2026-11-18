@@ -2,7 +2,7 @@
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const { skipTo } = require('../extension/skip.js'), { buildReport, renderReport } = require('../extension/report-view.js');
 const SITES = ['hop.example'], PAGE = 'https://social.example/feed', enc = encodeURIComponent;
-const hop = (q, host = 'go.hop.example') => `https://${host}/r?${q}`;
+const hop = (q, host = 'hop.example') => `https://${host}/r?${q}`;
 const on = (o = {}) => ({ tabs: [{ id: 1, active: true, url: PAGE }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 // passing (1.25, H4): it sent the browser on to two different sites and added an ID
 const pass = async (bg) => { for (const to of ['https://blog.example/post', 'https://shop.example/x']) { await bg.redirect({ url: hop(`to=${enc(to)}`), redirectUrl: to + '?hid=h-77ab12cd34ef', type: 'main_frame' }); await bg.settle(); } };
@@ -25,7 +25,7 @@ test('left alone: an unknown site, a name that only looks like it, no address, t
 });
 test('never on the way of a sign-in: a sign-in address as the link or as the destination', () => {
   assert.equal(skipTo(hop(`client_id=a&redirect_uri=${enc('https://blog.example/cb')}`), PAGE, SITES), null);
-  assert.equal(skipTo(`https://go.hop.example/login?next=${enc('https://blog.example/')}`, PAGE, SITES), null);
+  assert.equal(skipTo(`https://hop.example/login?next=${enc('https://blog.example/')}`, PAGE, SITES), null);
   assert.equal(skipTo(hop(`to=${enc('https://accounts.google.com/o/oauth2/auth')}`), PAGE, SITES), null);
   assert.equal(skipTo(hop(`to=${enc('https://blog.example/login')}`), PAGE, SITES), null);
 });

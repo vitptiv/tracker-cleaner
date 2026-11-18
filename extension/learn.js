@@ -16,11 +16,13 @@ const STOPPED_MAX = 300, STOPS_HOUR = 10;
 // never get the whole name, or a neighbour, stopped. A short built-in table, not the full public suffix list.
 const SHARED = ['cloudfront.net', 'amazonaws.com', 'github.io', 'githubusercontent.com', 'herokuapp.com', 'azurewebsites.net', 'azureedge.net', 'windows.net', 'appspot.com', 'pages.dev',
   'workers.dev', 'netlify.app', 'vercel.app', 'web.app', 'firebaseapp.com', 'blogspot.com', 'wordpress.com', 'fastly.net', 'akamaized.net', 'akamaihd.net', 'edgekey.net', 'edgesuite.net', 'cloudflare.net',
-  'r2.dev', 'glitch.me', 'onrender.com', 'fly.dev', 'googleusercontent.com', 'web.core.windows.net', 'myshopify.com', 'wixsite.com', 'tumblr.com'];
+  'r2.dev', 'glitch.me', 'onrender.com', 'fly.dev', 'googleusercontent.com', 'web.core.windows.net', 'myshopify.com', 'wixsite.com', 'tumblr.com',
+  'b-cdn.net', 'supabase.co', 'supabase.in', 'cdn77.org', 'digitaloceanspaces.com', 'ondigitalocean.app', 'backblazeb2.com', 'cloudflarestorage.com', 'firebasestorage.app', 'blob.core.windows.net',
+  'azurestaticapps.net', 'deno.dev', 'surge.sh', 'gitlab.io', 'bitbucket.io', 'jsdelivr.net', 'unpkg.com', 'cdninstagram.com', 'fbcdn.net', 'twimg.com'];
 // the name a site is known by: its last two labels, three under co.uk, or.jp, com.au and the like, the whole host under a shared name
 const siteOf = (host) => { const h = String(host || '').toLowerCase().replace(/:\d+$/, ''), p = h.split('.');
   if (/^[\d.]+$/.test(h) || h.includes('[') || SHARED.some((s) => h.endsWith('.' + s))) return h;
-  return p.slice(p.length > 2 && p.at(-1).length === 2 && /^(co|com|org|net|ac|gov|edu|or|ne|go|gob|nom|mil|sch|ltd|plc)$/.test(p.at(-2)) ? -3 : -2).join('.'); };
+  return p.slice(p.length > 2 && p.at(-1).length === 2 && /^(co|com|org|net|ac|gov|gouv|govt|edu|or|ne|go|gob|nom|mil|sch|ltd|plc|asso)$/.test(p.at(-2)) ? -3 : -2).join('.'); };
 // looks like a number given to one browser: 8 or more letters and digits mixed, or 10 or more digits
 const idLike = (v) => String(v ?? '').split(/[^A-Za-z0-9_-]+/).some((t) => t.length >= 8 && (/^\d{10,}$/.test(t) || (/\d/.test(t) && /[a-z]/i.test(t))));
 // a long random value in an address, under a name that is not a version or a time

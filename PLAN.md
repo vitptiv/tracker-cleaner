@@ -1035,3 +1035,11 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   storage wiped). Each is one question per host: "X follows you on N sites. It is already blocked on other sites.
   Also remove what it saved here?" Remove / Keep; for a passing site its own question with Remove / Keep. No
   group button answers them. Hosts on the shipped lists are cleaned as before.
+- J2 learning and blocking are per exact host (`follow`, `stopped`, `hard`, `bounce` are keyed by the host name as
+  it is in the address; the block rule names that host). Two hosts of one company are counted apart; a tenant of a
+  shared name can never get the name or a neighbour blocked. The suffix table (`siteOf`: `SHARED` and the two-part
+  country endings) now only decides what "another company" is; added: gouv, govt, asso as second parts, and
+  b-cdn.net, supabase.co, supabase.in, cdn77.org, digitaloceanspaces.com, ondigitalocean.app, backblazeb2.com,
+  cloudflarestorage.com, firebasestorage.app, blob.core.windows.net, azurestaticapps.net, deno.dev, surge.sh,
+  gitlab.io, bitbucket.io, jsdelivr.net, unpkg.com, cdninstagram.com, fbcdn.net, twimg.com. Remove deletes the
+  cookies of that host and below it, not those of the company's other hosts.

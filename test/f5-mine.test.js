@@ -1,7 +1,7 @@
 // F5 (audit): the list of sites the user opens as pages (`mine`), and sign-ins that are older than that list.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const req = async (bg, host, page) => { await bg.request({ url: `https://${host}/px.gif`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
-const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'px.trk.example', p); };
+const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'trk.example', p); };
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const c = (name, o = {}) => ({ name, domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction', ...o });
 
@@ -43,7 +43,7 @@ test('Remove never deletes a cookie that looks like a sign-in (HttpOnly and Secu
 });
 test('the same holds when a passing site is cleaned at the user\'s press', async () => {
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }], cookies: [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }, { name: 'sess', domain: '.hop.example', value: 's-77ab12cd34ef', httpOnly: true, secure: true }] }));
-  await bg.redirect({ url: 'https://go.hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post', type: 'main_frame' }); await bg.settle();
+  await bg.redirect({ url: 'https://hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post', type: 'main_frame' }); await bg.settle();
   await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'passed you on without showing a page' }); await bg.settle();
   assert.deepEqual(await bg.names(), ['sess']);
 });
