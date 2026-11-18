@@ -16,7 +16,7 @@ test('I1: a stop that only blocks clears all saved copies once; further stops wi
   await soft(bg, 'trk2.example'); await soft(bg, 'trk3.example', 'shop.example'); assert.equal(bg.state.storage.stopped.length, 3); assert.equal(clears(bg), 1);
   await bg.chrome.runtime.onStartup.fire(); await bg.settle(); assert.equal(clears(bg), 1);
   bg.now += 61 * 60e3; await soft(bg, 'trk4.example'); assert.equal(clears(bg), 2);
-  assert.match(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, /once a day, once more when a tracker is cleaned out, and at most once an hour when a new tracker is blocked/);
+  assert.match(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, /once a day, and besides that at most once an hour when you block a host/);
 });
 test('I1: not when the saved-copies row is off or asks first, and nothing but saved copies goes', async () => {
   for (const mode of ['off', 'ask']) { const bg = await load(on({ cookies: [FP], storage: { modes: { C11: mode } } })); await soft(bg, 'trk1.example'); assert.equal(clears(bg), 0, mode); }

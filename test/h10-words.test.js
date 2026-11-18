@@ -16,7 +16,7 @@ test('the README says the same in its first paragraph, and nothing about a versi
 });
 test('the description fits Chrome\'s limit and names what touches every page', () => {
   const d = manifest.description; assert.ok(d.length <= 132, String(d.length));
-  for (const w of [/block/i, /cookies/i, /referring page/i, /script in every page/i, /links/i]) assert.match(d, w);
+  for (const w of [/block/i, /cookies/i, /script in every page/i, /asks before/i]) assert.match(d, w);
 });
 test('the report no longer says the history cannot be cleaned: it says who can clear it and how', () => {
   const h = buildReport({ now: 1, groups: [] }, null).cannot.find((x) => /history/.test(x.what));
@@ -25,5 +25,5 @@ test('the report no longer says the history cannot be cleaned: it says who can c
 test('J8: the first-run line also says that listed trackers\' cookies and saved data are deleted and that saved copies are cleared once a day', () => {
   const html = renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null), line = /<p class="c">Tracker Cleaner is on\..*?<\/p>/.exec(html)[0];
   assert.match(line, /deletes the cookies and saved data of the trackers on its built-in list/); assert.match(line, /clears the saved copies of pages once a day/);
-  assert.match(line, /asks before it removes anything of a company it only learned about/);
+  assert.match(line, /asks before it blocks or removes anything of a company that is on no list/);
 });

@@ -32,7 +32,7 @@ const renderPopup = (state, tab) => {
       + (Array.isArray(s.serverOff) && s.serverOff.length ? `<p class="c">The settings program on this computer has switched off: ${esc(s.serverOff.join(', '))}.</p>` : '')
       + (Array.isArray(s.notWorking) && s.notWorking.length ? `<p class="c bad">Not working right now, because Chrome refused a rule: ${esc(s.notWorking.join(', '))}.</p>` : '')
       + (s.master && s.firstRun === 'update' ? `<p class="c">New: Tracker Cleaner now cleans by itself. It can stop companies that follow you and delete what they saved without asking first; until you answer here it keeps asking as before. ${btn('OK', { type: 'seen', auto: true })} ${btn('Keep asking', { type: 'seen', auto: false })}</p>`
-        : s.master && s.firstRun ? `<p class="c">Tracker Cleaner is on. By itself it now: blocks trackers; deletes the cookies and saved data of the trackers on its built-in list, and clears the saved copies of pages once a day; blocks companies it sees following you from site to site, and asks before it removes anything of a company it only learned about; takes cookies, cache tags and the referring page out of what pages ask of other companies; runs a small script in every page that takes the notify-address off links you press and sends a few known pass-through links straight to their destination; and reads the addresses and contents of what pages send, on this computer only, to spot trackers. To turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>` : '');
+        : s.master && s.firstRun ? `<p class="c">Tracker Cleaner is on. By itself it now: blocks trackers; deletes the cookies and saved data of the trackers on its built-in list, and clears the saved copies of pages once a day; asks before it blocks or removes anything of a company that is on no list; takes cookies, cache tags and the referring page out of what pages ask of other companies; runs a small script in every page that takes the notify-address off links you press; and reads the addresses and contents of what pages send, on this computer only, to spot trackers. To turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>` : '');
   const undone = () => !undo.length ? '' : `<p>Removed in the last 10 minutes: ${undo.length >= UNDO_FULL ? UNDO_FULL + '+' : undo.length} ${btn('Restore all', { type: 'restoreAll' })}</p>`;
 
   // This site (C21). An action belongs here when its site is this host, a parent domain (where most cookies are
@@ -68,7 +68,8 @@ const renderPopup = (state, tab) => {
     const [verb, thing] = DOES[g.id] || ['Remove', 'item'];
     const approve = hint ? '' : btn(g.id === 'cache' ? 'Clear the saved copies of pages' : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`, { type: 'approve', group: g.id }, 'go', stopped);
     const today = Number((((s.history || {}).days || {})[DAY_OF(s.now)] || {})[g.id]) || 0, cmd = COMMAND[g.id];
-    const line = `${g.id === 'tor' && s.tor ? TOR_SAYS(s.tor) : n ? `${n} pending` : idle ? idle[0].toUpperCase() + idle.slice(1) : 'Nothing waiting'}${today ? ` · ${today} removed today` : ''}${post ? ` · ${post}` : ''}`;
+    const asksOnly = g.id === 'unknown' || g.id === 'bounce';   // these two rows only ask, each question by itself: no button here answers them (L9)
+    const line = `${g.id === 'tor' && s.tor ? TOR_SAYS(s.tor) : n && asksOnly ? `${n} question${n === 1 ? '' : 's'} waiting: answer ${n === 1 ? 'it' : 'each'} in the report beside the page` : n ? `${n} pending` : idle ? idle[0].toUpperCase() + idle.slice(1) : 'Nothing waiting'}${today ? ` · ${today} removed today` : ''}${post ? ` · ${post}` : ''}`;
     const k = Number(g.looping) || 0;
     return `<div class="c" data-group="${esc(g.id)}"><div class="h"><b>${esc(g.title)}</b><select ${msg({ type: 'setMode', group: g.id })}>`
       + (g.ask === false ? ON_OFF : g.noAuto ? MODES.slice(0, 2) : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'
@@ -76,7 +77,7 @@ const renderPopup = (state, tab) => {
       + (!k ? '' : `<div class="m">${k} of these ${k === 1 ? 'is left alone for an hour because its site keeps putting it back; after that it is removed again.'
         : 'are left alone for an hour because their sites keep putting them back; after that they are removed again.'}</div>`)
       + (g.id === 'cache' && mode !== 'off' && !n ? `<div class="b">${btn('Clean now', { type: 'drop', kind: 'servers' }, '', stopped)}</div>` : '')
-      + (!n ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
+      + (!n || asksOnly ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
         + `${btn('Until restart', { type: 'postpone', group: g.id, minutes: 'restart' }, 'small')}</div>`
         + (wifi && approve ? '<div class="m">This cannot be undone here</div>' : '')   // the undo buffer holds cookies only
         + `<details id="pending-${esc(g.id)}"><summary class="m">What is waiting${items.length < n ? ` (the newest ${items.length} of ${n})` : ''}</summary>`

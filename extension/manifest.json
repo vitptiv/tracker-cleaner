@@ -2,7 +2,7 @@
  "manifest_version": 3,
  "name": "Tracker Cleaner (local)",
  "version": "1.25",
- "description": "Blocks trackers. Other companies get no cookies or referring page. Runs a script in every page and rewrites some links.",
+ "description": "Blocks listed trackers and asks before it blocks others. Other companies get no cookies. Runs a small script in every page.",
  "permissions": [
   "cookies",
   "storage",

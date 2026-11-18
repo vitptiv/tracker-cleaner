@@ -21,7 +21,7 @@ test('H7: twenty starts of Chrome with a tracker stopped clear nothing; the row 
   const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } }));
   for (let i = 0; i < 20; i++) { await bg.chrome.runtime.onStartup.fire(); await bg.settle(); }
   assert.equal(clears(bg), 0);
-  assert.equal(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, 'All copies of pages that Chrome saved to load them faster are thrown away once a day, once more when a tracker is cleaned out, and at most once an hour when a new tracker is blocked; pages then load a little slower the first time.');
+  assert.equal(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.');
 });
 test("a stopped tracker's notifications are blocked once even while its own page is open; its cookies and what it saved there stay", async () => {
   const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }],

@@ -1168,3 +1168,9 @@ other companies; the local network).
 - L8 loop breaker: a cookie its site puts back five times in ten minutes is left alone for one hour, not a day
   (five re-sets kept a listed tracker's cookie for 24 hours), then removed again; the popup, the report and the
   history page say exactly that.
+- L9 no dead buttons, no untrue sentence: the two rows that only ask ("Trackers that are on no list", "Sites that
+  only pass you along") have no group button in the popup; they say "N questions waiting: answer each in the report
+  beside the page". The sentences of those rows and of "What trackers saved on their own sites" and "Saved copies of
+  pages", the first-run line, README's first paragraph and the manifest description say what happens now: nothing
+  learned is blocked or deleted without a press; saved copies are cleared once a day and at most once an hour
+  besides.

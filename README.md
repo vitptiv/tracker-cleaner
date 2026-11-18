@@ -3,24 +3,25 @@
 A Chrome extension (Manifest V3) for this machine. Everything it does, since 1.25 without asking on a new
 install (the popup says so once; each row can be set to off, ask first or automatic):
 
-- it blocks requests to listed trackers, and to hosts it learns are following you (seen on two sites you
-  visit, or handed a site's own ID); a learned host is only ever blocked by itself: removing what it
-  saved, cleaning a site that only passes you along, and sending its links straight on each need your
-  press on one question;
-- it deletes tracking cookies, clears the saved copies of pages once a day, and strips tracking
-  parameters from links;
+- it blocks requests to listed trackers. A host on no list that it sees following you (on two sites you
+  visit, or handed a site's own ID) is only ever asked about: blocking it, removing what it saved (once),
+  cleaning a site that only passes you along, and sending its links straight on each need your press on
+  one question;
+- it deletes tracking cookies, clears the saved copies of pages once a day (and at most once an hour
+  besides, when you block a host), and strips the listed tracking parameters from links;
 - from every request a page makes to another company it removes cookies, cache tags and the referring
   page, and it stops pages from calling this computer and the home network;
-- it runs a small script in every page that takes the notify-address off links you press and rewrites
-  links to a few known pass-through hosts so that they go straight to their destination;
+- it runs a small script in every page that takes the notify-address off links you press, and sends a
+  link straight to its destination for a pass-through host you chose to skip;
 - off unless you switch it on, and experimental: a second script in every page that blurs what makes the
   browser recognisable (pictures and sound read back, the graphics chip's name); a
   determined site can undo it;
 - to spot trackers it reads the addresses and contents of what pages send, and whether an answer sets an
   ID cookie, in memory on this computer only: nothing of it is stored or sent anywhere.
 
-Everything is held while you are on a sign-in page of Google, Microsoft or Apple (another site's sign-in
-page holds that site only). For 10 minutes a removed cookie can be put back with Undo; emptied storage and
+After three seconds on a sign-in page of Google, Microsoft or Apple, that company's own cookies and those
+of the site you came from are left alone for five minutes (another site's sign-in page holds that site
+only); cookies that keep you signed in are never deleted. For 10 minutes a removed cookie can be put back with Undo; emptied storage and
 cleared saved copies cannot be put back.
 
 ## Layout
