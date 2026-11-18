@@ -20,16 +20,16 @@ test('at 300 blocked companies learning goes on: the oldest block is dropped for
   assert.deepEqual(bg.state.storage.hard, ['old1.example']); assert.equal('old0.example' in bg.state.storage.own, false);
   assert.ok(renderPopup(await bg.send({ type: 'state' }), null).includes('300 companies are blocked, the most Tracker Cleaner keeps: when a new one is blocked, the one blocked longest ago is let through again.'));
 });
-test('the audit scenario: ten clean-outs in a row clear all saved copies once, not ten times: every clearing but the daily one and your own press shares one hour', async () => {
+test('ten blocks in a row clear all saved copies once, not ten times: every clearing a page can cause shares one hour; the daily one and your own presses (Remove, Clean now) do not count (K1)', async () => {
   const hosts = Array.from({ length: 10 }, (_, i) => `trk${i}.example`);
   const bg = await load(on({ cookies: hosts.map((h) => cookie('.' + h)) }));
   for (const h of hosts) { await req(bg, `https://${h}/p.gif`, 'news.example'); await req(bg, `https://${h}/p.gif`, 'shop.example'); }
   assert.equal(bg.state.storage.stopped.length, 10); assert.equal(clears(bg), 1);
   for (const h of hosts) { await bg.send({ type: 'approve', group: 'unknown', site: h, name: 'what it keeps to follow you' }); await bg.settle(); }
-  assert.equal(bg.state.storage.hard.length, 10); assert.equal(clears(bg), 1);
+  assert.equal(bg.state.storage.hard.length, 10); assert.equal(clears(bg), 11, 'one for the blocks, one for each press on Remove');
   bg.now += 61 * 60e3; await req(bg, 'https://late.example/p.gif', 'news.example'); await bg.setCookie({ url: 'https://late.example/', name: 'uid', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction', secure: true }); await req(bg, 'https://late.example/p.gif', 'shop.example');
-  assert.equal(clears(bg), 2);
-  await bg.send({ type: 'drop', kind: 'servers' }); assert.equal(clears(bg), 3, '"Clean now" is your own press: not counted against the hour');
+  assert.equal(clears(bg), 12);
+  await bg.send({ type: 'drop', kind: 'servers' }); assert.equal(clears(bg), 13, '"Clean now" is your own press: not counted against the hour');
 });
 test('a page reached by a number instead of a name is not put on the list of sites you use, and cannot push a real one out', async () => {
   const bg = await load(on()); await bg.opens('https://real.example/');

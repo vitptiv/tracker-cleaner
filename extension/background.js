@@ -669,7 +669,9 @@ async function hardClean(site) {
   try { await chrome.browsingData.remove({ origins: [...new Set([site, 'www.' + site, ...((follow[site] || {}).hosts || [])])].flatMap((h) => [`https://${h}`, `http://${h}`]) }, { serviceWorkers: true }); } catch {}
   // a saved copy can carry the ID and bring it back: all saved copies go once with the clean
   // (clearing them for the tracker's addresses alone was tried in a real Chrome: it leaves the compiled copy of its script and the remembered server)
-  await copiesNow(cx);
+  // the saved copies are cleared with it. This is the user's own press, so it is not counted against the hour's one clearing,
+  // which bounds only what a page can cause (K1)
+  if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {}
   return true;
 }
 // "Let it through again": the block goes, and it is not offered again for a while

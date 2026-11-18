@@ -1098,3 +1098,8 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   press, J4). In Q: T21 and T22 go with Remove; T17 and T20 stay because the one clearing of saved copies an hour
   (J6) was used at the block in step 1, so Remove a minute later clears none; T5 and T30 stay because the answers
   come after the trip and the second look does not pass through Hop again (what was sent stays sent).
+
+### Batch K
+
+- K1 the press on Remove clears all saved copies whatever the hour's budget says: the budget (J6) bounds what a page
+  can cause, and a press is the user's own. Blocks still share one clearing an hour.

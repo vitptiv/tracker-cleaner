@@ -8,14 +8,14 @@ const on = (o = {}) => ({ cookies: [ID], ...o, storage: { master: true, cacheCle
 const clears = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length;
 const blocked = (bg, site = 'trk.example') => bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern === `*://*.${site}/*` && c.args[0].setting === 'block').length;
 
-test('H7, I1, J6: all saved copies are cleared once after the block; the clean-out within the same hour does not clear them again; and at most once a day otherwise: no wake-up a minute later, nothing when Chrome starts or the extension is loaded again', async () => {
+test('H7, I1, K1: all saved copies are cleared once after the block and once at the press on Remove, and at most once a day otherwise: no wake-up a minute later, nothing when Chrome starts or the extension is loaded again', async () => {
   const bg = await load(on()); await three(bg); assert.equal(clears(bg), 1);
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.equal(clears(bg), 1); assert.equal('copies' in bg.state.alarms, false);
+  assert.deepEqual(bg.state.storage.hard, ['trk.example']); assert.equal(clears(bg), 2); assert.equal('copies' in bg.state.alarms, false);
   await bg.chrome.runtime.onStartup.fire(); await bg.settle(); await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle();
   for (let i = 0; i < 4; i++) { bg.now += 15 * 60e3; await bg.alarm('sweep'); }
-  assert.equal(clears(bg), 1, 'cleared again within the day');
-  bg.now += 24 * 3600e3; await bg.alarm('sweep'); assert.equal(clears(bg), 2, 'the daily clearing');
+  assert.equal(clears(bg), 2, 'cleared again within the day');
+  bg.now += 24 * 3600e3; await bg.alarm('sweep'); assert.equal(clears(bg), 3, 'the daily clearing');
 });
 test('H7: twenty starts of Chrome with a tracker stopped clear nothing; the row says what really happens', async () => {
   const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } }));
