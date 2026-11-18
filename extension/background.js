@@ -284,7 +284,7 @@ async function stored(m) {
   try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
     return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
 }
-const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), histOn: (m) => histOn(m.on), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, seen: async () => { await chrome.storage.local.remove('firstRun'); return { ok: true }; }, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), histOn: (m) => histOn(m.on), clearBrowsing, unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -666,6 +666,13 @@ async function historySweep(cx) {
       if (n) done.push({ cap: 'C28', kind: 'history', site, name: 'pages in your history' }); }
     await chrome.storage.local.set({ histAt: Date.now() }); } catch {}
   await logged(done, 'removed');
+}
+// "Clear my browsing history" in the popup (S16): all of it, at a press only; nothing here calls this by itself
+async function clearBrowsing() {
+  const no = refusal(await context()); if (no) return no;
+  try { await chrome.browsingData.remove({ since: 0 }, { history: true }); } catch (e) { return { ok: false, error: String(e.message || e) }; }
+  await logged([{ cap: 'C10', kind: 'history', site: '*', name: 'all of your browsing history' }], 'removed');
+  return { ok: true };
 }
 const histOn = async (on) => { if (typeof on !== 'boolean') return { ok: false }; await chrome.storage.local.set({ histOn: on }); if (on) await sweep('settings'); return { ok: true }; };
 

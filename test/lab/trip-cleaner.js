@@ -3,7 +3,7 @@
 // extension/ loaded, in several settings. It measures only: nothing here demands "cleaned". The table goes to
 // lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A B0 B C]
 const fs = require('node:fs'), path = require('node:path');
-const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline, simulatedOnly } = require('./count');
+const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline, simulatedOnly, ownRecord } = require('./count');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
@@ -79,6 +79,7 @@ async function run(name, set, cert, flags, chance = {}) {
       for (const h of [...HOSTS, 'friendface.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));
         did[`storage of ${h}`] = await E.b.msg({ type: 'drop', kind: 'storage', site: h.endsWith('.test') ? `${h}:${lab.tlsPort}` : `${h}:${PORT}` }).catch((e) => String(e.message)); }
       did['block notifications'] = await E.b.msg({ type: 'drop', kind: 'permission', site: `http://friendface.localhost:${PORT}`, perm: 'notifications' }).catch((e) => String(e.message));
+      did['clear my browsing history'] = await E.b.msg({ type: 'clearBrowsing' }).catch((e) => String(e.message));
       did['clear cache and remembered servers'] = await E.b.msg({ type: 'drop', kind: 'servers' }).catch((e) => String(e.message));
       await sleep(500);
       // the second look: the sites again, then Friendface
@@ -116,6 +117,7 @@ async function run(name, set, cert, flags, chance = {}) {
         if (!REVISITED.includes(id) && !OUTSIDE.includes(id)) row.note = 'not repeated after cleaning: what was sent during the trip stays sent'; }
       row.ever = status === 'tracked';
       if (simulatedOnly({ id, atEnd: row.atEnd, setting })) { row.atEnd = false; row.simulatedOnly = true; row.status = 'stopped (real setting blocked; the lab\'s simulated Allow overrides it)'; }
+      if (ownRecord({ id, atEnd: row.atEnd })) { row.atEnd = false; row.ownRecord = true; row.status = 'kept on purpose: your own history, readable by no website'; }
       if (status === 'stopped' && !row.atEnd) continue;
       const caps = COVER[id], fired = firedAt(id), last = Math.max(0, ...fired);
       const blockSeen = caps.includes('C01') && out.extension.blockRuleMatches > 0;
@@ -135,7 +137,7 @@ async function run(name, set, cert, flags, chance = {}) {
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
     out.counts.ever = Object.values(out.rows).filter((r) => r.ever).length; out.counts.atEnd = Object.values(out.rows).filter((r) => r.atEnd).length;
-    out.counts.simulated = Object.keys(out.rows).filter((id) => out.rows[id].simulatedOnly);
+    out.counts.simulated = Object.keys(out.rows).filter((id) => out.rows[id].simulatedOnly); out.counts.own = Object.keys(out.rows).filter((id) => out.rows[id].ownRecord);
     out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep > RESTART).length;   // the steps after the restart open the same sites again
     return out;
   } finally { if (E.b) await E.b.close(); await lab.close(); }
@@ -154,7 +156,7 @@ async function run(name, set, cert, flags, chance = {}) {
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
     testOnlyEntries: { how: 'B and C only, alive only while the script runs; no shipped file is edited', sessionRules: RULES, alwaysDeleteList: ALWAYS,
       notAdded: 'DOMAINS (cookies judged by tracker host) is a constant inside lists.js, so the always-delete list by cookie name stands in for it. Permanent storage and permission drops come only from the settings program on port 8088, which is not running and is not imitated: in C they are done by hand instead.' },
-    simulated: SIMULATED.guard, simulatedRows: { T22: 'the lab\'s Allow is a grant over the control channel and overrides every setting, so the lab reads "granted" whatever the cleaner does. When Chrome\'s real setting for that site (contentSettings, read from the extension at the end) is "block", T22 is not counted at the end and is listed in counts.simulated' }, automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
+    simulated: SIMULATED.guard, simulatedRows: { T22: 'the lab\'s Allow is a grant over the control channel and overrides every setting, so the lab reads "granted" whatever the cleaner does. When Chrome\'s real setting for that site (contentSettings, read from the extension at the end) is "block", T22 is not counted at the end and is listed in counts.simulated' }, ownRecord: 'T18 and T19 are the user\'s own history and site icons in Chrome\'s files, readable by no website; the trip hands them to the lab from outside. Still in the files at the end, they are not counted at the end and are listed in counts.own. C presses "Clear my browsing history" with its other manual actions, before the second look', automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
   for (const n of names) { result.runs[n] = await run(n, SETTINGS[n], cert, flags, chance); console.log(''); }
   const cell = (r) => r.status === 'not built' ? '-' : (r.atEnd ? 'AT END ' : '') + r.status + (r.cause ? `: ${r.cause}` : '');
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);

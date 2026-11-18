@@ -39,3 +39,11 @@ test('S15: a notification right that Chrome really has blocked, but that the lab
   assert.equal(headline({ A: { counts: { atEnd: 6, ever: 28, simulated: ['T22'] } } }),
     "A (fresh install, nothing changed): 6 at the end, 28 ever, of 36; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked).");
 });
+test('S16: her own history and site icons are a class of their own, named apart, never folded into the count', () => {
+  const { ownRecord, headline } = require('./lab/count');
+  assert.equal(ownRecord({ id: 'T18', atEnd: true }), true); assert.equal(ownRecord({ id: 'T19', atEnd: true }), true);
+  assert.equal(ownRecord({ id: 'T19', atEnd: false }), false, 'cleared: nothing to name'); assert.equal(ownRecord({ id: 'T17', atEnd: true }), false);
+  assert.equal(headline({ A: { counts: { atEnd: 4, ever: 27, simulated: ['T22'], own: ['T18', 'T19'] } } }),
+    "A (fresh install, nothing changed): 4 at the end, 27 ever, of 36; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked); "
+    + 'T18, T19 kept on purpose: your own history, readable by no website.');
+});

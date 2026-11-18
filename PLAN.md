@@ -869,3 +869,20 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   (the shop's server), T31, T32 (her own press). "Ever" moved by one kind only (T6, the matched pair, no longer tied
   to her): until the tracker is learned, its script runs inside each visited site and sends everything itself, in a
   request these rules leave its address on; cookies, cache tags and the probe answer reach it that way. That is S6.
+
+### Batch 3: S16, S6, S7
+
+- Left alone by the S4 and S5 rules, exactly (`net-rules.js` and `background.js` `applyFeatures`): as asker and as
+  asked, `SIGNIN_HOSTS` (accounts.google.com, accounts.youtube.com, login.microsoftonline.com, login.live.com,
+  appleid.apple.com), github.com, `NEEDED` (hcaptcha.com, recaptcha.net, gstatic.com, googleapis.com,
+  cloudflare.com, stripe.com, stripe.network, paypal.com, paypalobjects.com, klarna.com, adyen.com,
+  braintreegateway.com, auth0.com, okta.com, duosecurity.com) and the user's `sitesOff`. Inside a family only (a
+  family page asking a family host; `FAMILIES`): Google: google.com, youtube.com, youtube-nocookie.com,
+  gstatic.com, googleapis.com, googleusercontent.com, ggpht.com, googlevideo.com, ytimg.com; Microsoft:
+  microsoft.com, live.com, microsoftonline.com, office.com, office365.com, msauth.net, msftauth.net,
+  sharepoint.com; Apple: apple.com, icloud.com, cdn-apple.com. Each name stands for itself and its subdomains.
+- S16 history and icons told as they are (T18, T19): the user's own record, readable by no website. Measuring side:
+  while still in Chrome's files at the end they are not counted and are named in `counts.own` and in the headline
+  ("kept on purpose: your own history, readable by no website"). Extension: one button in the popup, "Clear my
+  browsing history", pressed twice, clears all of it (`browsingData.remove` with `history`, no new permission);
+  nothing calls it by itself. Setting C presses it with its other manual actions. S11 is unchanged.

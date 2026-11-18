@@ -11,10 +11,15 @@ const atEnd = ({ outside, onDisk, second, after, lastStep, lastChance }) => outs
 // The headline is setting A, the install as a user gets it; B0 forces also the groups that ask by default (Google's
 // identity cookies, the user's own lists) to Automatic, so it is named as that. Both counts, always.
 const NAMES = { A: 'A (fresh install, nothing changed)', B0: 'B0 (every group forced to Automatic)' };
-const apart = (c) => (c.simulated || []).length ? `; apart from these, ${c.simulated.join(', ')} arrives only through the lab's simulated press (Chrome's real setting is blocked)` : '';
+const apart = (c) => [(c.simulated || []).length ? `apart from these, ${c.simulated.join(', ')} arrives only through the lab's simulated press (Chrome's real setting is blocked)` : '',
+  (c.own || []).length ? `${c.own.join(', ')} kept on purpose: your own history, readable by no website` : ''].filter(Boolean).map((x) => '; ' + x).join('');
 const headline = (runs) => (runs.A ? '' : 'A was not run. ') + Object.keys(runs).map((n) => `${NAMES[n] || n}: ${runs[n].counts.atEnd} at the end, ${runs[n].counts.ever} ever${n === 'A' ? ', of 36' : ''}${apart(runs[n].counts)}.`).join(' ');
 // T22 only: the lab's "Allow" is a grant over the control channel, which overrides every setting, so the lab keeps reading
 // "granted". When Chrome's real setting for that site, read from the extension's side at the end, is "block", the row is
 // taken out of the count and listed apart, by name.
 const simulatedOnly = ({ id, atEnd, setting }) => id === 'T22' && atEnd === true && setting === 'block';
-module.exports = { RESTART, stepOf, atEnd, headline, simulatedOnly };
+// T18 (site icons) and T19 (history): the user's own record of the pages she opened, in Chrome's own files. No website can
+// read them; the lab knows them only because its trip hands them in from outside. While they are still in the files at
+// the end they are a class of their own, named apart; cleared (the popup's "Clear my browsing history"), there is nothing to name.
+const ownRecord = ({ id, atEnd }) => (id === 'T18' || id === 'T19') && atEnd === true;
+module.exports = { RESTART, stepOf, atEnd, headline, simulatedOnly, ownRecord };

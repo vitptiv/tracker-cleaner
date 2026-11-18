@@ -98,8 +98,10 @@ const renderPopup = (state, tab) => {
     ? `<div class="m">Pages on trackers' own addresses are taken out of your history once a day. Pages of other sites stay.</div><div class="b"><button data-perm-off="history">Stop removing them</button></div>`
     : `<div class="m">Chrome will ask you to let Tracker Cleaner read your history. Only pages on trackers' own addresses are removed; nothing of your history is kept or sent anywhere.</div>`
       + `<div class="b"><button data-perm="history">Also remove trackers' pages from my history</button></div>`) + '</div>';
+  const browsing = () => `<div class="c" data-row="browsing"><b>Your own browsing history</b><div class="m">Clears every page Chrome remembers you visited, on all sites. It cannot be put back. Tracker Cleaner never does this by itself.</div>`
+    + `<div class="b"><button data-twice="Press again: this clears all of your browsing history and cannot be put back" ${msg({ type: 'clearBrowsing' })}>Clear my browsing history</button></div></div>`;
   const full = () => (s.stopped || []).length < 300 ? '' : '<p class="c">300 companies are stopped, the most Tracker Cleaner keeps, so new ones are not stopped. In the report you can let some through again.</p>';
-  return status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + exceptions() + audit();
+  return status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + browsing() + exceptions() + audit();
 };
 const hhmm = (t) => new Date(t).toTimeString().slice(0, 5);
 const dayAt = (t, now) => `${new Date(t).toDateString() === new Date(now).toDateString() ? 'today' : 'tomorrow'} at ${hhmm(t)}`;   // t is at most 24 hours ahead
