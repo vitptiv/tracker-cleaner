@@ -1,5 +1,55 @@
 {
- "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning).",
+ "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is B0 atEnd.",
+ "headline": "B0: 10/36 still tracked at the end, 28/36 ever",
+ "reference": {
+  "says": "the main switch off (reference)",
+  "counts": {
+   "tracked": 35,
+   "unlinked": 0,
+   "stopped": 0,
+   "ever": 35,
+   "atEnd": 35,
+   "stillArrivingAfterRestart": 18
+  },
+  "lastChance": {
+   "T1": 12,
+   "T2": 11,
+   "T3": 12,
+   "T4": 12,
+   "T5": 7,
+   "T6": 9,
+   "T7": 7,
+   "T8": 11,
+   "T9": 12,
+   "T10": 12,
+   "T11": 12,
+   "T12": 12,
+   "T13": 7,
+   "T14": 12,
+   "T15": 12,
+   "T16": 12,
+   "T17": 8,
+   "T18": 8,
+   "T19": 8,
+   "T20": 8,
+   "T21": 8,
+   "T22": 7,
+   "T23": 12,
+   "T24": 12,
+   "T25": 12,
+   "T26": 7,
+   "T27": 7,
+   "T28": 12,
+   "T29": 7,
+   "T30": 7,
+   "T31": 6,
+   "T32": 4,
+   "T33": 7,
+   "T35": 6,
+   "T36": 12
+  },
+  "broken": []
+ },
  "extension": "1.24",
  "settings": {
   "A": "fresh install defaults, nothing approved, no lab entries",
@@ -161,6 +211,7 @@
      "records": 28,
      "linked": 28,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T2": {
@@ -168,6 +219,7 @@
      "records": 23,
      "linked": 23,
      "lastStep": 11,
+     "atEnd": true,
      "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
     },
     "T3": {
@@ -175,6 +227,7 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T4": {
@@ -182,6 +235,7 @@
      "records": 12,
      "linked": 12,
      "lastStep": 11,
+     "atEnd": true,
      "cause": "capability exists but did not fire"
     },
     "T5": {
@@ -189,6 +243,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "capability exists but did not fire"
     },
     "T6": {
@@ -196,6 +251,7 @@
      "records": 3,
      "linked": 3,
      "lastStep": 9,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T7": {
@@ -203,6 +259,7 @@
      "records": 3,
      "linked": 3,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T8": {
@@ -210,6 +267,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 11,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T9": {
@@ -217,6 +275,7 @@
      "records": 21,
      "linked": 21,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T10": {
@@ -224,6 +283,7 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
@@ -231,6 +291,7 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T12": {
@@ -238,13 +299,15 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T13": {
      "status": "tracked",
-     "records": 3,
-     "linked": 3,
+     "records": 2,
+     "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "capability exists but did not fire"
     },
     "T14": {
@@ -252,6 +315,7 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
@@ -259,6 +323,7 @@
      "records": 13,
      "linked": 13,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T16": {
@@ -266,6 +331,7 @@
      "records": 13,
      "linked": 13,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T17": {
@@ -273,6 +339,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)"
     },
     "T18": {
@@ -280,6 +347,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
@@ -287,6 +355,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
@@ -294,6 +363,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
      "simulated": "needs the lab certificate"
     },
@@ -302,6 +372,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "capability exists but did not fire (cache: cleared when it is switched on or \"Clean now\" is pressed, then once a day; this copy was saved after that)",
      "simulated": "needs the lab certificate"
     },
@@ -310,6 +381,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "capability exists but did not fire",
      "simulated": "the press on Allow is a grant over the control channel"
     },
@@ -318,6 +390,7 @@
      "records": 17,
      "linked": 17,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T24": {
@@ -325,6 +398,7 @@
      "records": 29,
      "linked": 29,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list",
      "simulated": "the second address is a forwarded-for header"
     },
@@ -333,6 +407,7 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T26": {
@@ -340,6 +415,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T27": {
@@ -347,23 +423,27 @@
      "records": 3,
      "linked": 3,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T29": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T30": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (the redirector is the page in front)"
     },
     "T31": {
@@ -371,6 +451,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 6,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
@@ -378,6 +459,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 4,
+     "atEnd": true,
      "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
@@ -385,6 +467,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
@@ -396,6 +479,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 6,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     },
     "T36": {
@@ -403,6 +487,7 @@
      "records": 16,
      "linked": 16,
      "lastStep": 12,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list"
     }
    },
@@ -410,6 +495,8 @@
     "tracked": 33,
     "unlinked": 0,
     "stopped": 2,
+    "ever": 33,
+    "atEnd": 33,
     "stillArrivingAfterRestart": 17
    }
   },
@@ -444,6 +531,7 @@
      "records": 11,
      "linked": 11,
      "lastStep": 5,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5"
     },
     "T2": {
@@ -451,6 +539,7 @@
      "records": 7,
      "linked": 7,
      "lastStep": 5,
+     "atEnd": false,
      "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
     },
     "T3": {
@@ -458,6 +547,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T4": {
@@ -465,30 +555,35 @@
      "records": 3,
      "linked": 3,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "learned at the first pass and handled from then on (cut off: ffclid); last arrived in step 4"
     },
     "T5": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T6": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 1,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 1"
     },
     "T7": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T8": {
      "status": "tracked",
      "records": 4,
      "linked": 4,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T9": {
@@ -496,6 +591,7 @@
      "records": 9,
      "linked": 9,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T10": {
@@ -503,6 +599,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
@@ -510,6 +607,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T12": {
@@ -517,6 +615,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T13": {
@@ -524,6 +623,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 2,
+     "atEnd": false,
      "cause": "capability exists but did not fire"
     },
     "T14": {
@@ -531,6 +631,7 @@
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
@@ -538,6 +639,7 @@
      "records": 3,
      "linked": 3,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "re-created after cleaning (new ID)"
     },
     "T16": {
@@ -545,6 +647,7 @@
      "records": 3,
      "linked": 3,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "re-created after cleaning (new ID)"
     },
     "T17": {
@@ -552,6 +655,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "re-created after cleaning (new ID)"
     },
     "T18": {
@@ -559,6 +663,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
@@ -566,6 +671,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
@@ -573,6 +679,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "re-created after cleaning (new ID)",
      "simulated": "needs the lab certificate"
     },
@@ -580,6 +687,7 @@
      "status": "unlinked",
      "records": 1,
      "linked": 0,
+     "atEnd": false,
      "cause": "fired too late (ID already sent)",
      "simulated": "needs the lab certificate"
     },
@@ -588,6 +696,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "capability exists but did not fire",
      "simulated": "the press on Allow is a grant over the control channel"
     },
@@ -596,6 +705,7 @@
      "records": 6,
      "linked": 6,
      "lastStep": 5,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5"
     },
     "T24": {
@@ -603,6 +713,7 @@
      "records": 11,
      "linked": 11,
      "lastStep": 5,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 5",
      "simulated": "the second address is a forwarded-for header"
     },
@@ -611,35 +722,41 @@
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T26": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T27": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T29": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T30": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (the redirector is the page in front)"
     },
     "T31": {
@@ -647,6 +764,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 6,
+     "atEnd": true,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 6; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
@@ -654,6 +772,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 4,
+     "atEnd": true,
      "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
@@ -661,6 +780,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
@@ -670,13 +790,15 @@
     "T35": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T36": {
      "status": "tracked",
      "records": 5,
      "linked": 5,
      "lastStep": 4,
+     "atEnd": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     }
    },
@@ -684,6 +806,8 @@
     "tracked": 28,
     "unlinked": 1,
     "stopped": 6,
+    "ever": 28,
+    "atEnd": 10,
     "stillArrivingAfterRestart": 0
    }
   },
@@ -718,95 +842,113 @@
     "T1": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T2": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T3": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T4": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T5": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T6": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T7": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T8": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T9": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T10": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T11": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T12": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T13": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 2,
+     "atEnd": false,
      "cause": "capability exists but did not fire"
     },
     "T14": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T15": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T16": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T17": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T18": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
@@ -814,68 +956,80 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T21": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T22": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "capability exists but did not fire",
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T24": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T25": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T26": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T27": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T28": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T29": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T30": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (the redirector is the page in front)"
     },
     "T31": {
@@ -883,6 +1037,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 6,
+     "atEnd": true,
      "cause": "capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
@@ -890,6 +1045,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 4,
+     "atEnd": true,
      "cause": "no capability covers it (kept on purpose: a sign-in); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T33": {
@@ -897,6 +1053,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "cause": "no capability covers it (sent by the shop's server, not by the browser); the report says \"Tracker Cleaner cannot stop this\""
     },
     "T34": {
@@ -906,18 +1063,22 @@
     "T35": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     },
     "T36": {
      "status": "stopped",
      "records": 0,
-     "linked": 0
+     "linked": 0,
+     "atEnd": false
     }
    },
    "counts": {
     "tracked": 9,
     "unlinked": 0,
     "stopped": 26,
+    "ever": 9,
+    "atEnd": 8,
     "stillArrivingAfterRestart": 0
    }
   },
@@ -1042,6 +1203,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1049,6 +1211,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1056,6 +1219,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1063,6 +1227,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1070,6 +1235,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent"
@@ -1078,6 +1244,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1085,6 +1252,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1092,6 +1260,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1099,6 +1268,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1106,6 +1276,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1113,6 +1284,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1120,6 +1292,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1128,6 +1301,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 2,
+     "atEnd": false,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false
     },
@@ -1135,6 +1309,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1142,6 +1317,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1149,6 +1325,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1156,6 +1333,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1164,6 +1342,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
@@ -1173,6 +1352,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 8,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
@@ -1181,6 +1361,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1188,6 +1369,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1196,6 +1378,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": false,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false
     },
@@ -1203,6 +1386,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1210,6 +1394,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1217,6 +1402,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1224,6 +1410,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1232,6 +1419,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1241,6 +1429,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     },
@@ -1248,6 +1437,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent"
@@ -1257,6 +1447,7 @@
      "records": 2,
      "linked": 2,
      "lastStep": 7,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1267,6 +1458,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 6,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1277,6 +1469,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 4,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1287,6 +1480,7 @@
      "records": 1,
      "linked": 1,
      "lastStep": 7,
+     "atEnd": true,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
@@ -1300,6 +1494,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent"
@@ -1308,6 +1503,7 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false
     }
@@ -1316,6 +1512,8 @@
     "tracked": 7,
     "unlinked": 0,
     "stopped": 28,
+    "ever": 7,
+    "atEnd": 7,
     "stillArrivingAfterRestart": 0
    }
   }

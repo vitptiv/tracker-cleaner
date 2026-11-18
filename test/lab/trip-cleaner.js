@@ -3,7 +3,7 @@
 // extension/ loaded, in several settings. It measures only: nothing here demands "cleaned". The table goes to
 // lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A B0 B C]
 const fs = require('node:fs'), path = require('node:path');
-const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk');
+const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd } = require('./count');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
@@ -26,6 +26,8 @@ const SETTINGS = {
   B0: { says: 'main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)', entries: false, auto: true, manual: false },
   B: { says: 'as B0, with the lab\'s test-only entries', entries: true, auto: true, manual: false },
   C: { says: 'as B, then every manual action at the end (approve all, drop each lab site\'s cookies and storage, block the permission, clear the cache), then the sites again', entries: true, auto: true, manual: true } };
+// not a setting: the same trip with the main switch off, to learn in which step the trip makes each kind for the last time
+const OFF = { says: 'the main switch off (reference)', off: true, entries: false, auto: false, manual: false };
 const NOT_SET = { tor: 'would send requests off this computer', tabs: 'would close the trip\'s own tabs', allowlist: 'needs a list from the settings program; would delete every cookie',
   server: 'only reports and self-update', wifi: 'never automatic; touches this computer\'s saved networks, so it is not approved either' };
 
@@ -45,8 +47,8 @@ const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11',
 const SAID = { T18: 'cannot clean', T19: 'cannot clean', T27: 'cannot stop', T31: 'cannot stop', T32: 'cannot stop', T33: 'cannot stop' };
 const SIMULATED = { guard: 'the five minutes the sign-in guard holds after step 4 are cut to two seconds', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
-async function run(name, cert, flags) {
-  const set = SETTINGS[name], lab = await start({ port: PORT, tls: cert });
+async function run(name, set, cert, flags, chance = {}) {
+  const lab = await start({ port: PORT, tls: cert });
   let first = true;
   const launchExt = async (dir) => { const b = await launch(dir, [...flags, '--enable-unsafe-extension-debugging']);
     const { id } = await b.send('Extensions.loadUnpacked', { path: EXT });
@@ -54,6 +56,7 @@ async function run(name, cert, flags) {
     b.msg = (m) => within(b.popup.ev(`chrome.runtime.sendMessage(${JSON.stringify(m)})`), 20000, m.type);
     await until(async () => (await b.msg({ type: 'state' })).groups, 10000);
     if (set.entries) await b.popup.ev(`chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [9001, 9002], addRules: ${JSON.stringify(RULES)} })`);
+    if (first && set.off) await b.msg({ type: 'setMaster', on: false });
     if (first && set.auto) { await b.msg({ type: 'setMaster', on: true }); for (const g of AUTO) await b.msg({ type: 'setMode', group: g, mode: 'auto' }); }
     if (first && set.entries) for (const a of ALWAYS) await b.msg({ type: 'always', ...a, on: true });
     first = false; return b; };
@@ -104,10 +107,11 @@ async function run(name, cert, flags) {
       let status = use.some((r) => linked.has(r)) ? 'tracked' : use.length ? 'unlinked' : 'stopped';
       if (set.manual && OUTSIDE.includes(id)) status = files[id] ? 'tracked' : 'stopped';
       const row = out.rows[id] = { status, records: all.length, linked: all.filter((r) => linked.has(r)).length };
-      const lastN = Math.max(-1, ...trip.filter((r) => linked.has(r)).map((r) => r.n)); if (lastN >= 0) row.lastStep = TRIP[Math.max(0, ends.findIndex((e) => lastN < e))].n;
+      const lastN = Math.max(-1, ...trip.filter((r) => linked.has(r)).map((r) => r.n)); if (lastN >= 0) row.lastStep = stepOf(ends, TRIP.map((s) => s.n), lastN);
+      row.atEnd = atEnd({ outside: OUTSIDE.includes(id), onDisk: !!files[id], second: set.manual && REVISITED.includes(id), after: after.some((r) => linked.has(r)), lastStep: row.lastStep, lastChance: chance[id] });
       if (set.manual) { row.duringTrip = trip.some((r) => linked.has(r)) ? 'tracked' : trip.length ? 'unlinked' : 'stopped'; row.sameIdAfterCleaning = after.some((r) => trip.some((x) => x.value === r.value));
         if (!REVISITED.includes(id) && !OUTSIDE.includes(id)) row.note = 'not repeated after cleaning: what was sent during the trip stays sent'; }
-      if (status === 'stopped') continue;
+      if (status === 'stopped' && !row.atEnd) continue;
       const caps = COVER[id], fired = firedAt(id), last = Math.max(0, ...fired);
       const blockSeen = caps.includes('C01') && out.extension.blockRuleMatches > 0;
       const vias = all.filter((r) => linked.has(r)).map((r) => r.via);
@@ -125,7 +129,8 @@ async function run(name, cert, flags) {
       if (SAID[id]) row.cause += `; the report says "Tracker Cleaner ${SAID[id]} this"`;
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
-    out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep >= 9).length;   // steps 9 to 12 open the same sites again
+    out.counts.ever = out.counts.tracked; out.counts.atEnd = Object.values(out.rows).filter((r) => r.atEnd).length;
+    out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep > RESTART).length;   // the steps after the restart open the same sites again
     return out;
   } finally { if (E.b) await E.b.close(); await lab.close(); }
 }
@@ -134,15 +139,21 @@ async function run(name, cert, flags) {
   const want = process.argv.slice(2).filter((a) => SETTINGS[a]), names = want.length ? want : Object.keys(SETTINGS);
   const certDir = newProfile(), cert = labCert(certDir); fs.rmSync(certDir, { recursive: true, force: true });
   const flags = [cert.flag, '--host-resolver-rules=MAP *.test 127.0.0.1, MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE *.localhost, EXCLUDE 127.0.0.1'];
-  const result = { what: 'Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning).',
+  const ref = await run('off', OFF, cert, flags); console.log('');
+  const chance = Object.fromEntries(Object.entries(ref.rows).filter(([, r]) => r.lastStep).map(([id, r]) => [id, r.lastStep]));
+  const result = { what: 'Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). '
+    + 'Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome\'s own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is B0 atEnd.',
+    headline: null, reference: { says: OFF.says, counts: ref.counts, lastChance: chance, broken: ref.broken },
     extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, settings: Object.fromEntries(names.map((n) => [n, SETTINGS[n].says])),
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
     testOnlyEntries: { how: 'B and C only, alive only while the script runs; no shipped file is edited', sessionRules: RULES, alwaysDeleteList: ALWAYS,
       notAdded: 'DOMAINS (cookies judged by tracker host) is a constant inside lists.js, so the always-delete list by cookie name stands in for it. Permanent storage and permission drops come only from the settings program on port 8088, which is not running and is not imitated: in C they are done by hand instead.' },
     simulated: SIMULATED.guard, automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
-  for (const n of names) { result.runs[n] = await run(n, cert, flags); console.log(''); }
-  const cell = (r) => r.status === 'not built' ? '-' : r.status + (r.cause ? `: ${r.cause}` : '');
+  for (const n of names) { result.runs[n] = await run(n, SETTINGS[n], cert, flags, chance); console.log(''); }
+  const cell = (r) => r.status === 'not built' ? '-' : (r.atEnd ? 'AT END ' : '') + r.status + (r.cause ? `: ${r.cause}` : '');
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);
   for (const n of names) { const r = result.runs[n]; console.log(`${n}: ${JSON.stringify(r.counts)} canary "${r.canary}" history ${r.history.rebuilt}/${r.history.opened}${r.history.complete ? ' complete' : ''} re-identified after step 12: ${r.reidentifiedAfterStep12}${r.afterManual ? `, after manual cleaning: ${r.afterManual.reidentified}` : ''} ext ${JSON.stringify(r.extension)}${r.broken.length ? ' broken: ' + r.broken.join('; ') : ''}`); }
+  if (result.runs.B0) result.headline = `B0: ${result.runs.B0.counts.atEnd}/36 still tracked at the end, ${result.runs.B0.counts.ever}/36 ever`;
+  console.log(`reference (switched off): ${JSON.stringify(ref.counts)}; ` + names.map((n) => `${n} ${result.runs[n].counts.atEnd}/36 at the end, ${result.runs[n].counts.ever}/36 ever`).join('; '));
   if (names.length === Object.keys(SETTINGS).length) { fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'misses.json'), JSON.stringify(result, null, 1) + '\n'); console.log('written: lab/misses.json'); }
 })().catch((e) => { console.log(`BROKE (the run itself, not a verdict): ${e.stack || e}`); process.exit(1); });

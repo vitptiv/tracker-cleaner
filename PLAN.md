@@ -735,3 +735,19 @@ A row counts as tracked when it arrived once during the trip, also when it was s
 - After R8, for R1, R5 and R6 (same counts): companies that pages need to check you are human or to take a payment
   (`learn.js` NEEDED) are never learned or cleaned, and "Let it through again" also gives the notifications back.
 - Not verified anywhere: a real Google sign-in and real sites with 1.24 loaded (TESTING.md, "1.24, the repairs").
+
+### Steps S1 to S13: clean, show, undo, lock (replaces ask-first)
+
+Two counts from here on, B0 (everything automatic, no lab names), of 36 kinds: "at the end" / "ever". At the end = it
+still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last
+time the trip made it (learned from one more run with the main switch off); or, for a kind kept in Chrome's own
+files, it is still in the files when the trip is over (`test/lab/count.js`). The headline is B0 at the end.
+
+- S1 fair count (`test/lab/count.js`, `trip-cleaner.js`, `misses.json` `atEnd` per row): A 33 / 33, B0 10 / 28,
+  B 8 / 9, C 7 / 7. Still tracked at the end in B0, with the cause:
+  T17 compiled copy of the kit and T20 remembered servers (saved after the one clearing of saved copies, still in
+  Chrome's files); T18 site icons and T19 history (no history permission); T22 notification right (the tracker's own
+  site is open in a tab all trip, and the "Allow" is a grant over the control channel); T27 typed e-mail and T33
+  purchase (sent on by the shop's own server); T30 redirect log (the first pass through the redirector is not seen
+  coming); T31 share on the tracker's own page; T32 "Sign in with" (chosen by the user).
+
