@@ -771,3 +771,8 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   is written by the worker; "Let it through again" in the report takes a site off it. The lab's redirector passes the
   browser along with an HTTP redirect (302); the first pass is seen only as it happens (`onBeforeRedirect`), when the
   redirector has already been asked, so it cannot be stopped with the permissions there are.
+- S2a, second part: also when the extension is loaded again (an update, or the lab's restart, where Chrome drops the
+  wake-up and never sends "Chrome started" to an extension loaded from outside). After S2a to S2c: A 7 / 28,
+  B0 7 / 28, B 7 / 9, C 6 / 7. Gone at the end: T17, T20 (S2a), T30 (S2c: the second pass is skipped). T22 stays in
+  the lab only: the block is set (logged), but the lab's "Allow" is a grant over the control channel that no
+  extension setting overrides; in a real Chrome a user's own grant went granted -> denied (R6).

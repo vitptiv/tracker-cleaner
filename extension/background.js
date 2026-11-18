@@ -663,6 +663,7 @@ const copiesNow = async (cx) => { if (can('C11', cx)) try { await clearCache(); 
 const copiesAgain = async () => { await ready; const cx = await context(); if ((cx.set.stopped || []).length) await copiesNow(cx); };
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'copies') copiesAgain(); });
 chrome.runtime.onStartup.addListener(copiesAgain);
+chrome.runtime.onInstalled.addListener(copiesAgain);   // loaded again: Chrome drops the wake-up set before
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
   if (v === 'no' || cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};

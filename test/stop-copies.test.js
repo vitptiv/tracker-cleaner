@@ -35,3 +35,10 @@ test('notifications are not blocked on "Ask first" before the answer, nor while 
   for (const storage of [{ stopped: ['trk.example'], modes: { C28: 'ask' } }, { stopped: ['trk.example'], master: false }]) {
     const bg = await load(on({ storage })); await bg.alarm('sweep'); assert.equal(blocked(bg), 0); }
 });
+test('when the extension itself is loaded again (an update): the wake-up set before is gone, so the saved copies are cleared then too', async () => {
+  const bg = await load(on({ storage: { stopped: ['trk.example'] } }));
+  await bg.chrome.runtime.onInstalled.fire({ reason: 'update' }); await bg.settle();
+  assert.equal(clears(bg), 1);
+  const none = await load(on()); await none.chrome.runtime.onInstalled.fire({ reason: 'update' }); await none.settle();
+  assert.equal(clears(none), 0);
+});
