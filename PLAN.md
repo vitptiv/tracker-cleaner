@@ -1084,3 +1084,17 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   Eleven patterns and one for names under localhost, each as two rules; all 22 were accepted by a real Chrome.
   What remains: a public name that resolves to a private address; a plain link or a form sent with GET to a
   private target; a public IPv6 address of a device at home; requests a page makes from inside a private page.
+- J8 words and measurement: the first-run line also says that the cookies and saved data of listed trackers are
+  deleted, that saved copies are cleared once a day, and that it asks before removing anything of a company it only
+  learned about; it no longer names the page shield (off by default), and README is brought in line. `misses.json`
+  `what` says three counts of the 35 kinds built; its `simulated` text and `caveats` say what the guard cut really
+  is. New setting Q in `trip-cleaner.js`: the fresh install with every question the extension asks answered yes,
+  each by its own press, and nothing else by hand, then the sites again. C keeps the lab's names and every manual
+  cleaning besides, so Q, not C, is the honest "one press per question" number next to A.
+- After J1 to J8, of 35: A (no press) 10 at the end; 13 arrived and tied to her; 23 arrived at all. Q (every question
+  answered yes) 8; 10 tied after the answers; 26. B0 10; 15; 26. B 6; 9; 9. C 5; 7; 9. T18, T19 apart in all. At the
+  end in A beyond the four no browser tool stops: T5 (Hop's cookie: a passing site is no longer cleaned by itself,
+  J1), T17, T20, T21, T22 (behind the Remove question, which waits), T30 (Hop is not skipped without the Skip
+  press, J4). In Q: T21 and T22 go with Remove; T17 and T20 stay because the one clearing of saved copies an hour
+  (J6) was used at the block in step 1, so Remove a minute later clears none; T5 and T30 stay because the answers
+  come after the trip and the second look does not pass through Hop again (what was sent stays sent).

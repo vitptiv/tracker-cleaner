@@ -28,7 +28,7 @@ test('after cleaning by hand, a kind the second look makes again counts only whe
 test('F9: the headline is the fresh install (A), both counts always written; B0 is named as what it is', () => {
   const { headline } = require('./lab/count');
   const runs = { A: { counts: { atEnd: 7, ever: 28, arrived: 30 } }, B0: { counts: { atEnd: 6, ever: 27, arrived: 29 } }, C: { counts: { atEnd: 5, ever: 7, arrived: 9 } } };
-  assert.equal(headline(runs), 'A (fresh install, nothing changed), of the 35 kinds built: 7 at the end; 28 arrived and tied to her; 30 arrived at all. B0 (every group forced to Automatic): 6 at the end; 27 arrived and tied to her; 29 arrived at all. C: 5 at the end; 7 arrived and tied to her; 9 arrived at all.');
+  assert.equal(headline(runs), 'A (fresh install, nothing changed), of the 35 kinds built: 7 at the end; 28 arrived and tied to her; 30 arrived at all. B0 (every group forced to Automatic): 6 at the end; 27 arrived and tied to her; 29 arrived at all. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all.');
   assert.equal(headline({ B0: runs.B0 }), 'A was not run. B0 (every group forced to Automatic): 6 at the end; 27 arrived and tied to her; 29 arrived at all.');
 });
 test('S15: a notification right that Chrome really has blocked, but that the lab keeps seeing through its simulated Allow, is listed apart and never folded in', () => {
@@ -50,4 +50,10 @@ test('S16: her own history and site icons are a class of their own, named apart,
 test('H11: what the numbers do not show is written beside them', () => {
   const { CAVEATS } = require('./lab/count');
   for (const w of [/sign-in guard.*(second|1 s)/i, /not use the fingerprint to tie/i, /T18.*T19.*own history/i, /T22.*simulated/i]) assert.ok(CAVEATS.some((c) => w.test(c)), String(w));
+});
+test('J8: the fresh install without a press (A) and with every question answered yes (Q) lead the headline, C follows', () => {
+  const { headline } = require('./lab/count'), c = (a, e, r) => ({ counts: { atEnd: a, ever: e, arrived: r } });
+  const h = headline({ A: c(9, 14, 25), Q: c(5, 8, 25), B0: c(9, 14, 25), C: c(5, 7, 9) });
+  assert.ok(h.startsWith('A (fresh install, nothing changed), of the 35 kinds built: 9 at the end; 14 arrived and tied to her; 25 arrived at all. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 5 at the end; 8 tied to her after the answers; 25 arrived at all. '));
+  assert.ok(h.includes('C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all.'));
 });

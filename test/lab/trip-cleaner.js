@@ -23,6 +23,7 @@ const ALWAYS = [['friendface', 'ff_uid'], ['friendface', 'ff_frame'], ['hop', 'h
   ...['gazette', 'tidewater', 'parcelpine'].flatMap((s) => [[s, '_ffp'], [s, '_ffc']])].map(([s, name]) => ({ site: s + '.localhost', name }));
 const SETTINGS = {
   A: { says: 'fresh install defaults, nothing approved, no lab entries', entries: false, auto: false, manual: false },
+  Q: { says: 'as A, then every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press and nothing else by hand; then the sites again', entries: false, auto: false, manual: false, answers: true },
   B0: { says: 'main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google\'s identity cookies, storage and permissions of the user\'s own lists); no lab entries (the lab is on no list)', entries: false, auto: true, manual: false },
   B: { says: 'as B0, with the lab\'s test-only entries', entries: true, auto: true, manual: false },
   C: { says: 'as B, then every manual action at the end (approve all, drop each lab site\'s cookies and storage, block the permission, clear the cache), then the sites again', entries: true, auto: true, manual: true } };
@@ -45,7 +46,7 @@ const OUTSIDE = ['T17', 'T18', 'T19', 'T20'];
 const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26', 'T28', 'T36'];
 // what the report names as out of reach (report-view.js CANNOT), per row
 const SAID = { T18: 'cannot clean', T19: 'cannot clean', T27: 'cannot stop', T31: 'cannot stop', T32: 'cannot stop', T33: 'cannot stop' };
-const SIMULATED = { guard: 'the five minutes the sign-in guard holds after step 4 are cut to two seconds', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
+const SIMULATED = { guard: 'after step 4 the end of the hold-everything sign-in guard is set to one second from then and the trip waits four seconds; the lab\'s own sign-in page does not arm that guard (not a shipped sign-in host), and the five-minute hold on the network\'s own site is not cut', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
 async function run(name, set, cert, flags, chance = {}) {
   const lab = await start({ port: PORT, tls: cert });
@@ -74,15 +75,18 @@ async function run(name, set, cert, flags, chance = {}) {
     out.reidentifiedAfterStep12 = !!(k12 && k12.who && k12.who.name === MARA.name);
     out.history = { opened: E.visited.length, rebuilt: k12 ? k12.history.length : 0, complete: !!k12 && JSON.stringify(k12.history.map((h) => h.url)) === JSON.stringify(E.visited) };
     const mark = lab.store.records.length, tMark = Date.now(), before = lab.store.records.slice();
-    if (set.manual) { const st = await E.b.msg({ type: 'state' }), did = out.manual = {};
+    const second = set.manual || set.answers;
+    if (second) { const st = await E.b.msg({ type: 'state' }), did = out.manual = {};
+      // every question the extension asks is answered with its yes; no group button answers them, so each gets its own press (Q and C)
+      for (const g of st.groups) for (const it of (g.items || []).filter((x) => ['used', 'bounce', 'param', 'skip', 'tracker'].includes(x.kind)))
+        did[`yes to: ${it.kind} ${it.site} ${it.name}`] = await E.b.msg({ type: 'approve', group: g.id, site: it.site, name: it.name }).catch((e) => String(e.message));
+      if (set.manual) {
       for (const g of st.groups.filter((x) => x.id !== 'wifi' && x.pending)) did[`approve ${g.id}`] = await E.b.msg({ type: 'approve', group: g.id }).catch((e) => String(e.message));
-      // the question about a company she also uses is never answered by a group button: C presses its Remove (I2)
-      for (const it of ((st.groups.find((x) => x.id === 'unknown') || {}).items || []).filter((x) => x.kind === 'used')) did[`remove what ${it.site} keeps`] = await E.b.msg({ type: 'approve', group: 'unknown', site: it.site, name: it.name }).catch((e) => String(e.message));
       for (const h of [...HOSTS, 'friendface.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));
         did[`storage of ${h}`] = await E.b.msg({ type: 'drop', kind: 'storage', site: h.endsWith('.test') ? `${h}:${lab.tlsPort}` : `${h}:${PORT}` }).catch((e) => String(e.message)); }
       did['block notifications'] = await E.b.msg({ type: 'drop', kind: 'permission', site: `http://friendface.localhost:${PORT}`, perm: 'notifications' }).catch((e) => String(e.message));
       did['clear my browsing history'] = await E.b.msg({ type: 'clearBrowsing' }).catch((e) => String(e.message));
-      did['clear cache and remembered servers'] = await E.b.msg({ type: 'drop', kind: 'servers' }).catch((e) => String(e.message));
+      did['clear cache and remembered servers'] = await E.b.msg({ type: 'drop', kind: 'servers' }).catch((e) => String(e.message)); }
       await sleep(500);
       // the second look: the sites again, then Friendface
       for (const [site, p] of [['gazette', '/article/harbour-bridge'], ['gazette', '/'], ['tidewater', '/post/mending-a-kite'], ['parcelpine', '/product/kite-line'], ['parcelpine', '/'], ['friendface', '/'], ['friendface', '/what-i-know']])
@@ -109,14 +113,14 @@ async function run(name, set, cert, flags, chance = {}) {
     for (const tr of TRACES) { const id = tr.id;
       if (tr.status !== 'built') { out.rows[id] = { status: 'not built', cause: tr.status }; continue; }
       const all = lab.store.records.filter((r) => r.trace === id), trip = all.filter((r) => r.n < mark), after = all.filter((r) => r.n >= mark);
-      const use = set.manual && REVISITED.includes(id) ? after : set.manual && OUTSIDE.includes(id) ? [] : trip;
+      const use = second && REVISITED.includes(id) ? after : second && OUTSIDE.includes(id) ? [] : trip;
       let status = use.some((r) => linked.has(r)) ? 'tracked' : use.length ? 'unlinked' : 'stopped';
-      if (set.manual && OUTSIDE.includes(id)) status = files[id] ? 'tracked' : 'stopped';
+      if (second && OUTSIDE.includes(id)) status = files[id] ? 'tracked' : 'stopped';
       const row = out.rows[id] = { status, records: all.length, linked: all.filter((r) => linked.has(r)).length,
         sites: [...new Set(all.filter((r) => linked.has(r)).map((r) => r.site))], via: [...new Set(all.filter((r) => linked.has(r)).map((r) => r.via))].slice(0, 4) };   // on which sites it was tied to her, and how it arrived
       const lastN = Math.max(-1, ...trip.filter((r) => linked.has(r)).map((r) => r.n)); if (lastN >= 0) row.lastStep = stepOf(ends, TRIP.map((s) => s.n), lastN);
-      row.atEnd = atEnd({ outside: OUTSIDE.includes(id), onDisk: !!files[id], second: set.manual && REVISITED.includes(id), after: after.some((r) => linked.has(r)), lastStep: row.lastStep, lastChance: chance[id] });
-      if (set.manual) { row.duringTrip = trip.some((r) => linked.has(r)) ? 'tracked' : trip.length ? 'unlinked' : 'stopped'; row.sameIdAfterCleaning = after.some((r) => trip.some((x) => x.value === r.value));
+      row.atEnd = atEnd({ outside: OUTSIDE.includes(id), onDisk: !!files[id], second: second && REVISITED.includes(id), after: after.some((r) => linked.has(r)), lastStep: row.lastStep, lastChance: chance[id] });
+      if (second) { row.duringTrip = trip.some((r) => linked.has(r)) ? 'tracked' : trip.length ? 'unlinked' : 'stopped'; row.sameIdAfterCleaning = after.some((r) => trip.some((x) => x.value === r.value));
         if (!REVISITED.includes(id) && !OUTSIDE.includes(id)) row.note = 'not repeated after cleaning: what was sent during the trip stays sent'; }
       row.ever = status === 'tracked';
       if (simulatedOnly({ id, atEnd: row.atEnd, setting })) { row.atEnd = false; row.simulatedOnly = true; row.status = 'stopped (real setting blocked; the lab\'s simulated Allow overrides it)'; }
@@ -154,7 +158,7 @@ async function run(name, set, cert, flags, chance = {}) {
   const ref = await run('off', OFF, cert, flags); console.log('');
   const chance = Object.fromEntries(Object.entries(ref.rows).filter(([, r]) => r.lastStep).map(([id, r]) => [id, r.lastStep]));
   const result = { what: 'Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). '
-    + 'Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome\'s own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is setting A, the fresh install.',
+    + 'Three counts, of the 35 kinds built (one of 36, T34, is not built in the lab): arrived = it arrived at all, also tied to nobody. ever = it arrived, tied to her (in Q and C: after the answers or the cleaning, on the second look). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome\'s own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is A (the fresh install, no press) and Q (the same with every question answered yes).',
     headline: null, caveats: CAVEATS, reference: { says: OFF.says, counts: ref.counts, lastChance: chance, broken: ref.broken },
     extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, settings: Object.fromEntries(names.map((n) => [n, SETTINGS[n].says])),
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',

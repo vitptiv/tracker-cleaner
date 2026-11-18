@@ -22,3 +22,8 @@ test('the report no longer says the history cannot be cleaned: it says who can c
   const h = buildReport({ now: 1, groups: [] }, null).cannot.find((x) => /history/.test(x.what));
   assert.equal(/cannot clean this/.test(h.why), false); assert.match(h.why, /Clear my browsing history/); assert.match(h.why, /no website can read it/);
 });
+test('J8: the first-run line also says that listed trackers\' cookies and saved data are deleted and that saved copies are cleared once a day', () => {
+  const html = renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null), line = /<p class="c">Tracker Cleaner is on\..*?<\/p>/.exec(html)[0];
+  assert.match(line, /deletes the cookies and saved data of the trackers on its built-in list/); assert.match(line, /clears the saved copies of pages once a day/);
+  assert.match(line, /asks before it removes anything of a company it only learned about/);
+});
