@@ -1,6 +1,6 @@
 // S2a, S2b: after a stop the saved copies are cleared again a minute later and when Chrome starts; a stopped tracker's
 // notifications are blocked even while its own page is open, and nothing else of that page is touched.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const req = async (bg, host, page) => { await bg.request({ url: `https://${host}/px.gif`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
 const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'trk.example', p); };
 const ID = { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };

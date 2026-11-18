@@ -1,13 +1,13 @@
 // H1 (second audit): a stop on thin evidence must not be a weapon. Stopping by itself only blocks the company on other
 // sites; cleaning out what it keeps needs two visited sites and a site the user does not use, or one answer.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { buildReport, renderReport } = require('../extension/report-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const SET = 'tid=t-77ab12cd34ef; Path=/; SameSite=None; Secure', FP = { name: 'x', domain: 'evil.example', value: 'k9x2m4q8r1t7' };
 const bank = () => [{ name: 'prefs', domain: '.bank.example', value: 'p-3fa9c2d1e0', sameSite: 'no_restriction' }, { name: 'sess', domain: '.bank.example', value: 's-3fa9c2d1e0', httpOnly: true, secure: true }];
 const req = async (bg, url, page, o = {}) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script', ...o }); await bg.settle(); };
 const answer = async (bg, url, page) => { await bg.answer({ url, initiator: `https://www.${page}`, type: 'script', responseHeaders: [{ name: 'Set-Cookie', value: SET }] }); await bg.settle(); };
-const blockedSites = (bg) => (bg.state.dynamic.find((r) => r.id === 100001) || { condition: { requestDomains: [] } }).condition.requestDomains;
+const blockedSites = (bg) => bg.blockedHosts();
 const hardCalls = (bg, site) => ({ cookies: bg.called('cookies.remove').length, storage: bg.called('browsingData.remove').filter((c) => (c.args[0].origins || []).some((o) => o.includes(site))).length,
   cache: bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length, notifications: bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes(site)).length });
 const asks = (bg) => ((bg.state.storage.pending || {}).unknown || { items: [] }).items.map((i) => [i.kind, i.site]);
@@ -49,11 +49,6 @@ test('the group button never answers that question', async () => {
   await req(bg, 'https://bank.example/w.js', 'news.example'); await req(bg, 'https://bank.example/w.js', 'shop.example'); await bg.alarm('sweep');
   await bg.send({ type: 'approve', group: 'unknown' }); await bg.settle();
   assert.deepEqual((await bg.names()).sort(), ['prefs', 'sess']); assert.deepEqual(asks(bg), [['used', 'bank.example']]);
-});
-test('the hourly limit holds inside one sweep: fifteen ready at once, ten stopped, five asked about', async () => {
-  const sites = Array.from({ length: 15 }, (_, i) => `trk${i}.example`), follow = Object.fromEntries(sites.map((s) => [s, { on: ['a', 'b'], ck: true, sent: false, hosts: [], t: 1 }]));
-  const bg = await load(on({ storage: { follow } })); await bg.alarm('sweep');
-  assert.equal(bg.state.storage.stopped.length, 10); assert.equal(asks(bg).filter(([k]) => k === 'tracker').length, 5);
 });
 test('two tenants of one shared host count as one visited site', async () => {
   const bg = await load(on({ cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));

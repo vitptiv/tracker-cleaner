@@ -1,5 +1,5 @@
 // J6 (third audit): limits.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { followNote, FOLLOW_MAX } = require('../extension/learn.js'), { renderPopup } = require('../extension/popup-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const req = async (bg, url, page) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script' }); await bg.settle(); };

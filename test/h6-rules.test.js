@@ -1,6 +1,6 @@
 // H6 (second audit): each rule is installed on its own and a refused one is named in the popup; the referring page stays
 // for embedded frames; fewer and exact exemptions.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { NET_BASE, FAMILIES, GOOGLE_APIS, netRules } = require('../extension/net-rules.js'), { renderPopup } = require('../extension/popup-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const removed = (r, k) => (r.action[k] || []).map((h) => h.header);
@@ -17,9 +17,9 @@ test('a header rule Chrome refuses: the others are installed, and the popup name
   assert.equal((await bg.send({ type: 'state' })).notWorking, undefined);
 });
 test('the same for the other rules: a refused local-network rule or stop rule is named', async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'] } })); bg.refuse = (r) => r.id === NET_BASE + 22 || r.id === 100001;
+  const bg = await load(on({ storage: { stopped: ['trk.example'] } })); bg.refuse = (r) => r.id === NET_BASE + 22 || r.id === 101000;
   await bg.send({ type: 'setMode', group: 'local', mode: 'off' }); await bg.send({ type: 'setMode', group: 'local', mode: 'auto' }); await bg.settle();
-  assert.deepEqual((await bg.send({ type: 'state' })).notWorking.sort(), ['Pages may not call this computer', 'Stopped trackers are blocked']);
+  assert.deepEqual((await bg.send({ type: 'state' })).notWorking.sort(), ['Hosts you blocked', 'Pages may not call this computer']);
 });
 test('the referring page is kept for an embedded frame (players check it) and removed for everything else', () => {
   const rules = netRules({ cookies: true, tags: true, exempt: [] }), main = rules.find((r) => r.id === NET_BASE), ref = rules.find((r) => removed(r, 'requestHeaders').includes('referer'));

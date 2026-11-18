@@ -32,6 +32,11 @@ module.exports = async function load({ dir = 'extension', limits, tor, ...init }
   bg.setCookie = async (c) => { await bg.chrome.cookies.set(c); await bg.settle(); };
   // the user opens a page and stays: the timers started by it are run (the worker waits 3 s before it counts a page as opened)
   bg.opens = async (url) => { await bg.visit(url); await bg.settle(); for (const t of bg.timers.splice(0)) t(); await bg.settle(); };
+  // what the block rules for learned hosts stop (one anchored rule per host, ids from 101000), and the press on "Block"
+  bg.blocks = (url) => bg.state.dynamic.some((r) => r.id >= 101000 && r.action.type === 'block' && new RegExp(r.condition.regexFilter, 'i').test(url));
+  bg.blockedHosts = () => (bg.state.storage.stopped || []).filter((h) => bg.blocks(`https://${h}/`));
+  bg.block = async (site) => { const it = ((bg.state.storage.pending || {}).unknown || { items: [] }).items.find((i) => i.kind === 'tracker' && i.site === site);
+    const r = it ? await bg.send({ type: 'approve', group: 'unknown', site, name: it.name }) : { ok: false }; await bg.settle(); return r; };
   bg.names = async () => (await bg.chrome.cookies.getAll({})).map((c) => c.name);
   run('background.js'); await bg.settle();
   return bg;
@@ -40,3 +45,11 @@ module.exports = async function load({ dir = 'extension', limits, tor, ...init }
 // "Ask first" for them has; a test's own modes win. The defaults themselves are tested in auto-default.test.js.
 const ASK = { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask' };
 module.exports.asks = (o = {}) => module.exports({ ...o, storage: { ...o.storage, modes: { ...ASK, ...(o.storage || {}).modes } } });
+// 1.25, L1: a learned host is only blocked at the user's press on "Block". Tests written for what follows a block load
+// with a user who presses Block on every such question as soon as it is there. That nothing is blocked without the
+// press is tested in l1-ask.test.js.
+module.exports.pressing = async (o) => { const bg = await module.exports(o), settle = bg.settle;
+  bg.settle = async () => { await settle();
+    for (let n = 0; n < 50; n++) { const it = ((bg.state.storage.pending || {}).unknown || { items: [] }).items.find((i) => i.kind === 'tracker'); if (!it) break;
+      await bg.send({ type: 'approve', group: 'unknown', site: it.site, name: it.name }); await settle(); } };
+  return bg; };

@@ -402,11 +402,11 @@ test('what waits: nothing says so; put off says until when; paused or off greys 
 });
 
 // ---- 1.24, R1: a tracker on no list is asked about in one sentence, with Approve and Not now
-test('R1: "X followed you on 3 sites. Stop it?" with Approve and Not now for that one; stopped ones can be let through again', () => {
-  const it = { cap: 'C25', kind: 'tracker', site: 'trk.example', name: 'followed you on 3 sites', why: 'on no list' };
+test('R1, as changed by L1: "X follows you on N sites. Block it on other sites?" with Block and Not now for that one; blocked ones can be let through again', () => {
+  const it = { cap: 'C25', kind: 'tracker', site: 'trk.example', name: 'followed you on 3 sites', why: '3' };
   const r = buildReport(state({ stopped: ['old.example'] }, { unknown: { pending: 1, items: [it] } }), tab()), html = renderReport(r);
-  assert.deepEqual(r.waiting.find((w) => w.id === 'unknown').asks, [{ site: 'trk.example', name: 'followed you on 3 sites', line: 'trk.example followed you on 3 sites. Stop it?' }]);
-  assert.ok(text(html).includes('trk.example followed you on 3 sites. Stop it?ApproveNot now'));
+  assert.deepEqual(r.waiting.find((w) => w.id === 'unknown').asks, [{ site: 'trk.example', name: 'followed you on 3 sites', line: 'trk.example follows you on 3 sites. Block it on other sites?', yes: 'Block' }]);
+  assert.ok(text(html).includes('trk.example follows you on 3 sites. Block it on other sites?BlockNot now'));
   assert.ok(html.includes('data-msg="{&quot;type&quot;:&quot;approve&quot;,&quot;group&quot;:&quot;unknown&quot;,&quot;site&quot;:&quot;trk.example&quot;,&quot;name&quot;:&quot;followed you on 3 sites&quot;}"'));
   assert.ok(html.includes('{&quot;type&quot;:&quot;notNow&quot;,&quot;group&quot;:&quot;unknown&quot;,&quot;site&quot;:&quot;trk.example&quot;,&quot;name&quot;:&quot;followed you on 3 sites&quot;}'));
   assert.ok(text(html).includes('Trackers you stopped (1)old.exampleLet it through again'));

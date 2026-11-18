@@ -1,5 +1,5 @@
 // F5 (audit): the list of sites the user opens as pages (`mine`), and sign-ins that are older than that list.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const req = async (bg, host, page) => { await bg.request({ url: `https://${host}/px.gif`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
 const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'trk.example', p); };
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });

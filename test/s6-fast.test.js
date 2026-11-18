@@ -1,6 +1,6 @@
 // S6: faster learning. Two visited sites are enough; one is enough when a site's own ID is seen being handed to another
 // company that answers with an ID cookie of its own. All limits of F1 stay.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { FOLLOW_N, followNote, followFull, syncTokens, idHashes, carries } = require('../extension/learn.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const cookie = (domain, o = {}) => ({ name: 'uid', domain, value: 'u-3fa9c2d1e0', sameSite: 'no_restriction', ...o });
@@ -64,12 +64,6 @@ test('the F1 scenario under the new rules: frames of one page, a shared host, a 
   for (const u of ['https://www.google.de/x?u=k9x2m4q8r1t7', 'https://js.stripe.com/v3?u=k9x2m4q8r1t7', 'https://accounts.google.com/x?u=k9x2m4q8r1t7', 'https://www.recaptcha.net/x?u=k9x2m4q8r1t7']) {
     await answer(needed, u, 'news.example', SET); await req(needed, u, 'news.example'); await req(needed, u, 'shop.example'); }
   await needed.alarm('sweep'); assert.deepEqual(stopped(needed), []); assert.deepEqual(needed.state.storage.follow || {}, {});
-});
-test('still at most 10 by itself in an hour', async () => {
-  const sites = Array.from({ length: 11 }, (_, i) => `trk${i}.example`);
-  const bg = await load(on({ cookies: [FP] }));
-  for (const s of sites) { await answer(bg, `https://${s}/kit.js`, 'news.example', SET); await req(bg, `https://${s}/e?fp=k9x2m4q8r1t7`, 'news.example'); }
-  assert.equal(stopped(bg).length, 10); assert.deepEqual(asked(bg), ['trk10.example']);
 });
 test('the comparison: parts of 8 or more letters and digits mixed, or 16 or more digits; by hash, with the worker\'s own random value', () => {
   assert.deepEqual(syncTokens('ffp.1.1700000000.k9x2m4q8r1t7&x=abc1234&y=1234567890123456&z=abcdefghij'), ['k9x2m4q8r1t7', '1234567890123456']);

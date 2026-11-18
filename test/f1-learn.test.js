@@ -1,5 +1,5 @@
 // F1 (audit): a hostile page must not be able to get a domain stopped.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { siteOf } = require('../extension/learn.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const cookie = (domain, o = {}) => ({ name: 'uid', domain, value: 'u-3fa9c2d1e0', sameSite: 'no_restriction', ...o });
@@ -12,7 +12,7 @@ test('the audit scenario: one page with three frames of other origins asks a sha
   const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://evil.example/' }], cookies: [cookie('d111.cloudfront.net')] }));   // even with a cookie of its own there
   for (const frame of ['https://a.one.example', 'https://b.two.example', 'https://c.three.example']) { await bg.request({ url: CF, initiator: frame, type: 'script', tabId: 1, frameId: 5 }); await bg.settle(); }
   await bg.alarm('sweep');
-  assert.deepEqual(bg.state.storage.stopped || [], []); assert.deepEqual(asked(bg), []); assert.deepEqual(bg.called('cookies.remove'), []); assert.equal(bg.state.dynamic.some((r) => r.id === 100001), false);
+  assert.deepEqual(bg.state.storage.stopped || [], []); assert.deepEqual(asked(bg), []); assert.deepEqual(bg.called('cookies.remove'), []); assert.equal(bg.state.dynamic.some((r) => r.id >= 101000), false);
 });
 test('a request that belongs to no tab is not counted', async () => {
   const bg = await load(on({ cookies: [cookie('.trk.example')] }));
@@ -27,7 +27,7 @@ test('a shared host is learned by its full name: only that host is stopped, its 
   const bg = await load(on({ cookies: [cookie('d111.cloudfront.net'), cookie('d222.cloudfront.net', { name: 'other' })] }));
   await three(bg, CF);
   assert.deepEqual(bg.state.storage.stopped, ['d111.cloudfront.net']);
-  assert.deepEqual(bg.state.dynamic.find((r) => r.id === 100001).condition.requestDomains, ['d111.cloudfront.net']);
+  assert.deepEqual(bg.blockedHosts(), ['d111.cloudfront.net']);
   assert.deepEqual(await bg.names(), ['uid', 'other']);   // blocked only (1.25, J1)
 });
 test('siteOf: country suffixes of two parts and shared hosts', () => {
@@ -43,14 +43,7 @@ test("Google's own sites in any country are never learned", async () => {
   await bg.alarm('sweep');
   assert.deepEqual(bg.state.storage.stopped || [], []); assert.deepEqual(asked(bg), []); assert.deepEqual(await bg.names(), ['uid', 'uid', 'uid']);
 });
-test('at most 10 are stopped by itself in an hour: the eleventh becomes a question; an hour later it is stopped', async () => {
-  const sites = Array.from({ length: 11 }, (_, i) => `trk${i}.example`);
-  const bg = await load(on({ cookies: sites.map((s) => cookie('.' + s)) }));
-  for (const s of sites) await three(bg, `https://${s}/p.gif`);
-  assert.equal(bg.state.storage.stopped.length, 10); assert.deepEqual(asked(bg), ['trk10.example']);
-  bg.now += 61 * 60e3; await bg.alarm('sweep');
-  assert.equal(bg.state.storage.stopped.length, 11); assert.deepEqual(asked(bg), []);
-});
+// (1.25, L1: nothing is blocked by itself any more, so the old limit of 10 blocks an hour is gone; the limit on questions is in l5-caps.test.js)
 test('never more than 300 stopped companies, and what is kept about them is bounded with the list', async () => {
   const stopped = Array.from({ length: 300 }, (_, i) => `old${i}.example`);
   const bg = await load(on({ cookies: [cookie('.trk.example')], storage: { stopped, own: { 'gone.example': { ok: true, at: 1 } } } }));

@@ -102,7 +102,7 @@ const { buildReport, renderReport } = (() => {
   // what the button of a group does, and to what: "Remove 12 cookies"
   const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
   // things asked one by one, in one sentence each, with Approve and Not now
-  const ASKS = { tracker: (it) => `${it.site} ${it.name}. Stop it?`,
+  const ASKS = { tracker: (it) => (Number(it.why) > 1 ? `${it.site} follows you on ${Number(it.why)} sites.` : `${it.site} was handed the number a site keeps for you.`) + ' Block it on other sites?',
     skip: (it) => `${it.site} only passes you along and adds a tag. Skip it next time?`,
     used: (it) => `${it.site} follows you on ${Number(it.why) || 1} site${Number(it.why) > 1 ? 's' : ''}. It is already blocked on other sites. Also remove what it saved here?`,
     bounce: (it) => `${it.site} passed you on to another site without showing you a page. Delete what it saved in your browser?`,
@@ -116,7 +116,7 @@ const { buildReport, renderReport } = (() => {
     return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome starts again' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
       button: barred ? '' : g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
       note: barred ? 'This user is not allowed to remove saved networks without a password, so nothing can be removed from here.' : g.id === 'wifi' ? 'Removing a saved network cannot be undone here.' : '',
-      asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it), ...(it.kind === 'used' || it.kind === 'bounce' ? { yes: 'Remove', no: 'Keep' } : it.kind === 'skip' ? { yes: 'Skip', no: 'Keep' } : {}) })),
+      asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it), ...(it.kind === 'used' || it.kind === 'bounce' ? { yes: 'Remove', no: 'Keep' } : it.kind === 'skip' ? { yes: 'Skip', no: 'Keep' } : it.kind === 'tracker' ? { yes: 'Block' } : {}) })),
       items: (g.items || []).filter((it) => !ASKS[it.kind]).map(waitItem) }; });
 
   // ---- What no cleaning reaches: said plainly, one line each, instead of a button that would do nothing
@@ -190,7 +190,7 @@ const { buildReport, renderReport } = (() => {
         + btn('Clear the saved copies of pages', { type: 'drop', kind: 'servers' }, off) + '</div>'
         + (t.undo ? '' : '<div class="m">0 cookies deleted in the last 10 minutes, so there is nothing to put back.</div>') + '</div>'; };
     const page = () => `<p class="m">${r.site ? `This page: ${esc(r.site)}` : 'This tab is not a web page'} · Read at ${esc(r.readAt)} <button class="small" data-act="refresh">Read again</button></p>`;
-    const ask = (w, a) => `<div class="c" data-ask="${esc(a.site)}"><div>${esc(a.line)}</div><div class="b">${btn(a.yes === 'Remove' ? 'Remove' : a.yes === 'Skip' ? 'Skip it' : 'Approve', { type: 'approve', group: w.id, site: a.site, name: a.name }, ' class="go"' + off)}`
+    const ask = (w, a) => `<div class="c" data-ask="${esc(a.site)}"><div>${esc(a.line)}</div><div class="b">${btn(a.yes === 'Remove' ? 'Remove' : a.yes === 'Skip' ? 'Skip it' : a.yes === 'Block' ? 'Block' : 'Approve', { type: 'approve', group: w.id, site: a.site, name: a.name }, ' class="go"' + off)}`
       + `${btn(a.no === 'Keep' ? 'Keep' : 'Not now', { type: 'notNow', group: w.id, site: a.site, name: a.name })}</div></div>`;
     const stoppedList = () => (!(r.stoppedTrackers || []).length ? '' : `<details id="stopped"><summary>Trackers you stopped (${r.stoppedTrackers.length})</summary>`
       + r.stoppedTrackers.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unstop', site: x })}</div>`).join('') + '</details>')

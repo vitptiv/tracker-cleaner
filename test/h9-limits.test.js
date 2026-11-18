@@ -1,5 +1,5 @@
 // H9 (second audit): questions and limits.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { bounceAdded, followNote, FOLLOW_MAX } = require('../extension/learn.js'), { renderPopup } = require('../extension/popup-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const enc = encodeURIComponent, ID = 'h-77ab12cd34ef';

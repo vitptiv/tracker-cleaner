@@ -132,8 +132,8 @@ async function carry(it, cookies, tabs, cx) {
     // approval is allowed during the sign-in guard, so it must not close a sign-in page itself
     if (!t || tabHost(t) !== it.site || isSignIn(t.url || t.pendingUrl)) return false;
     await chrome.tabs.remove(t.id); return true; }
-  // an approved stop blocks; removing what the company saved is the next question (USED)
-  if (it.kind === 'tracker') return stopTracker(it.site);
+  // the press on Block: that host is blocked on other sites, and the saved copies are cleared (at most once an hour); removing what it saved is the next question (USED)
+  if (it.kind === 'tracker') { if (!(await stopTracker(it.site))) return false; await copiesNow(await context()); return true; }
   if (it.kind === 'used') return hardClean(it.site);
   if (it.kind === 'bounce') return cleanBounce(it.site);
   if (it.kind === 'param') return stripParam(it.name);
@@ -154,13 +154,14 @@ async function approve(group, site, name) {
   if (cx.hold.paused) return { ok: false, why: 'paused' };
   if (cx.set.master === false) return { ok: false, why: 'off' };
   let items = [];
-  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : !['used', 'param', 'bounce', 'skip'].includes(it.kind); items = g.items.filter(mine);   // the group button never answers a question that deletes something of a learned host or changes addresses
+  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : !['tracker', 'used', 'param', 'bounce', 'skip'].includes(it.kind); items = g.items.filter(mine);   // the group button never answers a question that deletes something of a learned host or changes addresses
     g.items = g.items.filter((it) => !mine(it)); if (!g.items.length) delete p[group];
     return items.length > 0; });
   const cookies = items.some((it) => it.kind === 'cookie') ? await allCookies() : [], tabs = await chrome.tabs.query({});
   const done = [];
   for (const it of items) if (mayRun(it.cap, cx.set) !== 'no' && await carry(it, cookies, tabs, cx).catch(() => false)) done.push(it);
   await logged(done, 'removed');
+  if (done.some((it) => it.kind === 'tracker')) await sweep('settings');   // so that the next question about that host is there at once
   const nets = mayRun('C24', cx.set) !== 'no' ? items.filter((it) => it.kind === 'wifi') : [];
   return { ok: true, done: done.length + (nets.length ? await wifiRemove(nets) : 0), of: items.length };
 }
@@ -415,8 +416,9 @@ async function applyFeatures() {
     if (enableRulesetIds.length || disableRulesetIds.length) await chrome.declarativeNetRequest.updateEnabledRulesets({ enableRulesetIds, disableRulesetIds }); } catch {}
   const stopped = BLOCK && mayRun('C25', cx.set) !== 'no' && !cx.hold.paused ? cx.set.stopped || [] : [];
   const strip = mayRun('C27', cx.set) !== 'no' && !cx.hold.paused ? cx.set.params || [] : [];
-  await learnedRules([...(!stopped.length ? [] : [{ id: LEARNED + 1, priority: 1, action: { type: 'block' },
-    condition: { requestDomains: stopped, domainType: 'thirdParty', resourceTypes: TYPES, excludedInitiatorDomains: SIGNIN_HOSTS } }]),
+  // one rule per blocked host, anchored on the whole host name: the host itself and nothing above, below or beside it (L1)
+  await learnedRules([...stopped.filter(isHost).slice(-STOPPED_MAX).map((h, i) => ({ id: BLOCKED + i, priority: 1, action: { type: 'block' },
+    condition: { regexFilter: `^(https?|wss?)://([^/?#@]*@)?${h.toLowerCase().replace(/[.\-]/g, '\\$&')}\\.?(:[0-9]+)?([/?#]|$)`, domainType: 'thirdParty', resourceTypes: TYPES, excludedInitiatorDomains: SIGNIN_HOSTS } })),
     // C27: the tags the user chose to cut off, on every page address but a sign-in's
     ...(!strip.length ? [] : [{ id: LEARNED + 2, priority: 1, action: { type: 'redirect', redirect: { transform: { queryTransform: { removeParams: strip } } } },
       condition: { resourceTypes: ['main_frame'], excludedRequestDomains: SIGNIN_HOSTS } }]),
@@ -499,7 +501,8 @@ async function learnedRules(want) {
 // Chrome refuses a whole change when it refuses one rule, so every rule is installed on its own (H6): one bad rule cannot
 // take the others down, and what could not be installed is named in the popup (`notWorking`) instead of looking switched on.
 const REFUSED = { dynamic: new Set(), session: new Set() };
-const RULE_NAME = (id) => id === LEARNED + 1 ? 'Stopped trackers are blocked' : id === LEARNED + 2 ? 'Tags you chose are cut off addresses' : id === LEARNED + 3 ? 'Pings are blocked'
+const BLOCKED = 101000;   // dynamic rule ids BLOCKED .. BLOCKED + 299: one per host the user blocked
+const RULE_NAME = (id) => id >= BLOCKED ? 'Hosts you blocked' : id === LEARNED + 2 ? 'Tags you chose are cut off addresses' : id === LEARNED + 3 ? 'Pings are blocked'
   : id >= NET_BASE + 10 ? 'Pages may not call this computer' : 'Other companies get no cookies or cache tags';
 // One change at a time per kind (two at once would trip over each other's rule numbers); what counts as refused is what
 // is not there afterwards, read back from Chrome.
@@ -626,25 +629,19 @@ const USED = 'what it keeps to follow you';
 async function followSweep(cx, all, wait) {
   const v = verdict('C25', cx), stopped = cx.set.stopped || [];
   if (v === 'no') return;
-  const hasId = (site) => all.some((c) => under(site, bare(c.domain)) &&   // a cookie Chrome would send to that host
+  // a cookie Chrome would send to that host; not one set for a whole shared name (a tenant can set that for every other tenant)
+  const hasId = (site) => all.some((c) => under(site, bare(c.domain)) && !SHARED.includes(bare(c.domain)) &&
     (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
-  const { follow = {}, stops = [], hard = [] } = await chrome.storage.local.get(['follow', 'stops', 'hard']), now = Date.now(), recent = stops.filter((t) => t > now - 3600e3), n = recent.length;
+  const { follow = {}, hard = [] } = await chrome.storage.local.get(['follow', 'hard']);
   for (const [site, e] of Object.entries(follow)) {
     // evidence: on FOLLOW_N sites, a cookie of its own that other sites can use (in Chrome's list, or tried in its answer);
-    // on one site (`sent`), only its own answer counts: a page must not get a company stopped that never asked for anything
+    // on one site (`sent`), only its own answer counts. Whatever the evidence, it only ever makes a question (L1): a page
+    // can stage all of it, so nothing is blocked before the user pressed Block.
     const many = e.on.length >= FOLLOW_N;
-    if (!followFull(e) || later(cx, 'C25', site) || !(e.ck || (many && hasId(site)))) continue;
-    if (!stopped.includes(site)) {
-      const it = { cap: 'C25', kind: 'tracker', site, name: many ? `followed you on ${FOLLOW_N} sites` : 'was handed the ID a site keeps for you', why: 'on no list', did: waitsAs(v) };
-      if (waits(v)) { wait.push(it); continue; }
-      if (recent.length >= STOPS_HOUR) { wait.push({ ...it, did: 'queued' }); continue; }   // too many in an hour to be an accident: the user is asked
-      if (!(await stopTracker(site))) continue;
-      recent.push(now); await chrome.storage.local.set({ stops: recent }); await logged([{ ...it, kind: 'blocked' }], 'removed');
-      // a saved copy can carry the ID past the block: all saved copies are cleared once (copiesNow: at most once an hour in total)
-      await copiesNow(cx); }
-    // deleting anything of a learned company is never done by itself (J1): one question, once, answered by the user's own press
-    if (!hard.includes(site) && !later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: String(e.on.length), did: 'queued' }); }
-  if (stops.length !== n) await chrome.storage.local.set({ stops: recent });
+    if (stopped.includes(site) || !followFull(e) || later(cx, 'C25', site) || !(e.ck || (many && hasId(site)))) continue;
+    wait.push({ cap: 'C25', kind: 'tracker', site, name: many ? `followed you on ${FOLLOW_N} sites` : 'was handed the ID a site keeps for you', why: String(e.on.length), did: v === 'held' ? 'held' : 'queued' }); }
+  // a blocked host: the second question, once (USED: remove what it saved)
+  for (const site of stopped) if (!hard.includes(site) && !later(cx, 'C25', site, USED)) wait.push({ cap: 'C25', kind: 'used', site, name: USED, why: String(((follow[site] || {}).on || []).length), did: 'queued' });
 }
 async function stopTracker(site) {
   if (!isHost(site)) return false;

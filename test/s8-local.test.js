@@ -1,5 +1,5 @@
 // S8: a page may not ask this computer or the home network (net-rules.js LOCAL_RE, one block rule, its own row).
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { NET_BASE, LOCAL_RES, netRules } = require('../extension/net-rules.js'), { cap, GROUPS, mayRun } = require('../extension/registry.js');
 const local = (bg) => bg.state.dynamic.find((r) => r.id === NET_BASE + 20);
 
@@ -32,5 +32,5 @@ test('one rule Chrome refuses does not take the other rules down', async () => {
   bg.refuse = (r) => r.id === NET_BASE + 22; await bg.send({ type: 'setMode', group: 'local', mode: 'off' }); await bg.send({ type: 'setMode', group: 'local', mode: 'auto' }); await bg.settle();
   const ids = bg.state.dynamic.map((r) => r.id);
   assert.equal(ids.includes(NET_BASE + 22), false);
-  for (const id of [100001, 100003, NET_BASE + 20, NET_BASE + 21, NET_BASE + 23]) assert.ok(ids.includes(id), 'missing rule ' + id);
+  for (const id of [101000, 100003, NET_BASE + 20, NET_BASE + 21, NET_BASE + 23]) assert.ok(ids.includes(id), 'missing rule ' + id);
 });

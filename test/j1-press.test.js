@@ -1,6 +1,6 @@
 // J1 (third audit). The principle: what is learned from page behaviour may only block that host on other sites, which can
 // be undone. Deleting anything of a learned host needs the user's press on one question; shipped-list hosts are as before.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const { buildReport, renderReport } = require('../extension/report-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const req = async (bg, url, page) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script' }); await bg.settle(); };

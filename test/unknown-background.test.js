@@ -5,7 +5,7 @@ const three = async (bg, host = 'trk.example', path) => { for (const p of ['news
 const ID = { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };
 const on = (o = {}) => ({ cookies: [ID], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const queued = (bg, group = 'unknown') => ((bg.state.storage.pending || {})[group] || { items: [] }).items;
-const rule = (bg) => bg.state.dynamic.find((r) => r.id === 100001);
+const rule = (bg) => { const r = bg.state.dynamic.find((x) => x.id === 101000); return r && { ...r, condition: { ...r.condition, requestDomains: bg.blockedHosts() } }; };   // 1.25, L1: one anchored rule per blocked host; requestDomains here = the hosts those rules stop
 
 test('one site: nothing. The second (1.25, S6): one question waits, nothing is blocked or deleted, and no site name is stored', async () => {
   const bg = await load(on());
@@ -38,15 +38,16 @@ test('Approve stops that one: blocked from other sites, sign-in pages let throug
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); assert.deepEqual(await bg.names(), ['SID', 'other', 'q']);
   assert.deepEqual((await bg.send({ type: 'state' })).stopped, ['trk.example']);
 });
-test('automatic: stopped at the third site without a question; held while a sign-in is going on, done when it is over', async () => {
+test('automatic (1.25, L1): still only a question; Block blocks; with a sign-in in front nothing happens either', async () => {
   let bg = await load(on({ storage: { modes: { C25: 'auto' } } }));
   await three(bg);
+  assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg).map((i) => i.kind), ['tracker']); await bg.block('trk.example');
   assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), ['uid']); assert.deepEqual(queued(bg).map((i) => i.kind), ['used']);
   bg = await load(on({ storage: { modes: { C25: 'auto' } }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/' }] }));
   await three(bg);
   assert.equal(rule(bg), undefined); assert.deepEqual(bg.destructive(), []); assert.deepEqual(queued(bg).map((i) => i.site), ['trk.example']);
   await bg.navigate(1, 'https://www.news.example/'); bg.now += 6 * 60e3; await bg.alarm('sweep');
-  assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(queued(bg).map((i) => i.kind), ['used']);
+  assert.equal(rule(bg), undefined); assert.deepEqual(queued(bg).map((i) => i.kind), ['tracker']);
 });
 test('never learned: a sign-in company, a sign-in address, a listed tracker, the site itself; nothing at all when switched off', async () => {
   const bg = await load(on({ cookies: [{ name: 'NID', domain: '.google.com', value: 'abc123def456', sameSite: 'no_restriction' }] }));
@@ -77,7 +78,7 @@ test('a stopped and cleaned-out company counts as a tracker from then on: its ne
   await bg.setCookie({ url: 'https://www.trk.example/', name: 'mine', value: 'u-77aa88bb99' });
   assert.deepEqual(await bg.names(), ['mine']);
   await bg.send({ type: 'siteOff', host: 'news.example', on: true }); await bg.settle();
-  assert.ok(rule(bg)); assert.equal(bg.state.dynamic.filter((r) => r.id < 100010).length, 4);   // not counting the rules of net-rules.js (1.25)
+  assert.ok(rule(bg)); assert.equal(bg.state.dynamic.filter((r) => r.id < 100010).length, 3);   // the two for the switched-off site and the ping rule; not counting net-rules.js and the per-host block rules (1.25)
   await bg.send({ type: 'setMaster', on: false }); await bg.settle(); assert.equal(rule(bg), undefined);
 });
 test('never learned: a company pages need to check that you are human or to take a payment', async () => {

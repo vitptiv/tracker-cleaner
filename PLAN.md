@@ -1119,3 +1119,15 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   answers; 21. B0 10; 13; 15. B 6; 9; 9. C 5; 7; 9. At the end in Q: the four no browser tool stops, T30 (its
   first pass and the pass in step 7: the Skip question comes only after the second destination) and T20 (the
   remembered server is saved again on Friendface's own pages after the press on Remove).
+
+### Fixes after the fourth audit (40a7b46): L1 to L12
+
+The extended principle: evidence a page can stage triggers nothing by itself except a question. Blocking too.
+By itself only: the shipped lists, and the rules that need no evidence (no cookies, cache tags or referring page for
+other companies; the local network).
+
+- L1 a learned host is only asked about: "X follows you on N sites. Block it on other sites?" Block / Not now; no
+  group button answers it. Block blocks that exact host only: one rule per host with a pattern anchored on the
+  whole host name (ids from 101000; `requestDomains` also matched subdomains). A cookie set for a whole shared name
+  (`SHARED`) is no evidence against a host under it. "Also remove what it saved?" stays the second question. The
+  limit of 10 blocks an hour is gone with the automatic block.

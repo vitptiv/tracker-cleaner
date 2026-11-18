@@ -1,6 +1,6 @@
 // Batch I. I1: one clearing of all saved copies after a stop that only blocks, at most once an hour in total.
 // I2: the question about a company the user also uses comes at once, also during that site's five-minute hold.
-const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
+const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').pressing;
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const SET = 'tid=t-77ab12cd34ef; Path=/; SameSite=None; Secure', FP = { name: '_fp', domain: 'news.example', value: 'k9x2m4q8r1t7' };
 const req = async (bg, url, page) => { await bg.request({ url, initiator: `https://www.${page}`, type: 'script' }); await bg.settle(); };
