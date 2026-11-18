@@ -374,6 +374,9 @@ const YT_JS = { id: 'yt-adfree', matches: ['*://*.youtube.com/*'], js: ['yt-adfr
 const NO_PING = { id: 'no-ping', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['no-ping.js'], runAt: 'document_start', allFrames: true };
 // Known passing sites are skipped (S2c): skip.js changes a pressed link to the address it names; never on the sign-in hosts
 const SKIP = { id: 'skip', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['guard.js', 'learn.js', 'skip.js'], runAt: 'document_start', allFrames: true };
+// Page shield (S7): shield.js in the page's own world, shield-seed.js beside it in the extension's; never on the sign-in hosts
+const SHIELD = [{ id: 'shield', js: ['shield.js'], world: 'MAIN' }, { id: 'shield-seed', js: ['learn.js', 'shield-seed.js'] }]
+  .map((x) => ({ ...x, matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), runAt: 'document_start', allFrames: true, matchOriginAsFallback: true }));
 const YT_CSS = { id: 'yt-adfree-css', matches: ['*://*.youtube.com/*'], css: ['yt-adfree.css'], runAt: 'document_start', allFrames: true };
 async function applyFeatures() {
   const cx = await context(), yt = YT && can('C05', cx), pings = BLOCK && can('C26', cx);
@@ -406,8 +409,14 @@ async function applyFeatures() {
   const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
   const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
   if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
+  // what shield-seed.js reads: a random value that lasts for this run of Chrome (kept in memory storage), whether every page
+  // is to be left alone right now (a pause, a sign-in going on), and the sites cleaning is switched off for
+  try { let { shieldSalt } = await chrome.storage.session.get('shieldSalt');
+    if (!shieldSalt) await chrome.storage.session.set({ shieldSalt: shieldSalt = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('') });
+    const shield = { salt: shieldSalt, off: !can('C32', cx) || cx.hold.guard, sites: cx.set.sitesOff || [] };
+    if (JSON.stringify(shield) !== JSON.stringify((await chrome.storage.local.get('shield')).shield)) await chrome.storage.local.set({ shield }); } catch {}
   try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
-    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
+    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(mayRun('C32', cx.set) === 'run' && !cx.hold.paused ? SHIELD : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
     if (add.length) await chrome.scripting.registerContentScripts(add);
     if (drop.length) await chrome.scripting.unregisterContentScripts({ ids: drop }); } catch {}
 }

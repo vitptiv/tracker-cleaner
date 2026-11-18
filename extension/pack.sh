@@ -22,7 +22,7 @@ TXT
 fi
 command -v google-chrome >/dev/null || { echo "google-chrome not found: it is needed to pack the .crx" >&2; exit 1; }
 mkdir -p "$TMP/tracker-cleaner" "$DIST"
-cp "$HERE"/{manifest.json,background.js,core.js,registry.js,guard.js,queue.js,undo.js,loop.js,history.js,learn.js,net-rules.js,lists.js,rules.json,rules-google.json,rules-params.json,yt-adfree.js,yt-adfree.css,no-ping.js,skip.js,popup.html,popup.js,popup-view.js,popup-audit.js,history.html,history-view.js,history-page.js,report.html,report-view.js,report-page.js} "$TMP/tracker-cleaner/"
+cp "$HERE"/{manifest.json,background.js,core.js,registry.js,guard.js,queue.js,undo.js,loop.js,history.js,learn.js,net-rules.js,lists.js,rules.json,rules-google.json,rules-params.json,yt-adfree.js,yt-adfree.css,no-ping.js,skip.js,shield.js,shield-seed.js,popup.html,popup.js,popup-view.js,popup-audit.js,history.html,history-view.js,history-page.js,report.html,report-view.js,report-page.js} "$TMP/tracker-cleaner/"
 timeout 120 google-chrome --headless=new --user-data-dir="$TMP/prof" --no-first-run \
   --pack-extension="$TMP/tracker-cleaner" --pack-extension-key="$KEY" >/dev/null 2>&1 || true
 [ -s "$TMP/tracker-cleaner.crx" ] || { echo "pack failed: google-chrome wrote no .crx (is $KEY a valid RSA key?)" >&2; exit 1; }

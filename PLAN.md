@@ -61,6 +61,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C29 | No cookies for other companies: a request to another company carries none and may set none (rule, automatic) | new in 1.25 | auto |
 | C30 | No cache tags (If-None-Match, If-Modified-Since, ETag) and no referring page for other companies (rule, automatic) | new in 1.25 | auto |
 | C31 | A page may not ask this computer or the home network (loopback and private addresses; rule, automatic) | new in 1.25 | auto |
+| C32 | Page shield: canvas, sound, graphics-chip name and saved-amount readings differ a little per site (page script, automatic) | new in 1.25 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
@@ -895,3 +896,22 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   longer saved, and because a page must not get a company stopped that never asked for anything: for one site a
   cookie in Chrome's list is not enough. All F1 limits stay (tab site, shared hosts, never-learn lists, 10 an hour,
   300). No new permission.
+- S7 page shield (C32, own row "Blur what makes this browser recognisable", automatic, deletes nothing):
+  `shield.js` (45 lines, the page's own world, at the start of every page and frame, also about:blank ones) changes
+  what a page reads back: a picture (toDataURL, toBlob, getImageData: at most 32 colour values by one step, on a
+  copy for the first two), sound (getChannelData once per buffer, copyFromChannel, getFloatFrequencyData: 16 values
+  by at most a hundred-thousandth), the graphics chip's unmasked names (general ones), and the saved amount
+  (estimate: room to 10 GB, used down to whole GB). `shield-seed.js` (the extension's world) gives it the deciding
+  value: hash of a random value of this run of Chrome (`storage.session`, copied to `shield` in `storage.local`)
+  and the site in the address bar; sealed with a token handed over before page code runs; sealed 0 = leave alone
+  (sitesOff, a pause, a sign-in going on anywhere). Not on the sign-in hosts. Checked in a real Chrome (run.js 10c).
+- After batch 3 (S16, S6, S7): A 4 at the end, 13 ever (was 6 / 27); B0 4 / 13; B 4 / 9; C 4 / 7; apart: T22 (the lab's
+  simulated press), T18 and T19 (her own history; in C too, because the second look opens pages again after the
+  press). At the end: T27, T33 (the shop's server), T31, T32 (her own press). Friendface is stopped during step 1 on
+  a fresh install. Of the 13 ever, tied to her across two different sites: T31 (like in a frame on the blog, share
+  from the news site: her own presses), T27 and T33 (the shop to her account, by e-mail from the shop's server), T32
+  (the blog to her account: "Sign in with"), T30 (her feed to the blog through Hop, once: the tag in the address),
+  T9 and T24 (Friendface's like frame inside the blog: the frame's own storage and its request). On Friendface's own
+  site only: T13, T22. In Chrome's files only, handed in from outside: T17, T18, T19, T20. Arrived but tied to
+  nobody: T3, T6, T10, T11, T12, T14, T15, T16, T23, T25 (the fingerprint), T36. `misses.json` now has `sites` and
+  `via` per row (measuring side).

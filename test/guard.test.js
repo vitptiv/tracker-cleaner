@@ -54,7 +54,7 @@ test('GROUPS: every action capability is in exactly one group, in usability orde
   assert.deepEqual([...ids].sort(), CAPS.filter((c) => c.mode !== null).map((c) => c.id).sort());
   assert.equal(new Set(ids).size, ids.length);
   for (const g of GROUPS) { assert.ok(g.id && g.title && g.caps.length, g.id); for (const id of g.caps) assert.equal(cap(id).group, g.id); }
-  const rank = 'C18 C19 C01 C03 C04 C20 C21 C02 C05 C26 C29 C30 C31 C22 C23 C25 C27 C28 C06 C07 C08 C24 C09 C10 C11 C12 C13 C14 C15'.split(' ');
+  const rank = 'C18 C19 C01 C03 C04 C20 C21 C02 C05 C26 C29 C30 C31 C32 C22 C23 C25 C27 C28 C06 C07 C08 C24 C09 C10 C11 C12 C13 C14 C15'.split(' ');
   const first = GROUPS.map((g) => Math.min(...g.caps.map((id) => rank.indexOf(id))));
   assert.deepEqual(first, [...first].sort((a, b) => a - b));
   for (const g of GROUPS) assert.deepEqual(g.caps, [...g.caps].sort((a, b) => rank.indexOf(a) - rank.indexOf(b)), g.id);

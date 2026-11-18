@@ -341,6 +341,28 @@ async function main() {
       see(`from a page on example.com: cookie for example.org ${other}, for accounts.google.com ${google}; row off: ${off}; on again: ${back}`);
     }, offline);
 
+    // S7: what a page reads back from a picture it drew, the name of the graphics chip, and how much it has saved
+    const measure = (s) => s.ev(`(async () => { const c = document.createElement('canvas'); c.width = 240; c.height = 60; const x = c.getContext('2d');
+      x.fillStyle = '#f60'; x.fillRect(10, 5, 100, 40); x.fillStyle = '#069'; x.font = '16px Arial'; x.fillText('Tracker Cleaner 1.25', 4, 30);
+      const hash = async (t) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].slice(0, 6).map((b) => b.toString(16).padStart(2, '0')).join('');
+      const g = document.createElement('canvas').getContext('webgl'), dbg = g && g.getExtension('WEBGL_debug_renderer_info'), e = await navigator.storage.estimate();
+      return { url: await hash(c.toDataURL()), data: await hash(Array.from(x.getImageData(0, 0, 240, 60).data).join()), again: await hash(c.toDataURL()),
+        chip: g && dbg ? g.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'none', quota: e.quota, usage: e.usage, native: String(HTMLCanvasElement.prototype.toDataURL).includes('[native code]') }; })()`);
+    await check('10c', 'Page shield: two sites read a picture back differently, one site reads the same all through; the chip has a general name, the saved amount is round', async (ok, see) => {
+      const org = await x.tab(); await x.go(org, 'https://example.org/'); await x.go(site, 'https://example.com/'); await sleep(500);
+      const a1 = await measure(site), b1 = await measure(org); await x.go(site, 'https://example.com/?again'); await sleep(500); const a2 = await measure(site);
+      ok(a1.url !== b1.url && a1.data !== b1.data, `example.com and example.org read the same picture back: ${a1.url} ${b1.url} / ${a1.data} ${b1.data}`);
+      ok(a1.url === a1.again && a1.url === a2.url && a1.data === a2.data, `example.com did not read the same twice: ${a1.url} ${a1.again} ${a2.url} / ${a1.data} ${a2.data}`);
+      ok(a1.chip === 'none' || a1.chip === 'ANGLE (Generic GPU)', `the graphics chip is named "${a1.chip}"`);
+      ok(a1.quota % (10 * 2 ** 30) === 0 && a1.usage % 2 ** 30 === 0, `saved amount not rounded: room ${a1.quota}, used ${a1.usage}`);
+      await P.s.ev(`chrome.runtime.sendMessage({ type: 'siteOff', host: 'example.org', on: true })`); await sleep(500); await x.go(org, 'https://example.org/?off'); await sleep(500);
+      const off1 = await measure(org); await x.go(org, 'https://example.org/?off2'); await sleep(500); const off2 = await measure(org);
+      await P.s.ev(`chrome.runtime.sendMessage({ type: 'siteOff', host: 'example.org', on: false })`); await sleep(300);
+      ok(off1.url === off2.url && off1.url !== b1.url, `with "Don't clean on this site" example.org read: ${off1.url} then ${off2.url} (shielded before: ${b1.url})`);
+      see(`picture read back: example.com ${a1.url} (same after a reload), example.org ${b1.url}; chip "${a1.chip}"; room ${a1.quota / 2 ** 30} GB, used ${a1.usage}; example.org switched off reads ${off1.url} twice`);
+      await b.send('Target.closeTarget', { targetId: org.targetId });
+    }, offline);
+
     await check(11, 'Tracking parameters are stripped, but not on accounts.google.com', async (ok, see) => {
       await x.go(site, 'https://example.com/?utm_source=x&gclid=y&keep=1');
       const end = await site.ev('location.href');

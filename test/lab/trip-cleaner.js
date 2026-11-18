@@ -110,7 +110,8 @@ async function run(name, set, cert, flags, chance = {}) {
       const use = set.manual && REVISITED.includes(id) ? after : set.manual && OUTSIDE.includes(id) ? [] : trip;
       let status = use.some((r) => linked.has(r)) ? 'tracked' : use.length ? 'unlinked' : 'stopped';
       if (set.manual && OUTSIDE.includes(id)) status = files[id] ? 'tracked' : 'stopped';
-      const row = out.rows[id] = { status, records: all.length, linked: all.filter((r) => linked.has(r)).length };
+      const row = out.rows[id] = { status, records: all.length, linked: all.filter((r) => linked.has(r)).length,
+        sites: [...new Set(all.filter((r) => linked.has(r)).map((r) => r.site))], via: [...new Set(all.filter((r) => linked.has(r)).map((r) => r.via))].slice(0, 4) };   // on which sites it was tied to her, and how it arrived
       const lastN = Math.max(-1, ...trip.filter((r) => linked.has(r)).map((r) => r.n)); if (lastN >= 0) row.lastStep = stepOf(ends, TRIP.map((s) => s.n), lastN);
       row.atEnd = atEnd({ outside: OUTSIDE.includes(id), onDisk: !!files[id], second: set.manual && REVISITED.includes(id), after: after.some((r) => linked.has(r)), lastStep: row.lastStep, lastChance: chance[id] });
       if (set.manual) { row.duringTrip = trip.some((r) => linked.has(r)) ? 'tracked' : trip.length ? 'unlinked' : 'stopped'; row.sameIdAfterCleaning = after.some((r) => trip.some((x) => x.value === r.value));

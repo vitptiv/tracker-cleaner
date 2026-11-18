@@ -1,15 +1,19 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is setting A, the fresh install.",
- "headline": "A (fresh install, nothing changed): 6 at the end, 27 ever, of 36; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked). B0 (every group forced to Automatic): 6 at the end, 27 ever; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked). B: 6 at the end, 9 ever; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked). C: 6 at the end, 7 ever.",
+ "headline": "A (fresh install, nothing changed): 4 at the end, 13 ever, of 36; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked); T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 4 at the end, 13 ever; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked); T18, T19 kept on purpose: your own history, readable by no website. B: 4 at the end, 9 ever; apart from these, T22 arrives only through the lab's simulated press (Chrome's real setting is blocked); T18, T19 kept on purpose: your own history, readable by no website. C: 4 at the end, 7 ever; T18, T19 kept on purpose: your own history, readable by no website.",
  "reference": {
   "says": "the main switch off (reference)",
   "counts": {
-   "tracked": 35,
+   "tracked": 33,
    "unlinked": 0,
    "stopped": 0,
    "ever": 35,
-   "atEnd": 35,
+   "atEnd": 33,
    "simulated": [],
+   "own": [
+    "T18",
+    "T19"
+   ],
    "stillArrivingAfterRestart": 18
   },
   "lastChance": {
@@ -165,6 +169,7 @@
  "simulatedRows": {
   "T22": "the lab's Allow is a grant over the control channel and overrides every setting, so the lab reads \"granted\" whatever the cleaner does. When Chrome's real setting for that site (contentSettings, read from the extension at the end) is \"block\", T22 is not counted at the end and is listed in counts.simulated"
  },
+ "ownRecord": "T18 and T19 are the user's own history and site icons in Chrome's files, readable by no website; the trip hands them to the lab from outside. Still in the files at the end, they are not counted at the end and are listed in counts.own. C presses \"Clear my browsing history\" with its other manual actions, before the second look",
  "automaticGroups": [
   "signin",
   "blocking",
@@ -204,7 +209,7 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 11,
+    "removed": 10,
     "waiting": {
      "bounce": 1
     },
@@ -214,45 +219,48 @@
    },
    "rows": {
     "T1": {
-     "status": "tracked",
-     "records": 4,
-     "linked": 4,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false
     },
     "T2": {
-     "status": "tracked",
-     "records": 4,
-     "linked": 4,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
+     "ever": false
     },
     "T3": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T4": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "capability exists but did not fire"
+     "ever": false
     },
     "T5": {
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -260,6 +268,8 @@
      "status": "unlinked",
      "records": 1,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
@@ -268,121 +278,167 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
     "T8": {
-     "status": "tracked",
-     "records": 2,
-     "linked": 2,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false
     },
     "T9": {
      "status": "tracked",
-     "records": 9,
-     "linked": 7,
+     "records": 4,
+     "linked": 2,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "Friendface frame inside the site"
+     ],
      "lastStep": 4,
      "atEnd": false,
      "ever": true,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T10": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T12": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T13": {
      "status": "tracked",
      "records": 2,
      "linked": 1,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "the worker reported as it started"
+     ],
      "lastStep": 2,
      "atEnd": false,
      "ever": true,
      "cause": "capability exists but did not fire"
     },
     "T14": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 2,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "fired too late (ID already sent)"
     },
     "T16": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 2,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "fired too late (ID already sent)"
     },
     "T17": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
      "atEnd": false,
      "ever": true,
      "cause": "fired too late (ID already sent)"
     },
     "T18": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
      "atEnd": false,
      "ever": true,
@@ -393,6 +449,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -400,6 +458,12 @@
      "status": "stopped (real setting blocked; the lab's simulated Allow overrides it)",
      "records": 2,
      "linked": 2,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "read by a script on Friendface"
+     ],
      "lastStep": 7,
      "atEnd": false,
      "ever": true,
@@ -408,37 +472,47 @@
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
-     "status": "tracked",
-     "records": 6,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T24": {
      "status": "tracked",
-     "records": 11,
-     "linked": 6,
-     "lastStep": 4,
+     "records": 5,
+     "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "the like frame"
+     ],
+     "lastStep": 3,
      "atEnd": false,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4",
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 3",
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T26": {
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -446,6 +520,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "sent by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "ever": true,
@@ -455,6 +535,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -462,6 +544,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -469,6 +553,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "hop.localhost"
+     ],
+     "via": [
+      "passed through Hop"
+     ],
      "lastStep": 3,
      "atEnd": false,
      "ever": true,
@@ -478,6 +568,14 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "sites": [
+      "tidewater.localhost",
+      "gazette.localhost"
+     ],
+     "via": [
+      "like button in a frame",
+      "share link"
+     ],
      "lastStep": 6,
      "atEnd": true,
      "ever": true,
@@ -487,6 +585,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "written when the button was used"
+     ],
      "lastStep": 4,
      "atEnd": true,
      "ever": true,
@@ -496,6 +600,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "reported by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "ever": true,
@@ -509,27 +619,34 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
     "T36": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     }
    },
    "counts": {
-    "tracked": 26,
-    "unlinked": 1,
-    "stopped": 7,
-    "ever": 27,
-    "atEnd": 6,
+    "tracked": 10,
+    "unlinked": 11,
+    "stopped": 11,
+    "ever": 13,
+    "atEnd": 4,
     "simulated": [
      "T22"
+    ],
+    "own": [
+     "T18",
+     "T19"
     ],
     "stillArrivingAfterRestart": 0
    }
@@ -552,7 +669,7 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 12,
+    "removed": 11,
     "waiting": {
      "bounce": 1
     },
@@ -562,45 +679,48 @@
    },
    "rows": {
     "T1": {
-     "status": "tracked",
-     "records": 4,
-     "linked": 4,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false
     },
     "T2": {
-     "status": "tracked",
-     "records": 4,
-     "linked": 4,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "no capability covers it (kept on purpose: a sign-in cookie)"
+     "ever": false
     },
     "T3": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T4": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "capability exists but did not fire"
+     "ever": false
     },
     "T5": {
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -608,6 +728,8 @@
      "status": "unlinked",
      "records": 1,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
@@ -616,121 +738,167 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
     "T8": {
-     "status": "tracked",
-     "records": 2,
-     "linked": 2,
-     "lastStep": 4,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false
     },
     "T9": {
      "status": "tracked",
-     "records": 9,
-     "linked": 7,
+     "records": 4,
+     "linked": 2,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "Friendface frame inside the site"
+     ],
      "lastStep": 4,
      "atEnd": false,
      "ever": true,
      "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
     },
     "T10": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T12": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T13": {
      "status": "tracked",
      "records": 2,
      "linked": 1,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "the worker reported as it started"
+     ],
      "lastStep": 2,
      "atEnd": false,
      "ever": true,
      "cause": "capability exists but did not fire"
     },
     "T14": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 2,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "fired too late (ID already sent)"
     },
     "T16": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 2,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 1,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "fired too late (ID already sent)"
     },
     "T17": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
      "atEnd": false,
      "ever": true,
      "cause": "fired too late (ID already sent)"
     },
     "T18": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
      "atEnd": false,
      "ever": true,
@@ -741,6 +909,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -748,6 +918,12 @@
      "status": "stopped (real setting blocked; the lab's simulated Allow overrides it)",
      "records": 2,
      "linked": 2,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "read by a script on Friendface"
+     ],
      "lastStep": 7,
      "atEnd": false,
      "ever": true,
@@ -756,37 +932,47 @@
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
-     "status": "tracked",
-     "records": 6,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T24": {
      "status": "tracked",
-     "records": 11,
-     "linked": 6,
-     "lastStep": 4,
+     "records": 5,
+     "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "the like frame"
+     ],
+     "lastStep": 3,
      "atEnd": false,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4",
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 3",
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     },
     "T26": {
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -794,6 +980,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "sent by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "ever": true,
@@ -803,6 +995,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -810,6 +1004,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -817,6 +1013,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "hop.localhost"
+     ],
+     "via": [
+      "passed through Hop"
+     ],
      "lastStep": 3,
      "atEnd": false,
      "ever": true,
@@ -826,6 +1028,14 @@
      "status": "tracked",
      "records": 2,
      "linked": 2,
+     "sites": [
+      "tidewater.localhost",
+      "gazette.localhost"
+     ],
+     "via": [
+      "like button in a frame",
+      "share link"
+     ],
      "lastStep": 6,
      "atEnd": true,
      "ever": true,
@@ -835,6 +1045,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "written when the button was used"
+     ],
      "lastStep": 4,
      "atEnd": true,
      "ever": true,
@@ -844,6 +1060,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "reported by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "ever": true,
@@ -857,27 +1079,34 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
     "T36": {
-     "status": "tracked",
-     "records": 5,
-     "linked": 3,
-     "lastStep": 4,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step undefined"
     }
    },
    "counts": {
-    "tracked": 26,
-    "unlinked": 1,
-    "stopped": 7,
-    "ever": 27,
-    "atEnd": 6,
+    "tracked": 10,
+    "unlinked": 11,
+    "stopped": 11,
+    "ever": 13,
+    "atEnd": 4,
     "simulated": [
      "T22"
+    ],
+    "own": [
+     "T18",
+     "T19"
     ],
     "stillArrivingAfterRestart": 0
    }
@@ -914,6 +1143,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -921,6 +1152,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -928,6 +1161,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -935,6 +1170,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -942,6 +1179,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -949,6 +1188,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -956,6 +1197,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -963,6 +1206,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -970,6 +1215,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -977,6 +1224,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -984,6 +1233,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -991,6 +1242,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -998,6 +1251,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "the worker reported as it started"
+     ],
      "lastStep": 2,
      "atEnd": false,
      "ever": true,
@@ -1007,6 +1266,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1014,6 +1275,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1021,6 +1284,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1028,31 +1293,49 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
     "T18": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1060,6 +1343,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1067,6 +1352,12 @@
      "status": "stopped (real setting blocked; the lab's simulated Allow overrides it)",
      "records": 2,
      "linked": 2,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "read by a script on Friendface"
+     ],
      "lastStep": 7,
      "atEnd": false,
      "ever": true,
@@ -1078,6 +1369,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1085,6 +1378,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1092,6 +1387,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1099,6 +1396,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1106,6 +1405,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "sent by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "ever": true,
@@ -1115,6 +1420,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1122,6 +1429,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1129,6 +1438,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "hop.localhost"
+     ],
+     "via": [
+      "passed through Hop"
+     ],
      "lastStep": 3,
      "atEnd": false,
      "ever": true,
@@ -1138,6 +1453,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "gazette.localhost"
+     ],
+     "via": [
+      "share link"
+     ],
      "lastStep": 6,
      "atEnd": true,
      "ever": true,
@@ -1147,6 +1468,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "written when the button was used"
+     ],
      "lastStep": 4,
      "atEnd": true,
      "ever": true,
@@ -1156,6 +1483,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "reported by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "ever": true,
@@ -1169,6 +1502,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     },
@@ -1176,18 +1511,24 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "ever": false
     }
    },
    "counts": {
-    "tracked": 8,
+    "tracked": 6,
     "unlinked": 0,
     "stopped": 26,
     "ever": 9,
-    "atEnd": 6,
+    "atEnd": 4,
     "simulated": [
      "T22"
+    ],
+    "own": [
+     "T18",
+     "T19"
     ],
     "stillArrivingAfterRestart": 0
    }
@@ -1289,6 +1630,9 @@
     "block notifications": {
      "ok": true
     },
+    "clear my browsing history": {
+     "ok": true
+    },
     "clear cache and remembered servers": {
      "ok": true
     }
@@ -1306,7 +1650,7 @@
     "cutOff": [
      "ffclid"
     ],
-    "removed": 28,
+    "removed": 29,
     "waiting": {
      "storage": 1
     },
@@ -1319,6 +1663,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1328,6 +1674,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1337,6 +1685,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1346,6 +1696,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1355,6 +1707,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1365,6 +1719,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1374,6 +1730,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1383,6 +1741,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1392,6 +1752,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1401,6 +1763,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1410,6 +1774,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1419,6 +1785,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1428,6 +1796,12 @@
      "status": "stopped",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "the worker reported as it started"
+     ],
      "lastStep": 2,
      "atEnd": false,
      "duringTrip": "tracked",
@@ -1438,6 +1812,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1447,6 +1823,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1456,6 +1834,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1465,37 +1845,55 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
      "ever": false
     },
     "T18": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (icons go only with the history); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T19": {
-     "status": "tracked",
+     "status": "kept on purpose: your own history, readable by no website",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "this Chrome profile"
+     ],
+     "via": [
+      "checked from outside, in Chrome's own files"
+     ],
      "lastStep": 8,
-     "atEnd": true,
+     "atEnd": false,
      "duringTrip": "tracked",
      "sameIdAfterCleaning": false,
      "ever": true,
+     "ownRecord": true,
      "cause": "no capability covers it (history is left alone by decision); the report says \"Tracker Cleaner cannot clean this\""
     },
     "T20": {
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1505,6 +1903,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1514,6 +1914,12 @@
      "status": "stopped",
      "records": 2,
      "linked": 2,
+     "sites": [
+      "friendface.localhost"
+     ],
+     "via": [
+      "read by a script on Friendface"
+     ],
      "lastStep": 7,
      "atEnd": false,
      "duringTrip": "tracked",
@@ -1524,6 +1930,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1533,6 +1941,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1542,6 +1952,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1551,6 +1963,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1560,6 +1974,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "sent by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "duringTrip": "tracked",
@@ -1572,6 +1992,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1581,6 +2003,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1591,6 +2015,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "hop.localhost"
+     ],
+     "via": [
+      "passed through Hop"
+     ],
      "lastStep": 3,
      "atEnd": false,
      "duringTrip": "tracked",
@@ -1603,6 +2033,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "gazette.localhost"
+     ],
+     "via": [
+      "share link"
+     ],
      "lastStep": 6,
      "atEnd": true,
      "duringTrip": "tracked",
@@ -1615,6 +2051,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "tidewater.localhost"
+     ],
+     "via": [
+      "written when the button was used"
+     ],
      "lastStep": 4,
      "atEnd": true,
      "duringTrip": "tracked",
@@ -1627,6 +2069,12 @@
      "status": "tracked",
      "records": 1,
      "linked": 1,
+     "sites": [
+      "parcelpine.localhost"
+     ],
+     "via": [
+      "reported by the shop's server"
+     ],
      "lastStep": 7,
      "atEnd": true,
      "duringTrip": "tracked",
@@ -1643,6 +2091,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1653,6 +2103,8 @@
      "status": "stopped",
      "records": 0,
      "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
      "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
@@ -1660,12 +2112,16 @@
     }
    },
    "counts": {
-    "tracked": 7,
+    "tracked": 5,
     "unlinked": 0,
     "stopped": 28,
     "ever": 7,
-    "atEnd": 6,
+    "atEnd": 4,
     "simulated": [],
+    "own": [
+     "T18",
+     "T19"
+    ],
     "stillArrivingAfterRestart": 0
    }
   }
