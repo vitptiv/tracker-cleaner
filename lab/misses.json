@@ -1,6 +1,6 @@
 {
- "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is B0 atEnd.",
- "headline": "B0: 7/36 still tracked at the end, 28/36 ever",
+ "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is setting A, the fresh install.",
+ "headline": "A (fresh install, nothing changed): 7 at the end, 28 ever, of 36. B0 (every group forced to Automatic): 7 at the end, 28 ever. B: 7 at the end, 9 ever. C: 6 at the end, 7 ever.",
  "reference": {
   "says": "the main switch off (reference)",
   "counts": {
@@ -53,7 +53,7 @@
  "extension": "1.25",
  "settings": {
   "A": "fresh install defaults, nothing approved, no lab entries",
-  "B0": "main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)",
+  "B0": "main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google's identity cookies, storage and permissions of the user's own lists); no lab entries (the lab is on no list)",
   "B": "as B0, with the lab's test-only entries",
   "C": "as B, then every manual action at the end (approve all, drop each lab site's cookies and storage, block the permission, clear the cache), then the sites again"
  },
@@ -199,11 +199,11 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "cutOff": [
-     "ffclid"
-    ],
-    "removed": 11,
-    "waiting": {},
+    "cutOff": [],
+    "removed": 10,
+    "waiting": {
+     "bounce": 1
+    },
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
    },
@@ -238,7 +238,7 @@
      "linked": 3,
      "lastStep": 4,
      "atEnd": false,
-     "cause": "learned at the first pass and handled from then on (cut off: ffclid); last arrived in step 4"
+     "cause": "capability exists but did not fire"
     },
     "T5": {
      "status": "stopped",
@@ -492,7 +492,7 @@
    }
   },
   "B0": {
-   "says": "main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)",
+   "says": "main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google's identity cookies, storage and permissions of the user's own lists); no lab entries (the lab is on no list)",
    "broken": [],
    "steps": {},
    "canary": "cleaner seems on",
@@ -508,11 +508,11 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "cutOff": [
-     "ffclid"
-    ],
-    "removed": 12,
-    "waiting": {},
+    "cutOff": [],
+    "removed": 11,
+    "waiting": {
+     "bounce": 1
+    },
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
    },
@@ -547,7 +547,7 @@
      "linked": 3,
      "lastStep": 4,
      "atEnd": false,
-     "cause": "learned at the first pass and handled from then on (cut off: ffclid); last arrived in step 4"
+     "cause": "capability exists but did not fire"
     },
     "T5": {
      "status": "stopped",
@@ -817,11 +817,10 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "cutOff": [
-     "ffclid"
-    ],
-    "removed": 15,
+    "cutOff": [],
+    "removed": 14,
     "waiting": {
+     "bounce": 1,
      "storage": 1
     },
     "blockRuleMatches": 2,
@@ -1083,6 +1082,11 @@
     "complete": false
    },
    "manual": {
+    "approve bounce": {
+     "ok": true,
+     "done": 1,
+     "of": 1
+    },
     "approve storage": {
      "ok": true,
      "done": 1,

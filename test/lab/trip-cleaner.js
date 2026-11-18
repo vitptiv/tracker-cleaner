@@ -3,7 +3,7 @@
 // extension/ loaded, in several settings. It measures only: nothing here demands "cleaned". The table goes to
 // lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A B0 B C]
 const fs = require('node:fs'), path = require('node:path');
-const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd } = require('./count');
+const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline } = require('./count');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
@@ -23,7 +23,7 @@ const ALWAYS = [['friendface', 'ff_uid'], ['friendface', 'ff_frame'], ['hop', 'h
   ...['gazette', 'tidewater', 'parcelpine'].flatMap((s) => [[s, '_ffp'], [s, '_ffc']])].map(([s, name]) => ({ site: s + '.localhost', name }));
 const SETTINGS = {
   A: { says: 'fresh install defaults, nothing approved, no lab entries', entries: false, auto: false, manual: false },
-  B0: { says: 'main switch on, every group that can run here on Automatic, no lab entries (the lab is on no list)', entries: false, auto: true, manual: false },
+  B0: { says: 'main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google\'s identity cookies, storage and permissions of the user\'s own lists); no lab entries (the lab is on no list)', entries: false, auto: true, manual: false },
   B: { says: 'as B0, with the lab\'s test-only entries', entries: true, auto: true, manual: false },
   C: { says: 'as B, then every manual action at the end (approve all, drop each lab site\'s cookies and storage, block the permission, clear the cache), then the sites again', entries: true, auto: true, manual: true } };
 // not a setting: the same trip with the main switch off, to learn in which step the trip makes each kind for the last time
@@ -142,7 +142,7 @@ async function run(name, set, cert, flags, chance = {}) {
   const ref = await run('off', OFF, cert, flags); console.log('');
   const chance = Object.fromEntries(Object.entries(ref.rows).filter(([, r]) => r.lastStep).map(([id, r]) => [id, r.lastStep]));
   const result = { what: 'Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). '
-    + 'Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome\'s own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is B0 atEnd.',
+    + 'Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome\'s own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is setting A, the fresh install.',
     headline: null, reference: { says: OFF.says, counts: ref.counts, lastChance: chance, broken: ref.broken },
     extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, settings: Object.fromEntries(names.map((n) => [n, SETTINGS[n].says])),
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
@@ -153,7 +153,7 @@ async function run(name, set, cert, flags, chance = {}) {
   const cell = (r) => r.status === 'not built' ? '-' : (r.atEnd ? 'AT END ' : '') + r.status + (r.cause ? `: ${r.cause}` : '');
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);
   for (const n of names) { const r = result.runs[n]; console.log(`${n}: ${JSON.stringify(r.counts)} canary "${r.canary}" history ${r.history.rebuilt}/${r.history.opened}${r.history.complete ? ' complete' : ''} re-identified after step 12: ${r.reidentifiedAfterStep12}${r.afterManual ? `, after manual cleaning: ${r.afterManual.reidentified}` : ''} ext ${JSON.stringify(r.extension)}${r.broken.length ? ' broken: ' + r.broken.join('; ') : ''}`); }
-  if (result.runs.B0) result.headline = `B0: ${result.runs.B0.counts.atEnd}/36 still tracked at the end, ${result.runs.B0.counts.ever}/36 ever`;
-  console.log(`reference (switched off): ${JSON.stringify(ref.counts)}; ` + names.map((n) => `${n} ${result.runs[n].counts.atEnd}/36 at the end, ${result.runs[n].counts.ever}/36 ever`).join('; '));
+  result.headline = headline(result.runs);
+  console.log(`reference (switched off): ${ref.counts.atEnd} at the end, ${ref.counts.ever} ever. ${result.headline}`);
   if (names.length === Object.keys(SETTINGS).length) { fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'misses.json'), JSON.stringify(result, null, 1) + '\n'); console.log('written: lab/misses.json'); }
 })().catch((e) => { console.log(`BROKE (the run itself, not a verdict): ${e.stack || e}`); process.exit(1); });

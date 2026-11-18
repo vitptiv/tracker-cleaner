@@ -25,3 +25,9 @@ test('after cleaning by hand, a kind the second look makes again counts only whe
   assert.equal(atEnd({ second: true, after: false, lastStep: 12, lastChance: 12 }), false);
   assert.equal(atEnd({ second: true, after: true }), true);
 });
+test('F9: the headline is the fresh install (A), both counts always written; B0 is named as what it is', () => {
+  const { headline } = require('./lab/count');
+  const runs = { A: { counts: { atEnd: 7, ever: 28 } }, B0: { counts: { atEnd: 6, ever: 27 } }, C: { counts: { atEnd: 5, ever: 7 } } };
+  assert.equal(headline(runs), 'A (fresh install, nothing changed): 7 at the end, 28 ever, of 36. B0 (every group forced to Automatic): 6 at the end, 27 ever. C: 5 at the end, 7 ever.');
+  assert.equal(headline({ B0: runs.B0 }), 'A was not run. B0 (every group forced to Automatic): 6 at the end, 27 ever.');
+});

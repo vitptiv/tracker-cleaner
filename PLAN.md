@@ -808,3 +808,8 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
 - F8 wording that was stale or untrue: the manifest description (no "can put it back": only a deleted cookie, for 10
   minutes), the headers of `background.js` and `registry.js` (no "nothing is deleted before the user has turned
   cleaning on"), README's first paragraph.
+- F9 the headline in `misses.json`, on the screen and on the page is setting A, the fresh install; B0 is named as what
+  it is (also the groups that ask by default forced to Automatic); both counts are always written. After F1 to F9:
+  A 7 at the end, 28 ever; B0 7 / 28; B 7 / 9; C 6 / 7. At the end in A: T18, T19 (history permission), T22 (the lab's
+  grant over the control channel), T27, T33 (the shop's own server), T31 (the tracker's own page), T32 (a sign-in the
+  user chose).
