@@ -222,7 +222,6 @@
     "cutOff": [],
     "removed": 1,
     "waiting": {
-     "unknown": 1,
      "bounce": 2
     },
     "blockRuleMatches": 0,

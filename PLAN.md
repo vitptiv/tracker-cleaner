@@ -1200,3 +1200,16 @@ other companies; the local network).
   the end: the four no browser tool stops, T30 (the pass through Hop in step 7: Skip is offered only after the
   second destination) and T20 (the remembered server, saved again on Friendface's own pages after Remove, which is
   one-off).
+
+### Friendface 2 (lab-only, additions only): first batch F2-1..F2-7
+
+A second pretend platform on its own loopback port (`lab/ff2-*.js`, default 8300), to test the shipped cleaner
+(v1.25) against first-party evasions. The frozen Friendface 1 files are never edited; the cleaner-off trip
+(`test/lab/trip.js`) still tracks 35 of 36. A loophole counts only if the shipped extension, fully on with every
+question answered, still fails to stop it; where the cleaner wins, that is reported with the exact rule.
+- F2-1 first-party reverse-proxy collector (`lab/ff2-server.js`, `lab/ff2-sites.js`): new sites ledger, sundial,
+  atlas; the only tracker piece on a page is served from the site's own `/f/` path, reverse-proxied to the collector
+  on its own loopback port. So the browser never connects to another host and the structural rules (C29/C30/C31,
+  all thirdParty) never match. Kinds: F1 first-party id (a first-party cookie `fp_id` under each site's own name),
+  F8 the site's own address+referrer posted first-party, F9 a loopback probe the collector makes server-side for the
+  page, F10 an ETag on the site's own image. Tested at the HTTP level in `test/ff2-server.test.js`.
