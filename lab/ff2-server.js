@@ -12,6 +12,9 @@ const { createStore, rid } = require('./store');
 const { SITES2, pages } = require('./ff2-sites');
 
 const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+// the rotating ordinary-looking names the URL chain (F2-3) carries the master id under; a browser id looks like ff2m-...
+const CHAIN = ['ref', 'src', 'cid', 'sid', 'vid', 's', 'r', 'u'];
+const carriedId = (sp) => { for (const n of CHAIN) { const v = sp.get(n); if (v && /^ff2m-[0-9a-z]+$/.test(v)) return v; } return ''; };
 const isLoopback = (a) => /^(127\.0\.0\.1|::ffff:127\.0\.0\.1|::1)$/.test(String(a));
 const siteOf = (host) => String(host || '').split(':')[0].replace(/\.localhost$/, '');
 const cookiesOf = (h) => Object.fromEntries(String(h || '').split(/;\s*/).filter(Boolean).map((p) => { const i = p.indexOf('='); return [p.slice(0, i), decodeURIComponent(p.slice(i + 1))]; }));
@@ -29,7 +32,7 @@ function start2({ port = 8300, logFile } = {}) {
   new Image().src = '/f/px.gif?t=' + Date.now();
   fetch('/f/probe?ports=__PROBE__', { credentials: 'include' }).catch(() => {}); })();`;
   try { kitJs = require('fs').readFileSync(require('path').join(__dirname, 'ff2-kit.js'), 'utf8'); } catch {}
-  const kitFor = () => kitJs.replace('__PROBE__', lab.probe.join(','));
+  const kitFor = () => kitJs.replace('__PROBE__', lab.probe.join(',')).replace('__PORT__', String(port)).replace('__CHAIN__', JSON.stringify(CHAIN));
 
   // ---- the collector (its own loopback port). Every request reaches it reverse-proxied from a site's own /f/ path,
   // so the Host header is the visited site's own name and everything it sets or reads is first-party to that site.
@@ -91,8 +94,14 @@ function start2({ port = 8300, logFile } = {}) {
     (async () => { try { let raw = ''; if (q.method === 'POST') { for await (const d of q) raw += d; } c.raw = raw;
       try { c.body = raw && raw[0] === '{' ? JSON.parse(raw) : Object.fromEntries(new URLSearchParams(raw)); } catch { c.body = {}; }
       const extra = lab.route && await lab.route(c);
-      if (extra) return; const html = pages(c);
+      if (extra) return;
+      // F2-3: rebuild a master id carried in the address under any rotating name, server-side; join the browser and
+      // seed the page so its kit adopts the same id (first-party, no cookie crossed the wire).
+      const carried = carriedId(url.searchParams);
+      if (carried) { store.record(['ff2m:' + carried, 'ff2chain:' + c.host], 'F3', `ff2_id=${carried} carried to ${c.host}${url.pathname}`, c.host, 'carried in the address you clicked, rebuilt server-side'); c.seed = carried; }
+      let html = pages(c);
       if (html === false) return c.send(404, 'text/html', `<!doctype html><title>Not found</title><p>No such page.</p>`);
+      if (c.seed) html = html.replace('<script src="/f/kit.js">', `<script>window.__ff2seed=${JSON.stringify(c.seed)}</script><script src="/f/kit.js">`);
       c.send(200, 'text/html; charset=utf-8', html);
     } catch (e) { c.send(500, 'text/plain', String(e.stack || e)); } })();
   });
@@ -102,5 +111,5 @@ function start2({ port = 8300, logFile } = {}) {
     collector.listen(lab.cport, '127.0.0.1', () => open.listen(lab.probe[0], '127.0.0.1', () => server.listen(port, '127.0.0.1', () => done(Object.assign(lab, { server, collector,
       close: () => new Promise((d) => { open.close(); collector.closeAllConnections(); collector.close(); server.closeAllConnections(); server.close(d); }) }))))); });
 }
-module.exports = { start2, SITES2 };
+module.exports = { start2, SITES2, CHAIN };
 if (require.main === module) start2({ port: Number(process.argv[2]) || 8300 }).then((l) => console.log(`ff2 lab on ${l.at2('ledger')}`));

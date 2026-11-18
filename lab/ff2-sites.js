@@ -18,17 +18,20 @@ const filler = (n) => Array.from({ length: n }, (_, i) => `<p>Paragraph ${i + 1}
 // one row of content per site; `c` carries { site, url, lab }. Returns html, or false for 404. `c.lab.at2` builds links.
 function pages(c) {
   const { site, url, lab } = c, p = url.pathname;
+  // a hand-off link names the destination only in data attributes; the kit fills the real cross-site href at run time
+  // (with the master id under a rotating param, F2-3), so the static HTML names no other host.
+  const out = (id, to, dest, label) => `<p><a id="${id}" class="ff2-out" data-ff2to="${to}" data-ff2p="${dest}" href="#">${label}</a></p>`;
   if (site === 'ledger') {
     if (p === '/') return page(site, 'Your budgets', `<p><a id="go-budget" href="/budget">Open this month’s budget</a></p>`);
-    if (p === '/budget') return page(site, 'October budget', `${filler(3)}<p><a id="to-sundial" href="/out?to=sundial&p=/forecast">See the weather for your trips</a></p>`);
+    if (p === '/budget') return page(site, 'October budget', `${filler(3)}${out('to-sundial', 'sundial', '/forecast', 'See the weather for your trips')}`);
   }
   if (site === 'sundial') {
     if (p === '/') return page(site, 'Weather', `<p><a id="go-forecast" href="/forecast">Five-day forecast</a></p>`);
-    if (p === '/forecast') return page(site, 'Five-day forecast', `${filler(3)}<p><a id="to-atlas" href="/out?to=atlas&p=/guide">Find places near you</a></p>`);
+    if (p === '/forecast') return page(site, 'Five-day forecast', `${filler(3)}${out('to-atlas', 'atlas', '/guide', 'Find places near you')}`);
   }
   if (site === 'atlas') {
     if (p === '/') return page(site, 'Local guide', `<p><a id="go-guide" href="/guide">Places near you</a></p>`);
-    if (p === '/guide') return page(site, 'Places near you', `${filler(3)}<p><a id="to-ledger" href="/out?to=ledger&p=/budget">Back to your budget</a></p>`);
+    if (p === '/guide') return page(site, 'Places near you', `${filler(3)}${out('to-ledger', 'ledger', '/budget', 'Back to your budget')}`);
   }
   return false;
 }

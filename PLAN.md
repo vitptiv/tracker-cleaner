@@ -1217,3 +1217,8 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   localStorage, IndexedDB and cacheStorage and carried in the address (F2-3); never a cookie. The collector records
   it (F2) and joins every site into one browser by that id. No cross-site-usable cookie of the collector is ever
   set, so `followSweep` never raises a question. Tested in `test/ff2-kit.test.js`.
+- F2-3 URL-ID chain (`ff2chain` in `ff2-kit.js`, `CHAIN` + server reconstruction in `ff2-server.js`): each outgoing
+  hand-off link carries the master id under a rotating ordinary-looking name (ref, src, cid, ...), a different one
+  per hop. The landing site's server reads whichever name is present, rebuilds the id (F3), joins the browser and
+  seeds the page so its kit adopts it. C23 strips only its shipped names; a novel name is never touched. Tested in
+  `test/ff2-chain.test.js`.

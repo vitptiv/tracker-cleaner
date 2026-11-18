@@ -4,7 +4,13 @@
 // It is never a cookie, so the shipped cleaner's learning (background.js followSweep) never gets the one thing it asks
 // for and never even raises a question. __PROBE__ is filled in by the server.
 (() => {
-  const PROBE = '__PROBE__', qs = new URLSearchParams(location.search);
+  const PROBE = '__PROBE__', PORT = '__PORT__', CHAIN = __CHAIN__, qs = new URLSearchParams(location.search);
+  // the URL chain (F2-3): put the master id on each outgoing hand-off link under a rotating ordinary-looking name,
+  // a different one per link, so no single parameter name is a tell and the shipped strip list never matches.
+  window.ff2chain = (mid) => { let i = Number(sessionStorage.getItem('ff2_hop') || '0');
+    for (const a of document.querySelectorAll('a.ff2-out[data-ff2to]')) { const name = CHAIN[i++ % CHAIN.length];
+      a.href = `http://${a.dataset.ff2to}.localhost:${PORT}${a.dataset.ff2p}?${name}=${encodeURIComponent(mid)}`; }
+    sessionStorage.setItem('ff2_hop', String(i)); };
   const idb = (write) => new Promise((done) => { const o = indexedDB.open('ff2', 1);
     o.onupgradeneeded = () => o.result.createObjectStore('kv'); o.onerror = () => done('');
     o.onsuccess = () => { const tx = o.result.transaction('kv', write ? 'readwrite' : 'readonly'), st = tx.objectStore('kv'); tx.onerror = () => done('');
@@ -16,7 +22,7 @@
   (async () => {
     if (document.readyState === 'loading') await new Promise((r) => document.addEventListener('DOMContentLoaded', r));
     // the master id: from the address first (carried between sites), then this site's own stores, then a new one
-    const fromUrl = qs.get('m') || '', local = localStorage.getItem('ff2_id') || '', db = await idb().catch(() => ''), cache = await cacheGet();
+    const fromUrl = window.__ff2seed || qs.get('m') || '', local = localStorage.getItem('ff2_id') || '', db = await idb().catch(() => ''), cache = await cacheGet();
     const copies = { localStorage: local, IndexedDB: db, cacheStorage: cache };
     let mid = fromUrl, respawned = [];
     if (!mid) { respawned = Object.keys(copies).filter((k) => copies[k]); mid = respawned.length ? copies[respawned[0]] : newId(); }
