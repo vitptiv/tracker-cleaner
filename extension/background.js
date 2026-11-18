@@ -429,12 +429,17 @@ async function applyOnce() {
     const enableRulesetIds = ids.filter((id) => want[id] && !on.includes(id)), disableRulesetIds = ids.filter((id) => !want[id] && on.includes(id));
     if (enableRulesetIds.length || disableRulesetIds.length) await chrome.declarativeNetRequest.updateEnabledRulesets({ enableRulesetIds, disableRulesetIds }); } catch {}
   const stopped = BLOCK && mayRun('C25', cx.set) !== 'no' && !cx.hold.paused ? cx.set.stopped || [] : [];
+  // C33 (M2): for each confirmed cross-site id (session `xsid`), block its exact collector host+path prefix (never the
+  // site root) and strip its value from request URLs and navigation links. Vet the collector endpoints here: never a
+  // sign-in host or company, and never a site the user turned off (also left out so the block is not even built there).
+  const xidWant = await xidActRules(cx);
   // one rule per blocked host, anchored on the whole host name: the host itself and nothing above, below or beside it (L1)
   await learnedRules([...stopped.filter(isHost).slice(-STOPPED_MAX).map((h, i) => ({ id: BLOCKED + i, priority: 1, action: { type: 'block' },
     condition: { regexFilter: `^(https?|wss?)://([^/?#@]*@)?${h.toLowerCase().replace(/[.\-]/g, '\\$&')}\\.?(:[0-9]+)?([/?#]|$)`, domainType: 'thirdParty', resourceTypes: TYPES, excludedInitiatorDomains: SIGNIN_HOSTS } })),
     // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
     ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
       condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }]),
+    ...xidWant,
     // S8: no calls from a page to this computer (net-rules.js)
     ...netRules({ local: BLOCK && can('C31', cx), self: chrome.runtime.id })]);
   // S4, S5: what other companies get less of; left alone: sign-in hosts, the companies pages need, the sites cleaning is off for,
@@ -490,9 +495,11 @@ async function sweepOnce(cause) {
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
   await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait); await ownSweep(cx, wait); await historySweep(cx);
   const xid = await xidSweep(cx);
+  if (xid.changed) await applyFeatures();   // a newly confirmed cross-site id: install (or lift) its block and strip rules now (M2)
+  const xidC = await xidClean(cx, all);     // delete a cookie whose value carries a confirmed cross-site id (M2)
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
-  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...xid });
+  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...(xid.crossIds ? { crossIds: xid.crossIds } : {}), ...xidC });
 }
 
 // ---- Trackers on no list (C25, learn.js). Every request a page makes to another company is counted, privately: on
@@ -502,6 +509,8 @@ async function sweepOnce(cause) {
 // another site asks for it (one dynamic rule, above LEARNED; the rules below it are siteOff's), its cookies deleted,
 // and from then on judged like a listed tracker (core.js EXTRA). Never learned: a company people sign in with.
 const LEARNED = 100000, TYPES = ['script', 'xmlhttprequest', 'image', 'ping', 'sub_frame', 'media', 'other', 'websocket', 'font', 'stylesheet'];
+// Cross-site-id stripping (C33, M2) also cleans navigations, so a hand-off link carrying the id is cleaned: main_frame on top of TYPES.
+const STRIP_TYPES = ['main_frame', ...TYPES];
 const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.condition.excludedRequestDomains, r.condition.regexFilter, r.action]);
 async function learnedRules(want) {
   try { await installEach('dynamic', (o) => chrome.declarativeNetRequest.updateDynamicRules(o), (r) => r.id > LEARNED, want); } catch {}
@@ -510,7 +519,10 @@ async function learnedRules(want) {
 // take the others down, and what could not be installed is named in the popup (`notWorking`) instead of looking switched on.
 const REFUSED = { dynamic: new Set(), session: new Set() };
 const BLOCKED = 101000;   // dynamic rule ids BLOCKED .. BLOCKED + 299: one per host the user blocked
-const RULE_NAME = (id) => id >= BLOCKED ? 'Hosts you blocked' : id === LEARNED + 3 ? 'Pings are blocked'
+// C33 (M2): a confirmed cross-site id's collector-path blocks (XBLOCK..) and its URL/nav strip-redirects (XSTRIP..)
+const XBLOCK = 102000, XSTRIP = 102400;
+const RULE_NAME = (id) => id >= XSTRIP ? 'Cross-site codes stripped from links' : id >= XBLOCK ? 'Cross-site code collectors blocked'
+  : id >= BLOCKED ? 'Hosts you blocked' : id === LEARNED + 3 ? 'Pings are blocked'
   : id >= NET_BASE + 10 ? 'Pages may not call this computer' : 'Other companies get no cookies or cache tags';
 // One change at a time per kind (two at once would trip over each other's rule numbers); what counts as refused is what
 // is not there afterwards, read back from Chrome.
@@ -676,18 +688,46 @@ async function noteSent(d) {
     if (changed) await chrome.storage.session.set({ xseen }); });
 }
 // At each sweep: a token SENT by two or more sites that are both in `mine` is confirmed a cross-site id. Re-checked
-// every sweep, so a site added to `mine` after the value was first seen still counts. M1 records the confirmation
+// every sweep, so a site added to `mine` after the value was first seen still counts. Records the confirmation
 // (session `xsid`) and counts it for the report; acting on it (M2) reads the same `xsid`.
 async function xidSweep(cx) {
   if (mayRun('C33', cx.set) === 'no') return {};
-  let n = 0;
+  let n = 0, changed = false;
   await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, was = (await chrome.storage.session.get('xsid')).xsid || {}, xsid = {};
     const ours = (h) => (cx.set.mine || []).includes(h) || (cx.set.mineShared || []).includes(h);
     for (const [k, e] of Object.entries(xseen)) { const sites = Object.keys(e.sites).filter(ours);
       if (sites.length >= 2) xsid[k] = { raw: e.raw, eps: Object.keys(e.eps), n: sites.length }; }
-    n = Object.keys(xsid).length;
-    if (JSON.stringify(xsid) !== JSON.stringify(was)) await chrome.storage.session.set({ xsid }); });
-  return n ? { crossIds: n } : {};
+    n = Object.keys(xsid).length; changed = JSON.stringify(xsid) !== JSON.stringify(was);
+    if (changed) await chrome.storage.session.set({ xsid }); });
+  return { ...(n ? { crossIds: n } : {}), changed };
+}
+// The dynamic rules C33 installs for the confirmed cross-site ids (read by applyOnce). Behind the master switch and
+// held while paused or a sign-in is going on (`can`). Vets the collector endpoints: never a sign-in host or company,
+// and never a site the user turned off. Caps mirror the detector: at most 50 tokens, their endpoints de-duplicated.
+async function xidActRules(cx) {
+  if (!can('C33', cx)) return [];
+  const { xsid = {} } = await chrome.storage.session.get('xsid');
+  const vals = Object.values(xsid); if (!vals.length) return [];
+  const off = (cx.set.sitesOff || []).filter(isHost);
+  const okHost = (host) => { const bareHost = host.replace(/:\d+$/, ''), site = siteOf(bareHost);
+    return !signInCompany(site) && !SIGNIN_HOSTS.some((h) => under(bareHost, h)) && !off.some((o) => under(bareHost, o)); };
+  const eps = [...new Set(vals.flatMap((e) => e.eps))].filter((ep) => okHost(ep.split('/')[0])).slice(0, 60);
+  const toks = [...new Set(vals.map((e) => e.raw))].slice(0, 50);
+  return xidRules({ eps, toks, block: XBLOCK, strip: XSTRIP, signin: SIGNIN_HOSTS, off, blockTypes: TYPES, stripTypes: STRIP_TYPES });
+}
+// Delete a cookie whose value carries a confirmed cross-site id (M2). Targeted by value, so it can be undone; never a
+// sign-in cookie (KEEP or http-only+secure) and never a site the user turned off. Storage that holds the id cannot be
+// cut to one key without wiping the site, so it is left (the collector-path block stops the id being sent); the report
+// says so where that is all that remains.
+async function xidClean(cx, all) {
+  if (!can('C33', cx)) return {};
+  const toks = Object.values((await chrome.storage.session.get('xsid')).xsid || {}).map((e) => e.raw);
+  if (!toks.length) return {};
+  const gone = [];
+  for (const c of all) { if (signinLike(c) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s))) continue;
+    if (toks.some((t) => String(c.value).includes(t)) && await remove(c)) gone.push({ cap: 'C33', kind: 'cookie', site: bare(c.domain), name: c.name, why: 'a cross-site code' }); }
+  await logged(gone, 'removed');
+  return gone.length ? { crossIdCookies: gone.length } : {};
 }
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}

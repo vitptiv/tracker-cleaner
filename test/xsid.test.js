@@ -1,6 +1,6 @@
 // M1 (1.26): the pure cross-site-id helpers (extension/xsid.js). No browser, no state.
 const test = require('node:test'), assert = require('node:assert');
-const { idTokens, idValue, pathPrefix, tokHash, fnv1a, XID_MIN } = require('../extension/xsid.js');
+const { idTokens, idValue, pathPrefix, tokHash, fnv1a, XID_MIN, applyStrip, blockRe, xidRules } = require('../extension/xsid.js');
 
 test('idTokens picks only long, high-entropy values; not dates, numbers, words or short strings', () => {
   assert.equal(XID_MIN, 12);
@@ -26,4 +26,28 @@ test('pathPrefix keeps the request directory, never the bare root', () => {
   assert.equal(pathPrefix('/collect'), '/collect');   // one segment: cut nothing, or it would be the whole site
   assert.equal(pathPrefix('/'), '/');
   assert.equal(pathPrefix(''), '/');
+});
+// M2 helpers
+const T = 'xq7m2k9p4w1z8c3v';
+test('applyStrip removes the token from a URL whatever its position and parameter name, and leaves other URLs alone', () => {
+  assert.equal(applyStrip(`https://s.example/p?cid=${T}`, T), 'https://s.example/p');                       // sole param
+  assert.equal(applyStrip(`https://s.example/p?cid=${T}&q=1`, T), 'https://s.example/p?q=1');                // first of several
+  assert.equal(applyStrip(`https://s.example/p?q=1&ref=${T}`, T), 'https://s.example/p?q=1');                // last param
+  assert.equal(applyStrip(`https://s.example/p?q=1&ref=${T}&z=2`, T), 'https://s.example/p?q=1&z=2');        // middle param
+  assert.equal(applyStrip(`https://s.example/p?cid=${T}#frag`, T), 'https://s.example/p#frag');              // keeps the fragment
+  assert.equal(applyStrip(`https://s.example/p?cid=${T}x&q=1`, T), `https://s.example/p?cid=${T}x&q=1`);      // not a prefix match
+  assert.equal(applyStrip('https://s.example/p?q=1', T), 'https://s.example/p?q=1');                         // token absent
+});
+test('xidRules builds a priority-2 collector block and priority-1 URL-strip rules, with the sign-in and off exemptions', () => {
+  const rules = xidRules({ eps: ['col.example:8300/f/'], toks: [T], block: 102000, strip: 102400, signin: ['accounts.google.com'], off: ['mine.example'], blockTypes: ['image'], stripTypes: ['main_frame'] });
+  const block = rules.find((r) => r.action.type === 'block'), strips = rules.filter((r) => r.action.type === 'redirect');
+  assert.equal(block.id, 102000); assert.equal(block.priority, 2);
+  assert.match(block.condition.regexFilter, /col\\\.example:8300\/f\//); assert.deepEqual(block.condition.excludedInitiatorDomains, ['accounts.google.com']);
+  assert.deepEqual(block.condition.excludedRequestDomains, ['mine.example']);
+  assert.equal(strips.length, 3); assert.ok(strips.every((r) => r.priority === 1 && r.condition.excludedRequestDomains.includes('accounts.google.com') && r.condition.excludedRequestDomains.includes('mine.example')));
+  assert.ok(strips.every((r) => r.condition.regexFilter.includes('xq7m2k9p4w1z8c3v')));
+});
+test('blockRe matches the collector path but not the site root', () => {
+  const re = new RegExp(blockRe('col.example', '/f/'));
+  assert.ok(re.test('https://col.example/f/hit?x=1')); assert.equal(re.test('https://col.example/'), false); assert.equal(re.test('https://col.example/home'), false);
 });

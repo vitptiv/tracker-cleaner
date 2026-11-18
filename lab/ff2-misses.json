@@ -1,13 +1,19 @@
 {
- "what": "Friendface 2 against the shipped cleaner v1.25, fully on (master on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on. The trip runs at the fresh-install default (fingerprint shield C32 off); the shield is then measured both off and on, so the fingerprint numbers are not run-dependent.",
+ "what": "Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33, M2) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. The trip runs at the fresh-install default (shield C32 off), then measures the fingerprint both ways.",
  "extension": "1.26",
- "browser": "ff2m-1a1ef12cfc05753a3",
+ "browser": "ff2m-1a1ef2bd3d2352930",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
   "atlas.localhost"
  ],
- "headline": "10/10 ff2 kinds still tracked and tied to the browser with the cleaner fully on and answered; 6/10 still at the end. The fingerprint join key survives the shield both off and on; readPixels is perturbed only with the shield on (off: unchanged, on: perturbed).",
+ "joinedOnFirstContact": 10,
+ "stoppedGoingForward": 4,
+ "survives": 6,
+ "of": 10,
+ "headline": "10/10 kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops 4/10 (collector path blocked) and 6/10 survive (first-party server-side, sign-in, per-site cookie, hand-off chain for M3, ETag for M5).",
+ "collectorBlocked": true,
+ "crossIdConfirmed": 2,
  "nothingLearned": true,
  "questionsRaised": 0,
  "fingerprint": {
@@ -22,7 +28,7 @@
     "perturbed": false
    },
    "shieldOn": {
-    "hash": "f294c2bd",
+    "hash": "3aedb6cf",
     "perturbed": true
    },
    "baseline": "bd825545"
@@ -36,138 +42,81 @@
  },
  "caveats": [
   "Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.",
-  "The shield (C32) is off by default. The join key (F6) is built only from fonts, matchMedia and screen, which the shield never touches, so it survives with the shield off AND on and matches a cleaner-off baseline.",
-  "With the shield ON the cleaner DOES win on two fingerprint surfaces: it perturbs WebGL readPixels per site and spoofs the WebGL vendor/renderer (getParameter 37445/37446). Neither is in the join key. With the shield OFF (the default) it touches neither.",
-  "Every ff2 piece is served first-party through the visited site’s own /f/ path, so the structural rules (C29/C30/C31, all thirdParty) never match and the learning never raises a question."
+  "A value-based cross-site detector is reactive: the collector gets the id on first contact, before two sites reveal it is cross-site, so the initial join is not preventable; the cleaner stops every FURTHER send by blocking the exact collector path (never the site root) and stripping the id from request URLs and links.",
+  "F4/F5 and F8-to-the-site's-own-server are first-party server-side; they cannot be stopped without breaking the site, so they are marked \"cannot\", not blocked.",
+  "F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is M3; F10 (ETag) is M5.",
+  "The shield (C32) is off by default; the join key (F6 value) is built from fonts/matchMedia/screen (M4). The collector-path block already stops the code reaching the collector."
  ],
  "rows": [
   {
    "id": "F1",
    "type": "First-party reverse-proxy ID",
-   "mark": "tracked",
-   "value": "fp_id=fp-8c4ae43837",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": true
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": false,
+   "why": "survives: a per-site first-party cookie (fp_id), not a cross-site value: a visited site's own cookie is left alone"
   },
   {
    "id": "F2",
    "type": "Cookie-less first-party ID",
-   "mark": "tracked",
-   "value": "ff2_id=ff2m-1a1ef12cfc05753a3 (kept in localStorage, IndexedDB, cacheStorage, no cookie)",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": true
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": true,
+   "why": "stopped going forward: the master id reaches the collector is blocked (collector-path block, host+/f/ prefix)"
   },
   {
    "id": "F3",
    "type": "URL-ID chain across sites",
-   "mark": "tracked",
-   "value": "ff2_id=ff2m-1a1ef12cfc05753a3 carried to sundial.localhost/forecast",
-   "sites": [
-    "sundial.localhost",
-    "atlas.localhost",
-    "ledger.localhost"
-   ],
-   "ever": true,
-   "atEnd": false
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": false,
+   "why": "survives: the master id rides the hand-off link under a rotating name; stripping it from a scripted hand-off is M3"
   },
   {
    "id": "F4",
    "type": "Scripted / meta hand-off",
-   "mark": "tracked",
-   "value": "http://ledger.localhost:8300/budget to http://sundial.localhost:8300/forecast",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": false
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": false,
+   "why": "survives: the from->to redirect log is the site's own server; cannot stop without breaking navigation"
   },
   {
    "id": "F5",
    "type": "First-party click record",
-   "mark": "tracked",
-   "value": "click to sundial",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": false
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": false,
+   "why": "survives: a first-party click record on the site's own server; cannot stop without breaking the site"
   },
   {
    "id": "F6",
    "type": "Unshielded fingerprint join key",
-   "mark": "tracked",
-   "value": "fp2-6544ca5f",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": true
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": true,
+   "why": "stopped going forward: the fingerprint code reaches the collector is blocked (collector-path block, host+/f/ prefix)"
   },
   {
    "id": "F7",
    "type": "Sign-in-window cookie",
-   "mark": "tracked",
-   "value": "SID=sess-152f4ab0dc",
-   "sites": [
-    "ledger.localhost"
-   ],
-   "ever": true,
-   "atEnd": false
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": false,
+   "why": "survives: a sign-in cookie (SID): kept on purpose, never touched"
   },
   {
    "id": "F8",
    "type": "First-party address and referrer",
-   "mark": "tracked",
-   "value": "http://ledger.localhost:8300/ (came from nowhere)",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": true
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": true,
+   "why": "stopped going forward: the address and referrer are posted to the collector is blocked (collector-path block, host+/f/ prefix)"
   },
   {
    "id": "F9",
    "type": "First-party loopback probe",
-   "mark": "tracked",
-   "value": "open: none; closed: none",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": true
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": true,
+   "why": "stopped going forward: the collector runs its loopback probe for the page is blocked (collector-path block, host+/f/ prefix)"
   },
   {
    "id": "F10",
    "type": "First-party cache tag (ETag)",
-   "mark": "tracked",
-   "value": "ETag \"fp-8c4ae43837\" on the site’s own image",
-   "sites": [
-    "ledger.localhost",
-    "sundial.localhost",
-    "atlas.localhost"
-   ],
-   "ever": true,
-   "atEnd": true
+   "joinedOnFirstContact": true,
+   "stoppedGoingForward": false,
+   "why": "survives: a first-party ETag: handled in M5"
   }
  ]
 }

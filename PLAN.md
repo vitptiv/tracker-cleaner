@@ -1276,3 +1276,17 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   with the raw value in memory only (never storage.local, the log, the queue or a report); confirmed each sweep in
   `xidSweep`. Caps: at most 50 tokens tracked, 10 new per site per hour; no timing gate, so a value seen just after a
   scripted hand-off still counts. M1 only detects and reports (`crossIds` count); stripping and blocking are M2.
+- M2 act on a confirmed cross-site id (aggressive, automatic, behind the master switch, held while paused or signing in).
+  `xidRules` (xsid.js) builds DNR dynamic rules, installed by `applyOnce`: block the exact collector host+path prefix
+  (XBLOCK, priority 2 so a site-off `allow` still exempts it; never the site root; `excludedInitiatorDomains` =
+  SIGNIN_HOSTS) and strip the id from request URLs and navigation links, any parameter name (XSTRIP redirect rules,
+  priority 1, main_frame included, sign-in hosts and off-sites excluded -- the never-cut return-address list). `xidClean`
+  deletes a cookie whose value carries a confirmed id (targeted, undoable; never a sign-in cookie). Storage that holds
+  the id cannot be cut to one key without wiping the site, so it is left -- the collector-path block stops it being
+  sent. Reversible via "Don't clean on this site" (sitesOff) + undo. A value detector is reactive: the collector gets
+  the id on first contact before two sites reveal it is cross-site, so the initial join is not preventable; the cleaner
+  stops every FURTHER send. ff2: 10/10 join on first contact, 4/10 (F2/F6/F8/F9, the collector /f/ kinds) stopped going
+  forward, 6/10 survive (F1 per-site cookie, F3 hand-off chain -> M3, F4/F5 first-party server-side "cannot", F7 sign-in
+  kept, F10 ETag -> M5). A token only in a POST body to a NON-collector first-party endpoint is marked "cannot", not
+  blind-blocked. Weaponization guard from M1 holds: a hostile page cannot get a victim's collector blocked by planting
+  a shared value (the victim must have SENT it from its own page), pinned by an M2 attack test.
