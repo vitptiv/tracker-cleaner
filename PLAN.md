@@ -1144,3 +1144,13 @@ other companies; the local network).
 - L6 there is no shipped list of redirectors any more (skipping l.facebook.com bypassed that site's own link check):
   a link is rewritten only for a host the user pressed "Skip it" for. Never skipped, added: endsession, do_logout,
   disconnect.
+- L4 sign-in hold (a bounce through the real accounts.google.com held everything for an hour). Nothing holds all
+  cleaning any more. A tab that has stayed three seconds on a shipped sign-in host (exact name) begins a hold on
+  DELETING, five minutes, for the sites of that sign-in's family (`FAMILIES`) and the site the tab came from; at
+  most two such holds begin in an hour (ten minutes). Any other site's sign-in-looking page holds that site alone,
+  once an hour, at most 200 sites, and the family holds are not counted there. The header rules skip a tab only
+  while it is on a shipped sign-in host. While a tab is on one, the network path (Tor) and the extension itself
+  (self-reload) are left alone, and the history is not cleaned. `guardUntil` and `gtabs` are no longer used. Sign-in
+  cookies (`KEEP_RE`) are never deleted, hold or no hold. Also: `applyFeatures` and each rule change now run one
+  at a time and read what is installed inside their turn (two at once could leave the older result). Checked in a
+  real Chrome (run.js check 8). The tests of the old hold on everything were retired (15 tests).

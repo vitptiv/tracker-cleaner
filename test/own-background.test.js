@@ -35,8 +35,8 @@ test('not while its own site is open in a tab, not during a sign-in, not when of
   assert.equal(emptied(open).length, 1); assert.equal(emptied(open)[0][0].origins.some((o) => /trk\.example|hotjar\.com/.test(o)), false);
   // 1.25 (S2b): the stopped company's notifications are blocked also while its page is open; a listed tracker's open site is still left alone
   assert.deepEqual(blocked(open).filter((b) => /trk\.example|hotjar\.com/.test(b.primaryPattern)).map((b) => b.primaryPattern), ['*://*.trk.example/*']);
-  const signing = await load(on({ storage: { modes: { C28: 'auto' }, guardUntil: 1.8e12 + 60e3 } })); await signing.alarm('sweep');
-  assert.deepEqual(signing.destructive(), []); assert.equal(queued(signing).length, 2);
+  const signing = await load(on({ storage: { modes: { C28: 'auto' }, sguard: { 'trk.example': 1.8e12 - 60e3 } } })); await signing.alarm('sweep');   // its own sign-in page was opened a minute ago: that site is left alone (1.25, L4)
+  assert.equal(emptied(signing).some((c) => c[0].origins.some((o) => o.includes('trk.example'))), false);
   const off = await load(on({ storage: { modes: { C28: 'off' } } })); await off.alarm('sweep');
   assert.deepEqual(off.destructive(), []); assert.deepEqual(queued(off), []);
 });

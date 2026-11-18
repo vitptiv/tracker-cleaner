@@ -40,22 +40,4 @@ test('none of it while paused or with cleaning switched off; back when resumed',
   await bg.send({ type: 'resume' }); await bg.settle(); assert.ok(net(bg).length >= 5);
   await bg.send({ type: 'setMaster', on: false }); await bg.settle(); assert.deepEqual(net(bg), []);
 });
-test('sign-in guard: the tab a sign-in page is seen in, and the tab that opened it, are skipped by these rules while the guard holds, then not; blocking there stays', async () => {
-  assert.deepEqual(netRules({ cookies: true, guardTabs: [3, 3, 4] })[0].condition.excludedTabIds, [3, 4]); assert.equal('excludedTabIds' in netRules({ cookies: true })[0].condition, false);
-  const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://shop.example/' }] })); await bg.alarm('sweep');
-  assert.ok(net(bg).length >= 5); assert.equal(net(bg).some((r) => 'excludedTabIds' in r.condition), false);
-  await bg.openTab({ id: 2, active: false, openerTabId: 1, url: 'https://accounts.google.com/o/oauth2/auth?client_id=a&redirect_uri=b' }); await bg.settle();
-  assert.ok(net(bg).length >= 5 && net(bg).every((r) => JSON.stringify(r.condition.excludedTabIds) === '[2]'));   // not the tab that opened it: another site (1.25, H2)
-  assert.equal(bg.state.rules.some((r) => r.action.type === 'allow'), false, 'a rule lets everything through in that tab'); assert.deepEqual(bg.state.rulesets, ['trackers', 'google-paths', 'url-params']);
-  await bg.closeTab(2); bg.now += 5 * 60e3 + 2000; await bg.alarm('unguard');
-  assert.equal(net(bg).some((r) => 'excludedTabIds' in r.condition), false); assert.deepEqual(bg.state.session.gtabs, []);
-});
-test('the guard cut short ends the skipping at once; with the guard switched off no tab is skipped', async () => {
-  const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://shop.example/' }] }));
-  await bg.navigate(1, 'https://accounts.google.com/signin'); await bg.settle(); await bg.navigate(1, 'https://shop.example/account'); await bg.settle();
-  assert.deepEqual(net(bg)[0].condition.excludedTabIds, [1]);
-  await bg.chrome.storage.local.set({ guardUntil: bg.now - 1 }); await bg.settle();
-  assert.equal('excludedTabIds' in net(bg)[0].condition, false);
-  const off = await load(on({ storage: { modes: { C19: 'off' } }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] })); await off.alarm('sweep');
-  assert.ok(net(off).length >= 5); assert.equal('excludedTabIds' in net(off)[0].condition, false);
-});
+// (1.25, L4: a test of the old hold on everything stood here; what a sign-in holds now is in l4-hold.test.js)

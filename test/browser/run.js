@@ -249,29 +249,32 @@ async function main() {
       see(`NID kept through a sweep, row "${g.pending} pending" with the button "${button}", badge "${badge}" = ${n} pending; Approve: "Cleaned ${g.pending} of ${g.pending}.", NID gone, badge empty`);
     });
 
-    await check(8, 'Sign-in guard holds while accounts.google.com is in front', async (ok, see) => {
+    await check(8, 'Sign-in hold: after three seconds on accounts.google.com the sign-in family\'s cookies are left alone, another site is cleaned as always', async (ok, see) => {
       const acc = await x.tab();
       const nav = await x.go(acc, 'https://accounts.google.com/');
       const url = await acc.ev('location.href').catch(() => '');
       if (!ok(new URL(url || 'about:blank').hostname === 'accounts.google.com', `the tab is on ${url || nav.error}`)) { await b.send('Target.closeTarget', { targetId: acc.targetId }); return; }
+      const held = await until(async () => Object.keys((await sw(`return (await chrome.storage.local.get('sguard')).sguard || {};`))).some((k) => k.startsWith('family:')), 8000);
+      ok(held, 'no hold for the sign-in family after the tab stayed on the sign-in host');
       const st = await P.state();
-      ok(st.hold.guard === true, 'state.hold.guard is not true');
-      ok(st.hold.tab === true, 'state.hold.tab is not true: the address of the tab in front was not read');
-      ok(st.hold.guardUntil > st.now, 'guardUntil was not armed by the navigation');
+      ok(st.hold.guard === true, 'state.hold.guard is not true: the address of the tab on the sign-in host was not read');
+      await b.send('Storage.setCookies', { cookies: [{ name: '_gid', value: 'test', domain: '.google.com', path: '/', secure: true, sameSite: 'None', expires: Math.floor(Date.now() / 1000) + 3600 }] });
       await setInPage(site, '_ga=test; max-age=3600');
-      await sleep(2500);
-      ok(!!(await x.cookie('_ga', 'example.com')), '_ga was removed during the sign-in guard');
-      const log = (await P.state()).log.filter((l) => l.name === '_ga' && l.did === 'held');
-      ok(log.length > 0, 'no "held" entry for _ga in the log');
+      const other = await until(async () => !(await x.cookie('_ga', 'example.com')), 6000);
+      ok(other, '_ga on example.com was kept: a sign-in elsewhere must not hold another site');
+      await sleep(1500); await sw(`await sweep('browser-test');`);
+      ok(!!(await x.cookie('_gid', 'google.com')), 'the tracker-named cookie on google.com was removed during its own sign-in');
+      const log = (await P.state()).log.filter((l) => l.name === '_gid' && l.did === 'held');
+      ok(log.length > 0, 'no "held" entry for the google.com cookie in the log');
       await P.reopen(acc);
       const text = await P.text();
-      ok(text.includes('Sign-in in progress: cleaning is held.'), 'the popup does not say "Sign-in in progress"');
+      ok(text.includes('Sign-in in progress: the cookies of that sign-in and of the site you came from are left alone for now.'), 'the popup does not say "Sign-in in progress"');
       ok(text.includes('This site: accounts.google.com'), 'the popup does not show "This site: accounts.google.com"');
-      // end the guard (it would hold 5 more minutes): close the tab, forget guardUntil; the held cookie is then cleaned
+      // end the hold (it would last 5 minutes): close the tab, forget the hold; the held cookie is then cleaned
       await b.send('Target.closeTarget', { targetId: acc.targetId }); await sleep(300);
-      await sw(`await chrome.storage.local.remove('guardUntil'); await sweep('browser-test');`);
-      ok(await until(async () => !(await x.cookie('_ga', 'example.com'))), 'the held _ga was not cleaned after the guard ended');
-      see(`tab on ${url.slice(0, 60)}: hold.guard and hold.tab true (tab address readable without "tabs"), _ga kept and logged "held", popup says "Sign-in in progress: cleaning is held."; cleaned once the guard was ended`);
+      await sw(`await chrome.storage.local.remove(['sguard', 'garm']); await sweep('browser-test');`);
+      ok(await until(async () => !(await x.cookie('_gid', 'google.com'))), 'the held cookie was not cleaned after the hold ended');
+      see(`tab on ${url.slice(0, 60)}: a hold for the sign-in family after 3 s; _ga on example.com cleaned meanwhile, _gid on google.com kept and logged "held"; popup says "Sign-in in progress: ..."; cleaned once the hold was ended`);
     }, offline);
 
     await check(9, 'Pause disables the rulesets and shows II; Resume restores', async (ok, see) => {

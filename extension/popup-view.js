@@ -28,7 +28,7 @@ const renderPopup = (state, tab) => {
   const status = () => typeof s.master !== 'boolean' ? `<p>Cleaning is off until you turn it on.</p><p>${btn('Turn on', { type: 'setMaster', on: true })}</p>`
     : `<div class="h">${check(s.master ? 'On' : 'Off', { type: 'setMaster' }, s.master)}`
       + (!s.master ? '' : hold.paused ? `<span>Paused until ${hhmm(hold.pauseUntil)} ${btn('Resume', { type: 'resume' })}</span>` : btn('Pause 10 min', { type: 'pause', minutes: 10 })) + '</div>'
-      + (s.master && hold.guard ? '<p class="m">Sign-in in progress: cleaning is held.</p>' : '')
+      + (s.master && hold.guard ? '<p class="m">Sign-in in progress: the cookies of that sign-in and of the site you came from are left alone for now.</p>' : '')
       + (Array.isArray(s.serverOff) && s.serverOff.length ? `<p class="c">The settings program on this computer has switched off: ${esc(s.serverOff.join(', '))}.</p>` : '')
       + (Array.isArray(s.notWorking) && s.notWorking.length ? `<p class="c bad">Not working right now, because Chrome refused a rule: ${esc(s.notWorking.join(', '))}.</p>` : '')
       + (s.master && s.firstRun === 'update' ? `<p class="c">New: Tracker Cleaner now cleans by itself. It can stop companies that follow you and delete what they saved without asking first; until you answer here it keeps asking as before. ${btn('OK', { type: 'seen', auto: true })} ${btn('Keep asking', { type: 'seen', auto: false })}</p>`

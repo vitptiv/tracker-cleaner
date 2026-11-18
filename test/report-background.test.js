@@ -132,11 +132,6 @@ test('the always-delete list is stopped only by its group set to Off or the main
   bg = await load({ tabs: [TAB], storage: { ...mineToo, master: false } });
   await back(bg); await bg.alarm('sweep');
   assert.ok((await bg.names()).includes('theme'));
-  bg = await load(asks({ storage: mineToo, tabs: [TAB, { id: 2, active: true, url: 'https://accounts.google.com/signin' }] }));   // a sign-in is going on
-  await back(bg);
-  assert.ok((await bg.names()).includes('theme'));
-  assert.deepEqual(bg.state.storage.pending.storage.items.map((i) => `${i.site} ${i.name}`), ['www.example.com theme']);
-  assert.ok(log(bg).includes('cookie www.example.com theme held'));
   bg = await load({ tabs: [TAB], storage: mineToo });               // cleaning was never turned on: nothing is deleted without asking
   await back(bg);
   assert.ok((await bg.names()).includes('theme'));

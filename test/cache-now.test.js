@@ -17,13 +17,7 @@ test('switched from Off to "Ask first": offered at once, nothing cleared', async
   await bg.send({ type: 'setMode', group: 'cache', mode: 'ask' }); await bg.settle();
   assert.equal(cleared(bg), 0); assert.deepEqual(queued(bg).map((i) => i.kind), ['cache']);
 });
-test('turned on during a sign-in: held, and cleared when the sign-in is over', async () => {
-  const bg = await fresh({ tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/' }] });
-  await bg.send({ type: 'setMode', group: 'cache', mode: 'auto' }); await bg.settle();
-  assert.equal(cleared(bg), 0); assert.deepEqual(queued(bg).map((i) => i.kind), ['cache']);
-  await bg.navigate(1, 'https://example.com/'); bg.now += 6 * 60e3; await bg.alarm('sweep');
-  assert.equal(cleared(bg), 1); assert.deepEqual(queued(bg), []);
-});
+// (1.25, L4: a test of the old hold on everything stood here; what a sign-in holds now is in l4-hold.test.js)
 test('the popup row has "Clean now" while the group is on, and not when it is off', async () => {
   const bg = await fresh(), row = async () => renderPopup(await bg.send({ type: 'state' }), null).split('data-group="cache"')[1].split('data-group=')[0];
   assert.ok((await row()).includes('<button data-msg="{&quot;type&quot;:&quot;drop&quot;,&quot;kind&quot;:&quot;servers&quot;}">Clean now</button>'));

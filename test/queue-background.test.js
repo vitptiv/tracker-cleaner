@@ -63,15 +63,7 @@ test("postpone until 'restart' lasts until Chrome starts again", async () => {
   await bg.chrome.runtime.onStartup.fire(); await bg.settle();
   assert.equal(bg.badge.text, '2'); assert.deepEqual(bg.destructive(), []);
 });
-test('a held auto item is queued and goes at the first sweep after the guard ends, without approval', async () => {
-  const bg = await load({ storage: { master: true, cacheClearedAt: 1.8e12 }, tabs: [{ id: 1, active: true, url: 'https://example.com/' }] });
-  await bg.navigate(1, 'https://accounts.google.com/signin'); await bg.navigate(1, 'https://example.com/app'); await bg.settle();
-  await tracker(bg);
-  assert.deepEqual(queued(bg, 'cookies').map((i) => i.name), ['x']); assert.equal(bg.badge.text, '1'); assert.deepEqual(bg.destructive(), []);
-  bg.now += 4 * MIN; await bg.alarm('sweep'); assert.deepEqual(await bg.names(), ['x']);
-  bg.now += 2 * MIN; await bg.alarm('sweep');
-  assert.deepEqual(await bg.names(), []); assert.deepEqual(queued(bg, 'cookies'), []); assert.equal(bg.badge.text, '');
-});
+// (1.25, L4: a test of the old hold on everything stood here; what a sign-in holds now is in l4-hold.test.js)
 test('a sweep forgets queued cookies that are gone and items of a group since switched off', async () => {
   const bg = await load(ask({ cookies: cookies() }));
   await bg.alarm('sweep'); await bg.chrome.cookies.remove({ url: 'https://example.com/', name: '_ga' });

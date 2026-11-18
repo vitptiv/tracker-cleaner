@@ -32,11 +32,4 @@ test('a sign-in page of any site holds deleting for that site only, and it is do
   await bg.navigate(1, 'https://shop.example/account'); bg.now += GUARD_MS + 2000; await bg.alarm('unguard');
   assert.deepEqual(await bg.names(), []);
 });
-test('a shipped sign-in host still holds everything; the tab that opened it is skipped by the header rules only when it is the same site', async () => {
-  const bg = await load(on({ tabs: [{ id: 1, active: true, url: 'https://shop.example/' }, { id: 3, url: 'https://accounts.google.com/x' }] })); await bg.alarm('sweep');
-  await bg.openTab({ id: 2, active: false, openerTabId: 1, url: 'https://accounts.google.com/o/oauth2/auth?client_id=a&redirect_uri=b' }); await bg.settle();
-  assert.ok(bg.state.storage.guardUntil > bg.now); assert.deepEqual(header(bg).condition.excludedTabIds, [2, 3]);
-  await bg.setCookie(ga('shop.example')); assert.deepEqual(await bg.names(), ['_ga'], 'not held');
-  await bg.openTab({ id: 4, active: false, openerTabId: 3, url: 'https://accounts.google.com/signin/v2' }); await bg.settle();
-  assert.deepEqual(header(bg).condition.excludedTabIds, [2, 3, 4]);
-});
+// (1.25, L4: a test of the old hold on everything stood here; what a sign-in holds now is in l4-hold.test.js)

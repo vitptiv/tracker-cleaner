@@ -59,11 +59,7 @@ test('a site that passes you along is never cleaned by itself (1.25, J1): one qu
   await bg.opens('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), ['hop_id']);
 });
-test('fresh install, a sign-in page in front, nothing pressed: nothing is deleted or blocked', async () => {
-  const raw = require('./load-background.js'), bg = await raw({ cookies: [ID, { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }], tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] }); await bg.chrome.runtime.onInstalled.fire({ reason: 'install' }); await bg.settle();
-  await three(bg);
-  assert.deepEqual(bg.called('cookies.remove'), []); assert.equal(rule(bg), undefined);
-});
+// (1.25, L4: a test of the old hold on everything stood here; what a sign-in holds now is in l4-hold.test.js)
 test("F7: saved copies are cleared per site only for a tracker's own address, never for the site you visit that merely carries a tracker's cookie", async () => {
   const bg = await fresh();
   const copies = () => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].origins).map((c) => c.args[0].origins.join());

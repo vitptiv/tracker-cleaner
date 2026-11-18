@@ -42,7 +42,7 @@ test('the list the page script gets: the hosts the user chose to skip (1.25, J4)
   await bg.send({ type: 'setMode', group: 'bounce', mode: 'off' }); await bg.settle();
   assert.deepEqual(bg.state.storage.skip.sites, []); assert.equal(bg.state.scripts.some((s) => s.id === 'skip'), false);
   const signing = await load(on({ tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }], storage: { skipok: ['hop.example'] } }));
-  await signing.alarm('sweep'); assert.deepEqual((signing.state.storage.skip || { sites: [] }).sites, []);
+  await signing.alarm('sweep'); assert.deepEqual((signing.state.storage.skip || { sites: [] }).sites, ['hop.example']);   // 1.25, L4: a sign-in holds deleting for its own sites only; the page script is never put into the sign-in hosts anyway
 });
 test('"Let it through again" takes a host off the list and the report offers it; only a host name is accepted', async () => {
   const bg = await load(on()); await choose(bg);

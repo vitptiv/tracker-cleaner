@@ -38,8 +38,6 @@ test('left alone: a sign-in on the way, a sign-in going on, a site open in a tab
   await pass(bg, 'https://accounts.google.com/x', DEST); await pass(bg, HOP, 'https://blog.example/login?next=1');
   await pass(bg, 'https://social.example/out?u=1', DEST); await pass(bg, 'https://hop.example/a', 'https://www.hop.example/b'); await pass(bg, HOP, DEST, 'sub_frame');
   assert.equal(bg.state.storage.bounce, undefined); assert.deepEqual(queued(bg), []);
-  const signing = await load(on({ storage: { guardUntil: 1.8e12 + 60e3 } })); await pass(signing);
-  assert.equal(signing.state.storage.bounce, undefined);
   const off = await load(on({ storage: { modes: { C27: 'off' } } })); await pass(off);
   assert.equal(off.state.storage.bounce, undefined);
 });

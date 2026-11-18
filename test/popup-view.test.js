@@ -61,7 +61,7 @@ test('switched off: the switch says Off, nothing to pause, the removing button i
   assert.equal(html.includes('Pause 10 min'), false); assert.equal(count(html, 'disabled>Remove '), 2);
 });
 test('sign-in guard: its line shows only while the guard holds', () => {
-  const line = 'Sign-in in progress: cleaning is held.';
+  const line = 'Sign-in in progress: the cookies of that sign-in and of the site you came from are left alone for now.';
   assert.ok(renderPopup(state({ hold: { paused: false, guard: true, guardUntil: AT } }), null).includes(line));
   assert.equal(renderPopup(state(), null).includes(line), false);
 });

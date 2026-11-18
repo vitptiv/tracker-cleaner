@@ -69,15 +69,7 @@ test('approving the google group removes NID; SID stays', async () => {
   await bg.alarm('sweep'); assert.deepEqual(await bg.send({ type: 'approve', group: 'google' }), { ok: true, done: 1, of: 1 });
   assert.deepEqual(await bg.names(), ['SID']);
 });
-test('with C04 set to auto NID is removed, but not during the sign-in guard', async () => {
-  const bg = await load(on({ storage: { modes: { C04: 'auto' } }, tabs: [{ id: 1, active: true, url: 'https://example.com/' }] }));
-  await set(bg, 'NID', '.google.com'); assert.deepEqual(await bg.names(), []);
-  await bg.navigate(1, 'https://accounts.google.com/v3/signin/identifier'); await bg.settle();
-  await set(bg, 'NID', '.google.com'); await bg.alarm('sweep');
-  assert.deepEqual(await bg.names(), ['NID']); assert.deepEqual(queued(bg, 'google'), ['NID']);
-  await bg.navigate(1, 'https://example.com/'); bg.now += 6 * MIN; await bg.alarm('sweep');
-  assert.deepEqual(await bg.names(), []); assert.deepEqual(queued(bg, 'google'), []);
-});
+// (1.25, L4: a test of the old hold on everything stood here; what a sign-in holds now is in l4-hold.test.js)
 test('the sequence behind this rebuild: a Google sign-in keeps NID, SID and __Host-GAPS through 20 minutes of sweeps', async () => {
   const bg = await load({ storage: { master: true }, tabs: [{ id: 1, active: false, url: 'https://example.com/' }] });
   await bg.openTab({ id: 2, active: true, url: 'https://accounts.google.com/v3/signin/identifier' }); await bg.settle();

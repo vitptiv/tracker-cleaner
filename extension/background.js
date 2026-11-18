@@ -19,37 +19,49 @@ const hostOf = (url) => { try { return new URL(url).hostname; } catch { return '
 async function context() {
   const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'hard', 'later', 'params', 'mine', 'salt', 'histOn', 'sguard']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
-  if (mayRun('C19', set) !== 'run') hold.guard = false;
-  // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
-  // (written at most once a minute; the 1-minute alarm passes here)
-  else if (hold.tab && !(set.guardUntil > now + GUARD_MS - 60e3)) await chrome.storage.local.set({ guardUntil: now + GUARD_MS });
-  return { set, hold, tabs, hosts };
+  // L4: nothing holds all cleaning any more. A sign-in holds deleting only for the sites named in `sguard` (see `guarded`).
+  // signing: a tab is on a shipped sign-in host right now; used only to leave the network path and the extension itself
+  // alone meanwhile (no Tor switch, no self-reload) and for the line in the popup.
+  const signing = mayRun('C19', set) === 'run' && tabs.some((t) => isGuardSignIn(t.url || t.pendingUrl));
+  hold.guard = false; hold.tab = false;
+  return { set, hold, tabs, hosts, signing };
 }
 const verdict = (id, cx) => gate(id, cx.set, cx.hold);
 const can = (id, cx) => verdict(id, cx) === 'run';
 const waits = (v) => v === 'ask' || v === 'held';
-// Sign-in guard (C19): every navigation to a sign-in URL (re)arms it.
-// The tab it is seen in, and the tab that opened it (a sign-in in a pop-up), are noted in chrome.storage.session
-// { gtabs: [tab numbers] }: in those tabs the header rules of net-rules.js do not apply while the guard holds
-// (applyFeatures; the list is emptied when the guard is over).
-// A sign-in-looking address of any other site holds deleting for that site alone, in chrome.storage.local
-// { sguard: { '<site>': when it began } }, for GUARD_MS and at most once an hour per site (see `guarded`).
-const SGUARD_AGAIN_MS = 3600e3;
-const arm = (url, tab, opener) => { if (!isSignIn(url)) return;
-  const site = siteOf(hostOf(url)), now = Date.now();
+// Sign-in guard (C19), as narrowed by H2, J3 and L4. It never holds all cleaning. It holds DELETING for named sites, in
+// chrome.storage.local { sguard: { '<site>' or 'family:<n>': when it began } }, for GUARD_MS each:
+// - a tab that has stayed SIGNIN_STAY_MS on a shipped sign-in host (exact name): the sites of that sign-in's family
+//   (net-rules.js FAMILIES) and the site the tab came from. At most GARM_HOUR such holds begin in an hour (ten minutes
+//   in all). A tab that only bounces through the sign-in host begins nothing.
+// - a sign-in-looking address of any other site: that site alone, at most once an hour per site, at most 200 sites
+//   (the family holds are not counted there, so tenants' /login pages cannot use up their room).
+// The header rules skip a tab only while it is on a shipped sign-in host (applyFeatures).
+const SGUARD_AGAIN_MS = 3600e3, SIGNIN_STAY_MS = 3000, GARM_HOUR = 2, came = new Map();   // came: tab -> the site it was on before
+const arm = (url, tab, opener) => { const host = hostOf(url), site = siteOf(host), now = Date.now();
+  if (!isGuardSignIn(url)) { if (site && Number.isInteger(tab) && /^https?:/.test(String(url))) { if (came.size > 500) came.clear(); came.set(tab, site); } }
+  if (!isSignIn(url)) return;
   if (!isGuardSignIn(url)) return serial(async () => { const { sguard = {} } = await chrome.storage.local.get('sguard');
     if (sguard[site] > now - SGUARD_AGAIN_MS) return;   // once an hour per site: going there again does not begin it anew
     const live = Object.entries(sguard).filter(([, t]) => t > now - SGUARD_AGAIN_MS);
-    if (live.length >= 200) return;   // full: no new hold, rather than pushing a running one out (which would let it begin anew)
+    if (live.filter(([k]) => !k.startsWith('family:')).length >= 200) return;   // full: no new hold, rather than pushing a running one out
     await chrome.storage.local.set({ sguard: Object.fromEntries([...live, [site, now]]) }); chrome.alarms.create('unguard', { when: now + GUARD_MS + 1000 }); });
-  chrome.storage.local.set({ guardUntil: now + GUARD_MS });
-  serial(async () => { const { gtabs = [] } = await chrome.storage.session.get('gtabs'), from = Number.isInteger(opener) && opener >= 0 ? await chrome.tabs.get(opener).catch(() => null) : null;
-    const ids = [tab, ...(from && siteOf(hostOf(from.url)) === site ? [opener] : [])].filter((id) => Number.isInteger(id) && id >= 0);   // the tab that opened it only when it is the same site
-    await chrome.storage.session.set({ gtabs: [...new Set([...gtabs, ...ids])].slice(-100) }); }).then(() => applyFeatures()); };
+  if (!came.has(tab) && Number.isInteger(opener) && opener >= 0) chrome.tabs.get(opener).then((t) => { if (t && !isGuardSignIn(t.url)) came.set(tab, siteOf(hostOf(t.url))); }, () => {});
+  applyFeatures();   // the header rules skip this tab while it is on the sign-in host
+  // only a tab that is still on that sign-in host a moment later begins a hold
+  setTimeout(async () => { const t = await chrome.tabs.get(tab).catch(() => null), from = came.get(tab);
+    if (!t || hostOf(t.url) !== host) return;
+    await serial(async () => { const { sguard = {}, garm = [] } = await chrome.storage.local.get(['sguard', 'garm']), at = Date.now(), recent = garm.filter((x) => x > at - SGUARD_AGAIN_MS);
+      if (recent.length >= GARM_HOUR) return;
+      const fam = FAMILIES.findIndex((f) => f.some((d) => under(site, d))), live = Object.entries(sguard).filter(([, x]) => x > at - SGUARD_AGAIN_MS);
+      await chrome.storage.local.set({ garm: [...recent, at], sguard: Object.fromEntries([...live, ...(fam >= 0 ? [[`family:${fam}`, at]] : [[site, at]]), ...(from && isHost(from) ? [[from, at]] : [])]) });
+      chrome.alarms.create('unguard', { when: at + GUARD_MS + 1000 }); }); }, SIGNIN_STAY_MS); };
 chrome.tabs.onCreated.addListener((t) => arm(t.pendingUrl || t.url, t.id, t.openerTabId));
-chrome.tabs.onUpdated.addListener((id, info, t) => { if (info.url) arm(info.url, id, (t || {}).openerTabId); });
-// is deleting held for this site right now, because a sign-in-looking page of it was opened less than GUARD_MS ago?
-const guarded = (cx, site) => mayRun('C19', cx.set) === 'run' && (cx.set.sguard || {})[site] > Date.now() - GUARD_MS;
+chrome.tabs.onUpdated.addListener((id, info, t) => { if (info.url) { arm(info.url, id, (t || {}).openerTabId); if (!isGuardSignIn(info.url)) applyFeatures(); } });
+chrome.tabs.onRemoved.addListener((id) => { came.delete(id); });
+// is deleting held for this site right now?
+const guarded = (cx, site) => { const sg = cx.set.sguard || {}, live = (k) => sg[k] > Date.now() - GUARD_MS;
+  return mayRun('C19', cx.set) === 'run' && (live(site) || FAMILIES.some((f, i) => live(`family:${i}`) && f.some((d) => under(site, d)))); };
 // Pause (C18): everything stops until pauseUntil; the 'resume' alarm switches the features back on.
 // The storage listener at the end of this file applies the change.
 async function pause(minutes) {
@@ -175,10 +187,10 @@ chrome.runtime.onStartup.addListener(() => withQueue(queueRestart));
 // ---- The popup: chrome.runtime.sendMessage({ type, ... }) -> reply.
 async function state() {
   await ready;
-  const { set, hold } = await context(), modes = set.modes || {}, pending = set.pending || {};
+  const { set, hold, signing } = await context(), modes = set.modes || {}, pending = set.pending || {};
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
-  return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
+  return { now: Date.now(), master: set.master, modes, hold: { ...hold, guard: signing, pauseUntil: set.pauseUntil || 0, guardUntil: 0 },   // guard: a tab is on a sign-in host right now (for the popup's line)
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], hard: set.hard || [], stoppedUsed: (set.stopped || []).filter((s) => visited({ set }, siteOf(s))), skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
     ...(serverOff().length ? { serverOff: serverOff() } : {}), ...(notWorking().length ? { notWorking: notWorking() } : {}), histOn: set.histOn === true,
@@ -406,7 +418,10 @@ const SKIP = { id: 'skip', matches: ['http://*/*', 'https://*/*'], excludeMatche
 const SHIELD = (off) => ({ id: 'shield', js: ['shield.js'], world: 'MAIN', matches: ['http://*/*', 'https://*/*'], runAt: 'document_start', allFrames: true, matchOriginAsFallback: true,
   excludeMatches: [...SIGNIN_HOSTS, ...off].flatMap((h) => SIGNIN_HOSTS.includes(h) ? [`*://${h}/*`] : [`*://${h}/*`, `*://*.${h}/*`]) });
 const YT_CSS = { id: 'yt-adfree-css', matches: ['*://*.youtube.com/*'], css: ['yt-adfree.css'], runAt: 'document_start', allFrames: true };
-async function applyFeatures() {
+// one at a time: two at once would both register the same page script, or install rules from an older look at the tabs
+let applying = Promise.resolve();
+function applyFeatures() { return (applying = applying.then(applyOnce, applyOnce)); }
+async function applyOnce() {
   const cx = await context(), yt = YT && can('C05', cx), pings = BLOCK && can('C26', cx);
   // url-params (C23) is not request blocking: the server's blocking switch does not reach it
   const want = { trackers: BLOCK && can('C01', cx), 'google-paths': BLOCK && can('C02', cx), 'url-params': can('C23', cx) };
@@ -424,12 +439,10 @@ async function applyFeatures() {
     ...netRules({ local: BLOCK && can('C31', cx), self: chrome.runtime.id })]);
   // S4, S5: what other companies get less of; left alone: sign-in hosts, the companies pages need, the sites cleaning is off for,
   // and, while the sign-in guard holds, the tabs a sign-in page was seen in (session rules: only those can name tabs)
-  try { let { gtabs = [] } = await chrome.storage.session.get('gtabs');
-    if (!cx.hold.guard && gtabs.length) await chrome.storage.session.set({ gtabs: gtabs = [] });
-    const guardTabs = cx.hold.guard ? [...new Set([...gtabs, ...cx.tabs.filter((t) => isGuardSignIn(t.url || t.pendingUrl)).map((t) => t.id)])].sort((a, b) => a - b) : [];
+  try {
+    const guardTabs = mayRun('C19', cx.set) === 'run' ? cx.tabs.filter((t) => isGuardSignIn(t.url || t.pendingUrl)).map((t) => t.id).sort((a, b) => a - b) : [];   // only while a tab is on a shipped sign-in host (L4)
     const want = netRules({ cookies: BLOCK && can('C29', cx), tags: BLOCK && can('C30', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED.filter((d) => d !== 'googleapis.com'), ...GOOGLE_APIS, ...(cx.set.sitesOff || [])], guardTabs });
-    const old = (await chrome.declarativeNetRequest.getSessionRules()).filter((r) => r.id >= NET_BASE && r.id < NET_BASE + 10);
-    if (JSON.stringify(old) !== JSON.stringify(want)) await installEach('session', (o) => chrome.declarativeNetRequest.updateSessionRules(o), old, want); } catch {}
+    await installEach('session', (o) => chrome.declarativeNetRequest.updateSessionRules(o), (r) => r.id >= NET_BASE && r.id < NET_BASE + 10, want); } catch {}
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { skipok = [], noskip = [], skip: was } = await chrome.storage.local.get(['skipok', 'noskip', 'skip']);
   // only the hosts the user chose with "Skip it next time?" (`skipok`): never one that was only learned (J4), and there is no
@@ -437,7 +450,7 @@ async function applyFeatures() {
   const skip = { sites: can('C27', cx) ? skipok.filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
   if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
   try { const there = await chrome.scripting.getRegisteredContentScripts(), have = there.map((x) => x.id);
-    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(can('C32', cx) && !cx.hold.guard ? [SHIELD((cx.set.sitesOff || []).filter(isHost))] : [])], same = (x) => there.some((y) => y.id === x.id && JSON.stringify(y.excludeMatches || []) === JSON.stringify(x.excludeMatches || [])),
+    const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(can('C32', cx) ? [SHIELD((cx.set.sitesOff || []).filter(isHost))] : [])], same = (x) => there.some((y) => y.id === x.id && JSON.stringify(y.excludeMatches || []) === JSON.stringify(x.excludeMatches || [])),
       drop = have.filter((id) => !want.some((x) => x.id === id && same(x))), add = want.filter((x) => !same(x));   // one whose left-alone list changed is put in anew
     if (drop.length) await chrome.scripting.unregisterContentScripts({ ids: drop });
     if (add.length) await chrome.scripting.registerContentScripts(add); } catch {}
@@ -490,9 +503,7 @@ async function sweepOnce(cause) {
 const LEARNED = 100000, TYPES = ['script', 'xmlhttprequest', 'image', 'ping', 'sub_frame', 'media', 'other', 'websocket', 'font', 'stylesheet'];
 const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.condition.excludedRequestDomains, r.condition.regexFilter, r.action]);
 async function learnedRules(want) {
-  try { const old = (await chrome.declarativeNetRequest.getDynamicRules()).filter((r) => r.id > LEARNED);
-    if (old.map(sig).join() === want.map(sig).join()) return;
-    await installEach('dynamic', (o) => chrome.declarativeNetRequest.updateDynamicRules(o), old, want); } catch {}
+  try { await installEach('dynamic', (o) => chrome.declarativeNetRequest.updateDynamicRules(o), (r) => r.id > LEARNED, want); } catch {}
 }
 // Chrome refuses a whole change when it refuses one rule, so every rule is installed on its own (H6): one bad rule cannot
 // take the others down, and what could not be installed is named in the popup (`notWorking`) instead of looking switched on.
@@ -503,13 +514,16 @@ const RULE_NAME = (id) => id >= BLOCKED ? 'Hosts you blocked' : id === LEARNED +
 // One change at a time per kind (two at once would trip over each other's rule numbers); what counts as refused is what
 // is not there afterwards, read back from Chrome.
 const installing = { dynamic: Promise.resolve(), session: Promise.resolve() };
-const installEach = (kind, update, old, want) => (installing[kind] = installing[kind].catch(() => {}).then(async () => {
+// What is there is read inside the turn, not before it: of two changes asked for at nearly the same moment the later one
+// decides (L4: the earlier one could otherwise be installed last and stay).
+const installEach = (kind, update, mine, want) => (installing[kind] = installing[kind].catch(() => {}).then(async () => {
   const read = () => kind === 'dynamic' ? chrome.declarativeNetRequest.getDynamicRules() : chrome.declarativeNetRequest.getSessionRules();
-  const mine = (r) => want.some((w) => w.id === r.id) || old.some((o) => o.id === r.id);
-  await update({ removeRuleIds: (await read()).filter(mine).map((r) => r.id) });
+  const cur = (await read()).filter(mine), same = kind === 'dynamic' ? cur.map(sig).join() === want.map(sig).join() : JSON.stringify(cur) === JSON.stringify(want);
+  if (same) return;
+  await update({ removeRuleIds: cur.map((r) => r.id) });
   for (const r of want) try { await update({ addRules: [r] }); } catch {}
-  const have = (await read()).map((r) => r.id);
-  REFUSED[kind] = new Set([...[...REFUSED[kind]].filter((n) => !want.some((r) => RULE_NAME(r.id) === n) && !old.some((r) => RULE_NAME(r.id) === n)), ...want.filter((r) => !have.includes(r.id)).map((r) => RULE_NAME(r.id))]); }));
+  const have = (await read()).map((r) => r.id), names = new Set([...cur, ...want].map((r) => RULE_NAME(r.id)));
+  REFUSED[kind] = new Set([...[...REFUSED[kind]].filter((n) => !names.has(n)), ...want.filter((r) => !have.includes(r.id)).map((r) => RULE_NAME(r.id))]); }));
 const notWorking = () => [...new Set([...REFUSED.dynamic, ...REFUSED.session])];
 // "Not now" on one question (site and name) or on all about a site: not asked again for LATER_MS
 const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());
@@ -698,7 +712,7 @@ async function noteRedirect(d) {
   if (!/^https?:$/.test(a.protocol) || !/^https?:$/.test(b.protocol) || co === siteOf(b.hostname) || isSignIn(d.url) || isSignIn(d.redirectUrl) || signInCompany(co)) return;
   await ready;
   const cx = await context();
-  if (mayRun('C27', cx.set) === 'no' || cx.hold.guard || cx.hosts.some((h) => siteOf(h) === co)) return;
+  if (mayRun('C27', cx.set) === 'no' || cx.hosts.some((h) => siteOf(h) === co)) return;
   // to: a hash per site it sent the browser on to (at most 3); id: it added an ID to the address on the way. skip.js gets a
   // site only with both (two different destinations and an added ID): one safe-link redirect makes no passing site (H4)
   const salt = await saltNow(), dest = mark(`${salt} ${siteOf(b.hostname)}`);
@@ -779,7 +793,7 @@ async function cleanOwn(site, cx) {
 // tracker's site; each address is compared with that site and deleted or left, and is kept nowhere. Never a site the
 // user opens as a page or has open, never while paused, off or during a sign-in.
 async function historySweep(cx) {
-  if (cx.set.histOn !== true || cx.set.master !== true || cx.hold.paused || cx.hold.guard) return;
+  if (cx.set.histOn !== true || cx.set.master !== true || cx.hold.paused || cx.signing) return;
   const { histAt = 0, hard: stopped = [] } = await chrome.storage.local.get(['histAt', 'hard']), done = [];
   if (histAt > Date.now() - CACHE_MS) return;
   try { if (!(await chrome.permissions.contains({ permissions: ['history'] }))) return;
@@ -826,7 +840,7 @@ async function wifiRemove(items) {
 
 // ---- Self-update: Chrome's own check runs only every few hours; ask at every sweep, reload when a new version is ready.
 function selfUpdate() { try { chrome.runtime.requestUpdateCheck(() => {}); } catch {} }
-try { chrome.runtime.onUpdateAvailable.addListener(async () => { const cx = await context(); if (can('C15', cx) && !cx.hold.guard) chrome.runtime.reload(); }); } catch {}
+try { chrome.runtime.onUpdateAvailable.addListener(async () => { const cx = await context(); if (can('C15', cx) && !cx.signing) chrome.runtime.reload(); }); } catch {}
 
 // ---- Permanent drops (made permanent in the popup → settings → limits.json): site storage dropped and
 // site permissions blocked at every sweep. Cookies use the cookie blacklist (cookieBlacklist) above.
@@ -975,7 +989,7 @@ let proxyMode = null, proxying = Promise.resolve();
 const applyProxy = () => (proxying = proxying.then(proxyOnce, proxyOnce));
 async function proxyOnce() {
   const cx = await context();
-  if (cx.hold.guard && !cx.hold.paused) return;   // a sign-in is going on: do not change the network path under it
+  if (cx.signing && !cx.hold.paused) return;   // a tab is on a sign-in host: do not change the network path under it
   const want = can('C14', cx) ? 'tor' : 'direct';   // not allowed (off, ask, master off, paused): take our proxy setting away
   if (want === 'tor' && !(await torRuns())) return;   // Tor does not answer: leave Chrome as it is
   if (want === proxyMode) return;
@@ -992,9 +1006,7 @@ chrome.runtime.onInstalled.addListener(applyProxy);
 
 // A changed switch takes effect at once for what would otherwise wait: blocking, YouTube scripts, Tor.
 chrome.storage.onChanged.addListener((ch) => {
-  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.skipok || ch.noskip || ch.sitesOff || ch.guardUntil) { applyFeatures(); applyProxy(); }
-  if (ch.pending || ch.pauseUntil || ch.guardUntil) badge();
-  // the sign-in guard was armed: wake up when it ends, so that what it held is done then and not at the next quarter-hour sweep
-  if (ch.guardUntil && ch.guardUntil.newValue > Date.now()) chrome.alarms.create('unguard', { when: ch.guardUntil.newValue + 1000 });
+  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.skipok || ch.noskip || ch.sitesOff) { applyFeatures(); applyProxy(); }
+  if (ch.pending || ch.pauseUntil) badge();
 });
 badge();
