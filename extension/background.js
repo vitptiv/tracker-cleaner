@@ -489,7 +489,7 @@ async function unstop(site) {
   const { stopped: was = [], own = {} } = await chrome.storage.local.get(['stopped', 'own']), stopped = was.filter((s) => s !== site);
   // its notifications were blocked by C28: Chrome can only take back all blocks this extension set, so the others are set again at the sweep that follows
   if (own[site]) try { await chrome.contentSettings.notifications.clear({}); } catch {}
-  await chrome.storage.local.set({ stopped, own: Object.fromEntries(Object.entries(own).filter(([s]) => s !== site).map(([s, e]) => [s, { ...e, at: 0 }])) });
+  await chrome.storage.local.set({ stopped, own: Object.fromEntries(Object.entries(own).filter(([s]) => s !== site).map(([s, e]) => [s, { ...e, at: 0, mute: false }])) });
   return { ...(await notNow({ group: 'unknown', site })), stopped };
 }
 
@@ -560,6 +560,9 @@ async function ownSweep(cx, wait) {
   const v = verdict('C28', cx), done = [], now = Date.now();
   if (v === 'no') return;
   const { own = {}, stopped = [] } = await chrome.storage.local.get(['own', 'stopped']);   // read now: this sweep may just have stopped one
+  // its notifications are blocked at once, also while its own page is open or the user uses its site: nothing there is deleted by this
+  if (v === 'run') for (const site of stopped) if (!(own[site] || {}).mute) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${site}/*`, setting: 'block' });
+    own[site] = { ...own[site], mute: true }; await chrome.storage.local.set({ own }); done.push({ cap: 'C28', kind: 'permission', site, name: 'notifications' }); } catch {}
   for (const site of [...stopped, ...(mayRun('C28', cx.set) === 'run' ? [LISTED] : [])]) { const e = own[site] || {};
     if (e.at > now - CACHE_MS || later(cx, 'C28', site, OWN) || (!e.ok && visited(cx, site)) || (site !== LISTED && cx.hosts.some((h) => under(h, site)))) continue;
     const it = { cap: 'C28', kind: 'own', site, name: OWN, why: 'a tracker', did: waitsAs(v) };
@@ -571,8 +574,8 @@ async function cleanOwn(site, cx) {
   const { own = {}, follow = {} } = await chrome.storage.local.get(['own', 'follow']);
   const sites = site === LISTED ? DOMAINS.filter((d) => !cx.hosts.some((h) => under(h, d)) && !visited(cx, siteOf(d))) : [site];
   await dropStorage([...new Set(sites.flatMap((s) => [s, 'www.' + s, ...((follow[s] || {}).hosts || [])]))]);
-  for (const s of sites) await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${s}/*`, setting: 'block' });
-  await chrome.storage.local.set({ own: { ...own, [site]: { ok: true, at: Date.now() } } });
+  for (const s of sites) if (!(own[s] || {}).mute) await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${s}/*`, setting: 'block' });
+  await chrome.storage.local.set({ own: { ...own, [site]: { ...own[site], ok: true, at: Date.now(), ...(site === LISTED ? {} : { mute: true }) } } });
   return true;
 }
 

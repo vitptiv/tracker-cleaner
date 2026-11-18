@@ -1,4 +1,5 @@
-// S2a: after a stop the saved copies are cleared again a minute later and when Chrome starts.
+// S2a, S2b: after a stop the saved copies are cleared again a minute later and when Chrome starts; a stopped tracker's
+// notifications are blocked even while its own page is open, and nothing else of that page is touched.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const req = async (bg, host, page) => { await bg.request({ url: `https://${host}/px.gif`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
 const three = async (bg) => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, 'px.trk.example', p); };
@@ -19,4 +20,18 @@ test('when Chrome starts the saved copies are cleared if a tracker is stopped, a
   assert.equal(await start(on({ storage: { stopped: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] })), 0);
   assert.equal(await start(on({ storage: { stopped: ['trk.example'], master: false } })), 0);
   assert.equal(await start(on({ storage: { stopped: ['trk.example'], modes: { C11: 'off' } } })), 0);
+});
+test("a stopped tracker's notifications are blocked once even while its own page is open; its cookies and what it saved there stay", async () => {
+  const bg = await load(on({ storage: { stopped: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }],
+    cookies: [ID, { name: 'session', domain: 'www.trk.example', value: 's-1' }] }));
+  await bg.alarm('sweep');
+  assert.equal(blocked(bg), 1); assert.deepEqual(await bg.names(), ['uid', 'session']);
+  assert.equal(bg.called('browsingData.remove').some((c) => (c.args[0].origins || []).some((o) => o.includes('trk.example')) && c.args[1].serviceWorkers), false);
+  await bg.alarm('sweep'); assert.equal(blocked(bg), 1, 'blocked again at the next sweep');
+  await bg.send({ type: 'unstop', site: 'trk.example' });
+  assert.equal(bg.called('contentSettings.clear').length, 1, '"Let it through again" does not give the notifications back');
+});
+test('notifications are not blocked on "Ask first" before the answer, nor while cleaning is switched off', async () => {
+  for (const storage of [{ stopped: ['trk.example'], modes: { C28: 'ask' } }, { stopped: ['trk.example'], master: false }]) {
+    const bg = await load(on({ storage })); await bg.alarm('sweep'); assert.equal(blocked(bg), 0); }
 });

@@ -33,7 +33,8 @@ test('not while its own site is open in a tab, not during a sign-in, not when of
   const open = await load(on({ storage: { modes: { C28: 'auto' } }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/home' }, { id: 2, url: 'https://app.hotjar.com/' }] }));
   await open.alarm('sweep');
   assert.equal(emptied(open).length, 1); assert.equal(emptied(open)[0][0].origins.some((o) => /trk\.example|hotjar\.com/.test(o)), false);
-  assert.equal(blocked(open).some((b) => /trk\.example|hotjar\.com/.test(b.primaryPattern)), false);
+  // 1.25 (S2b): the stopped company's notifications are blocked also while its page is open; a listed tracker's open site is still left alone
+  assert.deepEqual(blocked(open).filter((b) => /trk\.example|hotjar\.com/.test(b.primaryPattern)).map((b) => b.primaryPattern), ['*://*.trk.example/*']);
   const signing = await load(on({ storage: { modes: { C28: 'auto' }, guardUntil: 1.8e12 + 60e3 } })); await signing.alarm('sweep');
   assert.deepEqual(signing.destructive(), []); assert.equal(queued(signing).length, 2);
   const off = await load(on({ storage: { modes: { C28: 'off' } } })); await off.alarm('sweep');

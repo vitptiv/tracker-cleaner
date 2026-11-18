@@ -763,3 +763,5 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   Chrome starts while a tracker is stopped. Tried in a real Chrome: clearing for the tracker's addresses alone
   (`browsingData.remove` with `origins`) removes its saved file but leaves the compiled copy of its script and the
   remembered server, so these clearings are of all saved copies.
+- S2b notification right of a stopped tracker (T22): blocked at once and once (`own[site].mute`), also while its own
+  page is open or the user uses its site; nothing there is deleted by this. "Let it through again" gives it back.
