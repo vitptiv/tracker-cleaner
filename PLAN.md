@@ -61,7 +61,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C29 | No cookies for other companies: a request to another company carries none and may set none (rule, automatic) | new in 1.25 | auto |
 | C30 | No cache tags (If-None-Match, If-Modified-Since, ETag) and no referring page for other companies (rule, automatic) | new in 1.25 | auto |
 | C31 | A page may not ask this computer or the home network (loopback and private addresses; rule, automatic) | new in 1.25 | auto |
-| C32 | Page shield, experimental: canvas, sound, graphics-chip name and saved-amount readings changed a little (page script, off unless switched on) | new in 1.25 | off |
+| C32 | Page shield, experimental: canvas, sound, graphics-chip name, font-measure widths and screen size changed a little (page script, on by default from 1.26) | new in 1.25 | auto |
 | C33 | Block cross-site identifiers: a high-entropy value the cleaner sees sent by two different sites you visit is stripped from links and requests and the collector path that receives it is blocked (automatic, reversible) | new in 1.26 | auto |
 
 Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C28, C06,
@@ -1305,3 +1305,15 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   is the fingerprint, whose collector send M2 already blocks. Proven by unit tests (confirmed id stripped from a
   pushState; a network nav left to DNR, not reloaded; sign-in page, return-address param, off-site and C33-off all
   left alone; an unconfirmed planted value left alone).
+- M4 shield ON by default (C32 default 'auto', manifest 1.26) and extended to the F6 join-key surfaces. shield.js now
+  also blurs the width `measureText` returns (the installed-font probe) by up to ~1.28px -- enough to shift the rounded
+  width fingerprinters read -- and the screen size (screen.width/height/availWidth/availHeight) by up to 2px, with the
+  same per-page key and capture-first discipline as the existing canvas/WebGL/audio noise, nothing page-reachable, not
+  on sign-in hosts or sitesOff (the SHIELD injection already excludes them). Verified in the browser: with the shield on
+  the F6 join key differs across all three ff2 sites and from a cleaner-off baseline (fp2-9a87.../013d.../0639... vs
+  baseline fp2-6544ca5f); with it off the key is the stable baseline. Honest label on the row and report: experimental,
+  best effort, a determined site can still undo it. UNCOVERED on purpose (would break pages): matchMedia results,
+  devicePixelRatio, and window.inner/outer size are functional -- a page needs them and perturbing them breaks layout
+  and theming -- so they are left alone; also still unblurred: timezone, navigator.languages/platform/hardwareConcurrency
+  /maxTouchPoints, and WebGL MAX_TEXTURE_SIZE / extension list. shield.js stays under 80 lines (65) and closed (no
+  network, storage, message, or global assignment). trip-cleaner A/Q within the 29/23 bar (shield is non-destructive).

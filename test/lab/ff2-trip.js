@@ -60,23 +60,30 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     // /f/ path -- which the cross-site-id block (C33) would close. So measure the join key first with C33 held OFF (the
     // collector reachable), then below restore C33 and measure its forward effect. The two counter-repairs are separate.
     await msg({ type: 'setMode', group: 'crossid', mode: 'off' }); await sleep(800);
-    // the fingerprint reconciliation: capture it on each site with the shield OFF (the default) and ON, and against a
-    // cleaner-off baseline, so readPixels is measured both ways and the result does not depend on the run.
+    // Fingerprint reconciliation. The F6 join key is built from fonts (measureText) and matchMedia/screen. Measure it
+    // on each site with the shield OFF and ON, against a cleaner-off baseline. M4 makes the shield blur the font-measure
+    // widths and the screen size (as well as readPixels and the WebGL vendor/renderer it already touched), so with the
+    // shield ON -- the 1.26 default -- the join key no longer matches across the three sites or the cleaner-off
+    // baseline: the fonts+screen join is broken. matchMedia and the pixel ratio are left alone (a page needs them), so
+    // it is best effort, not perfect. (C33 is still held off here so the frozen ff2 kit can reach its own /f/.)
     const capture = async () => { const c = {}; for (const s of ['ledger', 'sundial', 'atlas']) { await t.go(at(s)); await sleep(300); c[s] = await fpOf(t); } return c; };
-    const off = await capture();                                   // shield off (fresh-install default)
-    await msg({ type: 'setMode', group: 'shield', mode: 'auto' }); // switch the fingerprint shield ON
-    const onc = await capture();
-    await msg({ type: 'setMode', group: 'shield', mode: 'off' });  // back to default
+    await msg({ type: 'setMode', group: 'shield', mode: 'off' }); await sleep(400);
+    const off = await capture();                                   // shield off: the unshielded join key
+    await msg({ type: 'setMode', group: 'shield', mode: 'auto' }); await sleep(400);
+    const onc = await capture();                                   // shield on (the 1.26 default): fonts + screen blurred
     base = await launch(undefined, flags); const bt = await base.tab(at('ledger')); await sleep(500);   // a cleaner-off browser: no extension
     const bfp = await bt.ev(`window.ff2fp ? window.ff2fp() : null`).catch(() => null);
     const keyStable = (c) => c.ledger && c.ledger.code && c.ledger.code === c.sundial.code && c.ledger.code === c.atlas.code;
-    ok(keyStable(off) && keyStable(onc), 'one fingerprint join key across all three sites, shield off and on');
-    ok(bfp && off.ledger.code === bfp.code && onc.ledger.code === bfp.code, `the join key equals the cleaner-off baseline with the shield off AND on (baseline ${bfp && bfp.code}, off ${off.ledger.code}, on ${onc.ledger.code})`);
+    ok(keyStable(off), 'shield off: one fingerprint join key across all three sites (the unshielded baseline)');
+    ok(bfp && off.ledger.code === bfp.code, `shield off: the join key equals the cleaner-off baseline (${off.ledger.code} vs ${bfp && bfp.code})`);
+    const keyDefeated = !!(bfp && onc.ledger.code !== bfp.code && !keyStable(onc));
+    ok(keyDefeated, `M4 win -- shield on (default): the fonts+screen join key no longer matches the baseline and differs across sites (ledger ${onc.ledger.code}, sundial ${onc.sundial.code}, atlas ${onc.atlas.code}; baseline ${bfp && bfp.code})`);
     const winOff = !!(bfp && off.ledger.readpx !== bfp.readpx), winOn = !!(bfp && onc.ledger.readpx !== bfp.readpx);
-    ok(winOff === false, `shield off (default): readPixels is unchanged, so the cleaner does not win there (${off.ledger.readpx} vs baseline ${bfp && bfp.readpx})`);
-    ok(winOn === true, `shield on: readPixels is perturbed, a cleaner win on that one surface (${onc.ledger.readpx} vs baseline ${bfp && bfp.readpx})`);
+    ok(winOff === false, `shield off: readPixels unchanged (${off.ledger.readpx} vs baseline ${bfp && bfp.readpx})`);
+    ok(winOn === true, `shield on: readPixels perturbed (${onc.ledger.readpx} vs baseline ${bfp && bfp.readpx})`);
     const glSpoofedOn = !!(bfp && onc.ledger.gl !== bfp.gl && off.ledger.gl === bfp.gl);
-    const fingerprint = { baselineCode: bfp && bfp.code, joinKey: off.ledger.code, keyStableAcrossSites: keyStable(off) && keyStable(onc), keyEqualsBaselineShieldOff: bfp && off.ledger.code === bfp.code, keyEqualsBaselineShieldOn: bfp && onc.ledger.code === bfp.code,
+    const fingerprint = { baselineCode: bfp && bfp.code, joinKeyShieldOff: off.ledger.code, keyStableShieldOff: keyStable(off), keyStableShieldOn: keyStable(onc), keyDefeatedShieldOn: keyDefeated,
+      keyEqualsBaselineShieldOff: bfp && off.ledger.code === bfp.code, keyEqualsBaselineShieldOn: bfp && onc.ledger.code === bfp.code, shieldOnCodes: { ledger: onc.ledger.code, sundial: onc.sundial.code, atlas: onc.atlas.code },
       readPixels: { shieldOff: { hash: off.ledger.readpx, perturbed: winOff }, shieldOn: { hash: onc.ledger.readpx, perturbed: winOn }, baseline: bfp && bfp.readpx },
       webglVendorRenderer: { shieldOff: off.ledger.gl, shieldOn: onc.ledger.gl, baseline: bfp && bfp.gl, spoofedWithShieldOn: glSpoofedOn } };
 
@@ -120,7 +127,7 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     const stoppedN = rows.filter((r) => r.stoppedGoingForward).length, survN = rows.length - stoppedN;
     ok(stoppedN >= 4, `the four collector kinds are stopped going forward (stopped ${stoppedN})`);
 
-    const out = { what: 'Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33, M2) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. The trip runs at the fresh-install default (shield C32 off), then measures the fingerprint both ways.',
+    const out = { what: 'Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.',
       extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, browser: k.browser, sites: k.sites,
       joinedOnFirstContact: joined.length, stoppedGoingForward: stoppedN, survives: survN, of: TRACES2.length,
       headline: `${joined.length}/${TRACES2.length} kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops ${stoppedN}/${TRACES2.length} (collector path blocked) and ${survN}/${TRACES2.length} survive (first-party server-side, sign-in, per-site cookie, hand-off chain for M3, ETag for M5).`,
@@ -130,7 +137,7 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
         'A value-based cross-site detector is reactive: the collector gets the id on first contact, before two sites reveal it is cross-site, so the initial join is not preventable; the cleaner stops every FURTHER send by blocking the exact collector path (never the site root) and stripping the id from request URLs and links.',
         'F4/F5 and F8-to-the-site\'s-own-server are first-party server-side; they cannot be stopped without breaking the site, so they are marked "cannot", not blocked.',
         'F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is M3; F10 (ETag) is M5.',
-        'The shield (C32) is off by default; the join key (F6 value) is built from fonts/matchMedia/screen (M4). The collector-path block already stops the code reaching the collector.'],
+        'The shield (C32) is ON by default from 1.26 (M4). It now blurs the font-measure widths and screen size (not only canvas/WebGL/audio), so the F6 join key -- built from fonts and matchMedia/screen -- no longer matches across the three sites or the cleaner-off baseline when the shield is on. matchMedia and the pixel ratio are left alone (a page needs them), so it is best effort, detectable, not perfect. The collector-path block (C33) already stops the code reaching the collector as well.'],
       rows };
     fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'ff2-misses.json'), JSON.stringify(out, null, 1) + '\n');
     console.log(`PASS: ${passed} checks; ${out.headline}; written lab/ff2-misses.json`);

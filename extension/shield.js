@@ -50,4 +50,16 @@
   wrap(AB, 'getChannelData', (orig, self, args) => { const f = apply(orig, self, args); if (!apply(had, done, [f])) { apply(add, done, [f]); floats(f); } return f; });
   wrap(AB, 'copyFromChannel', (orig, self, args) => { const r = apply(orig, self, args); floats(args[0]); return r; });
   wrap(W.AnalyserNode && AnalyserNode.prototype, 'getFloatFrequencyData', (orig, self, args) => { const r = apply(orig, self, args); floats(args[0]); return r; });
+  // M4: the F6 join-key surfaces the shield now also blurs -- the width text measures to (the installed-font probe) and
+  // the screen size. The per-page key makes the value differ each load, so a cross-site join by these cannot settle;
+  // the change is a few hundredths to about a pixel, below what a layout needs. matchMedia, the pixel ratio and the
+  // window's own size are left alone: a page needs them and changing them breaks it (PLAN.md). Best effort, detectable.
+  const C2P = W.CanvasRenderingContext2D, O2P = W.OffscreenCanvasRenderingContext2D, TM = W.TextMetrics && TextMetrics.prototype, wd = TM && describe(TM, 'width');
+  const metric = (orig, self, args) => { const tm = apply(orig, self, args);
+    try { const w = apply(wd.get, tm, []), h = prf(key, (w * 64) >>> 0, 0); define(tm, 'width', { value: w + ((h % 257) - 128) / 100, configurable: true }); } catch {} return tm; };
+  if (wd) { wrap(C2P && C2P.prototype, 'measureText', metric); wrap(O2P && O2P.prototype, 'measureText', metric); }
+  const SC = W.Screen && Screen.prototype;
+  const wrapGet = (name, i) => { const d = SC && describe(SC, name); if (!d || !d.get) return; const orig = d.get, add = (prf(key, 1, i) % 5) - 2;
+    const f = { get [name]() { return apply(orig, this, []) + add; } }, get = describe(f, name).get; apply(rset, real, [get, orig]); define(SC, name, { ...d, get }); };
+  wrapGet('width', 0); wrapGet('height', 1); wrapGet('availWidth', 2); wrapGet('availHeight', 3);
 })();

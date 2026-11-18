@@ -19,7 +19,7 @@ test('nothing stored: nothing is deleted, closed or rerouted, whatever the serve
 test('nothing stored: blocking and the YouTube ad remover are on, also with the server down', async () => {
   const bg = await load();
   assert.deepEqual(bg.state.rulesets, ['trackers', 'google-paths', 'url-params']);
-  assert.deepEqual(bg.state.scripts.map((s) => s.id), ['yt-adfree', 'yt-adfree-css', 'no-ping']);   // (1.25, J5: the page shield is off unless switched on)
+  assert.deepEqual(bg.state.scripts.map((s) => s.id), ['yt-adfree', 'yt-adfree-css', 'no-ping', 'shield']);   // (M4: the page shield is on by default)
 });
 test('master on, default modes: tracker cookies go (live and sweep); the server cannot switch on the rest', async () => {
   const bg = await load({ limits: GREEDY, tabs: tabs(), cookies: cookies(), storage: { master: true } });

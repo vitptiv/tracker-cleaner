@@ -34,7 +34,7 @@ const CAPS = [
   C('C29', 'No cookies for other companies', 'othercookies', 'auto', false),
   C('C30', 'No cache tags and no referring page for other companies', 'othertags', 'auto', false),
   C('C31', 'Pages may not call this computer or the home network', 'local', 'auto', false),
-  C('C32', 'Page shield: small changes to what a page can measure of the browser (experimental)', 'shield', 'off', false),
+  C('C32', 'Page shield: small changes to what a page can measure of the browser (experimental)', 'shield', 'auto', false),
   C('C33', 'Block cross-site identifiers: a value seen on two sites you visit is stripped from links and requests and the collector path that receives it is blocked', 'crossid', 'auto', true),
 ];
 const cap = (id) => CAPS.find((c) => c.id === id);
@@ -65,7 +65,7 @@ const GROUPS = [
   ['othercookies', 'Other companies get no cookies', 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.'],
   ['othertags', 'Other companies get no page address or tag', 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.'],
   ['local', 'Pages may not call this computer', 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.'],
-  ['shield', 'Blur browser recognition (experimental)', 'Experimental. Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.'],
+  ['shield', 'Blur browser recognition (experimental)', 'Experimental, best effort: makes this browser harder to recognise by its drawing, sound, fonts and screen size; a determined site can still undo it.'],
   ['crossid', 'Codes that follow you across sites', 'When the same hidden code turns up on two different sites you visit, it is a tracker following you between them, so it is stripped from links and requests and the address that collects it is blocked - that exact address, never the whole site. Everything can be undone.'],
   ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
   ['unknown', 'Trackers that are on no list', 'When a company on no list turns up on two different sites you visit, each time able to recognise you, or is handed the number a site keeps for you, you are asked whether to block it on other sites. Nothing is blocked or deleted before you press.'],

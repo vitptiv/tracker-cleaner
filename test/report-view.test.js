@@ -27,7 +27,7 @@ const SAYS = {
   othercookies: 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.',
   othertags: 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.',
   local: 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.',
-  shield: 'Experimental. Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.',
+  shield: 'Experimental, best effort: makes this browser harder to recognise by its drawing, sound, fonts and screen size; a determined site can still undo it.',
   crossid: 'When the same hidden code turns up on two different sites you visit, it is a tracker following you between them, so it is stripped from links and requests and the address that collects it is blocked - that exact address, never the whole site. Everything can be undone.',
   cache: 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.',
   allowlist: 'Every small file that sites save to recognise you is deleted, except the ones on your own list.',

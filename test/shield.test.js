@@ -52,11 +52,12 @@ test('J5: every tool is taken hold of before use: after the first lines the page
     assert.equal(bad.test(later), false, `${bad} in: ${(bad.exec(later) || { input: '' }).input.slice(Math.max(0, (bad.exec(later) || { index: 0 }).index - 40)).slice(0, 90)}`);
   assert.match(code, /apply\(crypto\.getRandomValues, crypto, \[new Uint32Array\(4\)\]\)/);
 });
-test('J5: its own row, experimental and off unless switched on; then one script for every page and frame, never on the sign-in hosts or a site cleaning is off for; out while paused or during a sign-in', async () => {
-  assert.deepEqual([cap('C32').group, cap('C32').mode, cap('C32').destructive], ['shield', 'off', false]); assert.equal(mayRun('C32', { master: true }), 'no');
+test('M4: its own row, experimental and ON by default; then one script for every page and frame, never on the sign-in hosts or a site cleaning is off for; out while paused or during a sign-in', async () => {
+  assert.deepEqual([cap('C32').group, cap('C32').mode, cap('C32').destructive], ['shield', 'auto', false]); assert.equal(mayRun('C32', { master: true }), 'run');
   const g = GROUPS.find((x) => x.id === 'shield'); assert.match(g.title, /experimental/i);
-  assert.ok(g.says.includes('Makes it harder to recognise this browser by its drawing and sound; a determined site can undo it.'));
-  const off = await load(on()); await off.alarm('sweep'); assert.equal(off.state.scripts.some((s) => s.id.startsWith('shield')), false);
+  assert.ok(g.says.includes('makes this browser harder to recognise by its drawing, sound, fonts and screen size; a determined site can still undo it.'));
+  const def = await load(on()); await def.alarm('sweep'); assert.ok(def.state.scripts.some((s) => s.id === 'shield'), 'the shield is on by default (M4)');
+  const off = await load(on({ storage: { modes: { C32: 'off' } } })); await off.alarm('sweep'); assert.equal(off.state.scripts.some((s) => s.id.startsWith('shield')), false);
   const bg = await load(on({ storage: { modes: { C32: 'auto' }, sitesOff: ['off.example'] } })); await bg.alarm('sweep');
   const a = bg.state.scripts.find((s) => s.id === 'shield');
   assert.deepEqual([a.world, a.js, a.runAt, a.allFrames, a.matchOriginAsFallback, a.matches], ['MAIN', ['shield.js'], 'document_start', true, true, ['http://*/*', 'https://*/*']]);

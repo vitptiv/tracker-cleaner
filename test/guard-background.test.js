@@ -34,7 +34,7 @@ test('after the pause alarm everything is back on and the kept cookie goes at th
   await bg.send({ type: 'pause', minutes: 10 }); await bg.settle(); await tracker(bg);
   bg.now += 10 * MIN - 1; await bg.alarm('proxy'); assert.deepEqual(bg.state.rulesets, []);
   bg.now += 1; await bg.alarm('resume');
-  assert.deepEqual(bg.state.rulesets, BOTH); assert.equal(bg.state.scripts.length, 4); assert.ok(bg.state.proxy);   // 4: 1.25 added skip.js (the page shield is off unless switched on)
+  assert.deepEqual(bg.state.rulesets, BOTH); assert.equal(bg.state.scripts.length, 5); assert.ok(bg.state.proxy);   // 5: yt (x2), no-ping, skip.js, and the page shield on by default (M4)
   assert.equal('pauseUntil' in bg.state.storage, false);
   await bg.alarm('sweep'); assert.deepEqual(await bg.names(), []);
 });
