@@ -30,6 +30,7 @@ const renderPopup = (state, tab) => {
       + (!s.master ? '' : hold.paused ? `<span>Paused until ${hhmm(hold.pauseUntil)} ${btn('Resume', { type: 'resume' })}</span>` : btn('Pause 10 min', { type: 'pause', minutes: 10 })) + '</div>'
       + (s.master && hold.guard ? '<p class="m">Sign-in in progress: cleaning is held.</p>' : '')
       + (Array.isArray(s.serverOff) && s.serverOff.length ? `<p class="c">The settings program on this computer has switched off: ${esc(s.serverOff.join(', '))}.</p>` : '')
+      + (Array.isArray(s.notWorking) && s.notWorking.length ? `<p class="c bad">Not working right now, because Chrome refused a rule: ${esc(s.notWorking.join(', '))}.</p>` : '')
       + (s.master && s.firstRun === 'update' ? `<p class="c">New in 1.25: Tracker Cleaner now also stops companies that follow you without asking first, and deletes what they saved. To have it ask again, choose "Ask first" in the rows below; to turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>`
         : s.master && s.firstRun ? `<p class="c">Tracker Cleaner is on. By itself it now stops companies that follow you from site to site and deletes what they saved. To turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>` : '');
   const undone = () => !undo.length ? '' : `<p>Removed in the last 10 minutes: ${undo.length >= UNDO_FULL ? UNDO_FULL + '+' : undo.length} ${btn('Restore all', { type: 'restoreAll' })}</p>`;

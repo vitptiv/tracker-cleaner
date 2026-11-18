@@ -955,3 +955,18 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   (`LOCAL_SUB`, so the lab's own sites are untouched; how the lab's probe of 127.0.0.1 is handled is unchanged). All
   nine patterns were accepted by a real Chrome. A name that resolves to a private address stays uncovered, and the
   report now says so ("A website name that leads to a device in your home").
+- H6 header rules. Every rule (session and dynamic) is installed on its own; one Chrome refuses is named in the popup
+  ("Not working right now, because Chrome refused a rule: ..."), the others stay. The referring page is kept for
+  embedded frames (its own rules, without `sub_frame`). Left alone by the header rules, exactly: as asker and as
+  asked: accounts.google.com, accounts.youtube.com, login.microsoftonline.com, login.live.com, appleid.apple.com,
+  github.com, hcaptcha.com, recaptcha.net, gstatic.com, cloudflare.com, stripe.com, stripe.network, paypal.com,
+  paypalobjects.com, klarna.com, adyen.com, braintreegateway.com, auth0.com, okta.com, duosecurity.com, the user's
+  `sitesOff`, and of googleapis.com only (`GOOGLE_APIS`) www, accounts, oauth2, securetoken, identitytoolkit,
+  content, maps, places, youtube, fonts, ajax, translate, firestore, firebaseinstallations (not
+  storage.googleapis.com, which serves anyone's files). Inside a family only: Google: google.com and Google's
+  country sites (`GOOGLE_CC` in `net-rules.js`, 190 names such as google.de, google.co.uk, google.com.au),
+  youtube.com, youtube-nocookie.com, gstatic.com, `GOOGLE_APIS`, googleusercontent.com, ggpht.com, googlevideo.com,
+  ytimg.com; Microsoft: microsoft.com, live.com, microsoftonline.com, office.com, office365.com, msauth.net,
+  msftauth.net, sharepoint.com; Apple: apple.com, icloud.com, cdn-apple.com; Wikimedia: wikipedia.org,
+  wikimedia.org, wiktionary.org, wikidata.org, mediawiki.org, wikibooks.org, wikiquote.org, wikisource.org,
+  wikinews.org, wikiversity.org, wikivoyage.org. This replaces the list written under batch 3.

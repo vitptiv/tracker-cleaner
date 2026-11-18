@@ -94,7 +94,7 @@ module.exports = function makeChrome(init = {}) {
       getMatchedRules: rec('declarativeNetRequest.getMatchedRules', ({ tabId } = {}) => { if (!init.matched) throw new Error('This function may not be called this often.');
         return { rulesMatchedInfo: (init.matched[tabId] || []).map((rulesetId) => ({ rule: { ruleId: 1, rulesetId }, tabId, timeStamp: 0 })) }; }),
       getSessionRules: rec('declarativeNetRequest.getSessionRules', () => JSON.parse(JSON.stringify(state.rules))),
-      updateSessionRules: rec('declarativeNetRequest.updateSessionRules', (o) => {
+      updateSessionRules: rec('declarativeNetRequest.updateSessionRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');
         state.rules = [...state.rules.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }),
       // fake.refuse(rule) true = Chrome refuses that rule, and with it the whole change (as it does)
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');

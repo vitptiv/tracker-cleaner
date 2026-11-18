@@ -178,7 +178,7 @@ async function state() {
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], hard: set.hard || [], params: set.params || [], skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
-    ...(serverOff().length ? { serverOff: serverOff() } : {}), histOn: set.histOn === true,
+    ...(serverOff().length ? { serverOff: serverOff() } : {}), ...(notWorking().length ? { notWorking: notWorking() } : {}), histOn: set.histOn === true,
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
@@ -430,9 +430,9 @@ async function applyFeatures() {
   try { let { gtabs = [] } = await chrome.storage.session.get('gtabs');
     if (!cx.hold.guard && gtabs.length) await chrome.storage.session.set({ gtabs: gtabs = [] });
     const guardTabs = cx.hold.guard ? [...new Set([...gtabs, ...cx.tabs.filter((t) => isGuardSignIn(t.url || t.pendingUrl)).map((t) => t.id)])].sort((a, b) => a - b) : [];
-    const want = netRules({ cookies: BLOCK && can('C29', cx), tags: BLOCK && can('C30', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED, ...(cx.set.sitesOff || [])], guardTabs });
+    const want = netRules({ cookies: BLOCK && can('C29', cx), tags: BLOCK && can('C30', cx), exempt: [...SIGNIN_HOSTS, 'github.com', ...NEEDED.filter((d) => d !== 'googleapis.com'), ...GOOGLE_APIS, ...(cx.set.sitesOff || [])], guardTabs });
     const old = (await chrome.declarativeNetRequest.getSessionRules()).filter((r) => r.id >= NET_BASE && r.id < NET_BASE + 10);
-    if (JSON.stringify(old) !== JSON.stringify(want)) await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); } catch {}
+    if (JSON.stringify(old) !== JSON.stringify(want)) await installEach('session', (o) => chrome.declarativeNetRequest.updateSessionRules(o), old, want); } catch {}
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
   const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
   const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => (bounce[s].to || []).length >= 2 && bounce[s].id === true && !visited(cx, s) && !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
@@ -492,11 +492,18 @@ const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.condition
 async function learnedRules(want) {
   try { const old = (await chrome.declarativeNetRequest.getDynamicRules()).filter((r) => r.id > LEARNED);
     if (old.map(sig).join() === want.map(sig).join()) return;
-    try { await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); }
-    // Chrome refuses the whole change when it refuses one rule: then each rule is tried alone, so that one bad rule cannot take the others down
-    catch { await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id) });
-      for (const r of want) try { await chrome.declarativeNetRequest.updateDynamicRules({ addRules: [r] }); } catch {} } } catch {}
+    await installEach('dynamic', (o) => chrome.declarativeNetRequest.updateDynamicRules(o), old, want); } catch {}
 }
+// Chrome refuses a whole change when it refuses one rule, so every rule is installed on its own (H6): one bad rule cannot
+// take the others down, and what could not be installed is named in the popup (`notWorking`) instead of looking switched on.
+const REFUSED = { dynamic: new Set(), session: new Set() };
+const RULE_NAME = (id) => id === LEARNED + 1 ? 'Stopped trackers are blocked' : id === LEARNED + 2 ? 'Tags you chose are cut off addresses' : id === LEARNED + 3 ? 'Pings are blocked'
+  : id >= NET_BASE + 10 ? 'Pages may not call this computer' : 'Other companies get no cookies or cache tags';
+async function installEach(kind, update, old, want) {
+  await update({ removeRuleIds: old.map((r) => r.id) }); REFUSED[kind].clear();
+  for (const r of want) try { await update({ addRules: [r] }); } catch { REFUSED[kind].add(RULE_NAME(r.id)); }
+}
+const notWorking = () => [...new Set([...REFUSED.dynamic, ...REFUSED.session])];
 // "Not now" on one question (site and name) or on all about a site: not asked again for LATER_MS
 const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());
 async function notNow(m) {
