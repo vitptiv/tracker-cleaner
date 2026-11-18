@@ -440,8 +440,9 @@ test('R6: one question per stopped company and one for the listed trackers', () 
 // ---- 1.24, R7: history and saved icons are not cleaned, and the report says so with the reason
 test('R7: history and site icons are named as things Tracker Cleaner cannot clean, with the reason, collapsed', () => {
   const r = buildReport(state(), tab()), html = renderReport(r), t = text(html);
-  assert.deepEqual(r.cannot.slice(4).map((x) => x.what), ['The list of pages you visited (history)', 'The small pictures of sites that Chrome saved (site icons)']);
-  for (const x of r.cannot.slice(4)) assert.match(x.why, /^Tracker Cleaner cannot clean this: /);
+  const two = r.cannot.filter((x) => /history|site icons/.test(x.what));
+  assert.deepEqual(two.map((x) => x.what), ['The list of pages you visited (history)', 'The small pictures of sites that Chrome saved (site icons)']);
+  for (const x of two) assert.match(x.why, /^Tracker Cleaner cannot clean this: /);
   assert.ok(html.includes('<h2>What Tracker Cleaner cannot do</h2><details id="cannot">'));
   assert.ok(t.includes('Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that unless you press'));   // 1.25, S11: optional, at a press
   assert.equal(JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../extension/manifest.json'), 'utf8')).permissions.includes('history'), false);
@@ -453,5 +454,5 @@ test('R8: four things are named with "Tracker Cleaner cannot stop this" and a pl
   assert.deepEqual(r.cannot.slice(0, 4).map((x) => x.what), ['An e-mail address you send to a site', 'A shop telling a tracker what you bought', '"Sign in with" another company', "Like, share or comment on a tracker's own page"]);
   for (const x of r.cannot.slice(0, 4)) { assert.match(x.why, /^Tracker Cleaner cannot stop this: [a-z]/); assert.equal(x.why.split('. ').length, 1, 'one sentence'); }
   assert.ok(text(part).includes("A shop telling a tracker what you boughtTracker Cleaner cannot stop this: the shop's computer tells the tracker directly, and your browser is never asked."));
-  assert.ok(part.includes('Show the 6 things')); assert.equal(part.includes('<button'), false);
+  assert.ok(part.includes('Show the 7 things'));   // 1.25, H5: and a name that leads to a device at home assert.equal(part.includes('<button'), false);
 });

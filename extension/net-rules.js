@@ -17,11 +17,15 @@ const FAMILIES = [['google.com', 'youtube.com', 'youtube-nocookie.com', 'gstatic
   ['apple.com', 'icloud.com', 'cdn-apple.com']];
 // This computer and the home network, by address only: localhost, 0.0.0.0, 127.x, 10.x, 172.16 to 172.31, 192.168.x,
 // 169.254.x, and the IPv6 loopback, mapped, private and link-local ranges. The whole host must be one of them (a name
-// before an @, a port and a closing dot are allowed for): "localhost.example", "127.0.0.1.example" or "x.localhost" never match.
+// before an @, a port and a closing dot are allowed for): "localhost.example" or "127.0.0.1.example" never match.
 // Chrome allows a pattern only 2 KB when compiled (the whole list in one was refused), so there is one short pattern per range.
 const local = (hosts) => `^(https?|wss?)://([^/?#@]*@)?(${hosts})\\.?(:[0-9]+)?([/?#]|$)`, N = '\\.[0-9]+';
 const LOCAL_RES = [local('localhost|0\\.0\\.0\\.0'), local(`127${N}${N}${N}`), local(`10${N}${N}${N}`), local(`172\\.(1[6-9]|2[0-9]|3[01])${N}${N}`), local(`192\\.168${N}${N}|169\\.254${N}${N}`),
-  local('\\[(::1|::ffff:[0-9a-f:.]+|f[cd][0-9a-f][0-9a-f]:[0-9a-f:]*|fe[89ab][0-9a-f]:[0-9a-f:]*)\\]')];
+  local('\\[(::|::1|::ffff:[0-9a-f:.]+|f[cd][0-9a-f][0-9a-f]:[0-9a-f:]*|fe[89ab][0-9a-f]:[0-9a-f:]*)\\]'),
+  local(`100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])${N}${N}`)];   // 100.64 to 100.127: the range providers share out to home routers
+// Names that only exist inside a home or office network (H5): anything ending in .local, .lan, .internal or .home.arpa,
+// and fritz.box; and LOCAL_SUB, a name under localhost, which is blocked only for a page that is not itself under localhost.
+const LABELS = '([a-z0-9_-]+\\.)', LOCAL_NAMES = local(`${LABELS}+(local|lan|internal|home\\.arpa)|${LABELS}*fritz\\.box`), LOCAL_SUB = local(`${LABELS}+localhost`);
 // self: this extension's own id: what it asks itself (the settings program, Tor's port) is no page's request
 const netRules = ({ cookies, tags, local, exempt = [], self, guardTabs = [] }) => {
   const tabs = [...new Set(guardTabs)].slice(0, 100);
@@ -30,6 +34,7 @@ const netRules = ({ cookies, tags, local, exempt = [], self, guardTabs = [] }) =
   const strip = (id, condition) => ({ id, priority: 1, action: { type: 'modifyHeaders', requestHeaders, ...(responseHeaders.length ? { responseHeaders } : {}) }, condition: { domainType: 'thirdParty', resourceTypes: NET_TYPES, ...(tabs.length ? { excludedTabIds: tabs } : {}), ...condition } });
   return [...(!requestHeaders.length ? [] : [strip(NET_BASE, { excludedInitiatorDomains: [...new Set([...ex, ...all])], ...(ex.length ? { excludedRequestDomains: ex } : {}) }),
     ...FAMILIES.map((f, i) => strip(NET_BASE + 1 + i, { initiatorDomains: f, excludedRequestDomains: [...new Set([...ex, ...f])] }))]),
-    ...(!local ? [] : LOCAL_RES.map((regexFilter, i) => ({ id: NET_BASE + 10 + i, priority: 1, action: { type: 'block' }, condition: { regexFilter, domainType: 'thirdParty', resourceTypes: NET_TYPES, ...(self ? { excludedInitiatorDomains: [self] } : {}) } })))];
+    ...(!local ? [] : [...LOCAL_RES, LOCAL_NAMES, LOCAL_SUB].map((regexFilter, i) => ({ id: NET_BASE + 10 + i, priority: 1, action: { type: 'block' },
+      condition: { regexFilter, domainType: 'thirdParty', resourceTypes: NET_TYPES, excludedInitiatorDomains: [...(self ? [self] : []), ...(regexFilter === LOCAL_SUB ? ['localhost'] : [])] } })))];
 };
-if (typeof module !== 'undefined') module.exports = { NET_BASE, NET_TYPES, FAMILIES, LOCAL_RES, netRules };
+if (typeof module !== 'undefined') module.exports = { NET_BASE, NET_TYPES, FAMILIES, LOCAL_RES, LOCAL_NAMES, LOCAL_SUB, netRules };

@@ -950,3 +950,8 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   never changes a link whose address parameter is a way back by its name (return, returnTo, return_url,
   redirect_uri, continue, next, callback, back, success_url, cancel_url, ...) or whose path has a part that does
   something (logout, signout, pay, payment, checkout, auth, verify, confirm, unsubscribe, ...).
+- H5 local-network rule, added: `[::]`, 100.64.0.0/10, names ending in .local, .lan, .internal or .home.arpa and
+  fritz.box (`LOCAL_NAMES`), and a name under localhost when the asking page is not itself under localhost
+  (`LOCAL_SUB`, so the lab's own sites are untouched; how the lab's probe of 127.0.0.1 is handled is unchanged). All
+  nine patterns were accepted by a real Chrome. A name that resolves to a private address stays uncovered, and the
+  report now says so ("A website name that leads to a device in your home").

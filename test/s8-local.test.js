@@ -5,7 +5,7 @@ const local = (bg) => bg.state.dynamic.find((r) => r.id === NET_BASE + 10);
 
 test('S8: this computer and the home network by address, the whole host and nothing that only looks like it', () => {
   const rules = netRules({ local: true, self: 'abcdefghijklmnopabcdefghijklmnop' }), [r] = rules, re = { test: (u) => LOCAL_RES.some((x) => new RegExp(x, 'i').test(u)) };
-  assert.deepEqual(rules.map((x) => [x.id, x.action.type, x.condition.domainType, x.condition.regexFilter]), LOCAL_RES.map((x, i) => [NET_BASE + 10 + i, 'block', 'thirdParty', x]));
+  assert.deepEqual(rules.slice(0, LOCAL_RES.length).map((x) => [x.id, x.action.type, x.condition.domainType, x.condition.regexFilter]), LOCAL_RES.map((x, i) => [NET_BASE + 10 + i, 'block', 'thirdParty', x]));
   for (const x of LOCAL_RES) assert.ok(x.length < 160, 'a pattern Chrome may refuse for its size: ' + x);
   assert.deepEqual(r.condition.excludedInitiatorDomains, ['abcdefghijklmnopabcdefghijklmnop']); assert.equal(r.condition.resourceTypes.includes('main_frame'), false);
   for (const u of ['http://localhost/', 'http://localhost:8080/x', 'https://127.0.0.1:8443/', 'http://127.1.2.3', 'ws://127.0.0.1:9222/devtools', 'wss://localhost:1/', 'http://10.0.0.1/', 'http://172.16.0.1/', 'http://172.31.255.255:81/a',

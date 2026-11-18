@@ -125,6 +125,7 @@ const { buildReport, renderReport } = (() => {
     ['"Sign in with" another company', 'Tracker Cleaner cannot stop this: signing in that way tells that company which site you use, and both keep a record of it.'],
     ["Like, share or comment on a tracker's own page", 'Tracker Cleaner cannot stop this: you are on its own site, and it sees what you press there.'],
     ['The list of pages you visited (history)', "Tracker Cleaner cannot clean this: to take single sites out of the history, Chrome demands the right to read your whole history, and Tracker Cleaner does not ask you for that unless you press \"Also remove trackers' pages from my history\" in its window; even then only trackers' own pages go. Chrome's own \"Delete browsing data\" does the rest."],
+    ['A website name that leads to a device in your home', 'Tracker Cleaner cannot stop this: it stops pages from calling this computer and your home network by their numbers and usual home names, but it sees only the name a page asks for, not where that name leads, so an ordinary-looking name that points at your router gets through.'],
     ['The small pictures of sites that Chrome saved (site icons)', "Tracker Cleaner cannot clean this: Chrome gives extensions no way to delete them. They go when Chrome's own \"Delete browsing data\" deletes the history."]];
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;
