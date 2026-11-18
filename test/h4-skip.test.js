@@ -4,7 +4,8 @@ const { skipTo } = require('../extension/skip.js');
 const enc = encodeURIComponent, PAGE = 'https://mail.example/inbox', SITES = ['hop.example'];
 const on = (o = {}) => ({ tabs: [{ id: 1, active: true, url: PAGE }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const pass = async (bg, to, added = '', from = 'https://hop.example/r') => { await bg.redirect({ url: `${from}?to=${enc(to)}`, redirectUrl: to + added, type: 'main_frame' }); await bg.settle(); };
-const sites = (bg) => (bg.state.storage.skip || { sites: [] }).sites;
+// 1.25, J4: a learned host is never skipped by itself; what H4's conditions now decide is whether the question is asked
+const sites = (bg) => ((bg.state.storage.pending || {}).bounce || { items: [] }).items.filter((i) => i.kind === 'skip').map((i) => i.site);
 
 test('the audit scenario: a mail service\'s safe-link redirect, once or many times without an added ID, never makes it a passing site', async () => {
   const bg = await load(on());
@@ -16,6 +17,7 @@ test('passing: it sent the browser to two different sites and added an ID; one d
   const bg = await load(on());
   await pass(bg, 'https://blog.example/post', '?hid=h-77ab12cd34ef'); await pass(bg, 'https://blog.example/other', '?hid=h-77ab12cd34ef'); assert.deepEqual(sites(bg), []);
   await pass(bg, 'https://shop.example/x', '?hid=h-77ab12cd34ef'); assert.deepEqual(sites(bg), ['hop.example']);
+  assert.equal(bg.state.storage.skip.sites.includes('hop.example'), false, 'skipped without the press');
   assert.equal(/blog\.example|shop\.example/.test(JSON.stringify(bg.state.storage.bounce)), false, 'a destination is stored by name');
 });
 test('never a site the user opens as a page', async () => {

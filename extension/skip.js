@@ -6,13 +6,14 @@ const SKIP = typeof module !== 'undefined' ? { ...require('./guard.js'), ...requ
 const web = (u) => u.protocol === 'https:' || u.protocol === 'http:';
 // never skipped (1.25, H4): an address handed over as the way back (by its name), and a link that does something on the way
 const BACK = /^(return|returnto|return_to|returnurl|return_url|redirect|redirect_uri|redirect_url|continue|next|callback|back|success_url|cancel_url)$/i;
-const DOES = /^(logout|log-out|signout|sign-out|pay|payment|payments|checkout|auth|verify|confirm|unsubscribe|subscribe|delete|remove)([-_.]|$)/i;
-// sites: the known passing sites. The one address on another site that the link names, or null: never for a sign-in.
+const DOES = /^(logout|log-out|logoff|log-off|signout|sign-out|sign_out|wsignout[0-9.]*|pay|payment|payments|checkout|cart|auth|adfs|wp-login|verify|confirm|unsub|unsubscribe|subscribe|delete|remove)([-_.]|$)/i;
+// sites: the passing hosts, each by its exact name (the shipped ones, and those the user chose to skip). The one address on
+// another site that the link names, or null: never for a sign-in, never when a part of the path or a handed-over value says it does something.
 const skipTo = (href, base, sites) => {
   let u; try { u = new URL(href, base); } catch { return null; }
   const site = SKIP.siteOf(u.hostname), to = [];
-  if (!web(u) || u.username || !sites.includes(site) || SKIP.isSignIn(u.href) || u.pathname.split('/').some((seg) => DOES.test(seg))) return null;
-  for (const [k, v] of u.searchParams) { let t; try { t = new URL(v); } catch { continue; }
+  if (!web(u) || u.username || !sites.includes(u.hostname.toLowerCase()) || SKIP.isSignIn(u.href) || u.pathname.split('/').some((seg) => DOES.test(seg))) return null;
+  for (const [k, v] of u.searchParams) { if (DOES.test(v)) return null; let t; try { t = new URL(v); } catch { continue; }
     if (!web(t) || SKIP.siteOf(t.hostname) === site) continue;
     if (BACK.test(k)) return null;
     to.push(t); }

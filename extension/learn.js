@@ -50,6 +50,8 @@ const bounceAdded = (from, to, any) => { try { const b = new URL(to);   // any: 
   for (const [, v] of new URL(from).searchParams) { let want; try { want = new URL(v); } catch { continue; }
     if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && (any || !(NEVER_PARAM.has(k.toLowerCase()) || NEVER_PART.test(k)))).map(([k]) => k); }
   } catch {} return []; };
+// Redirectors that only pass a press on a link along to the address the link names (J4): the shipped list. By exact host.
+const PASSERS = ['l.facebook.com', 'lm.facebook.com', 'l.instagram.com', 'l.messenger.com', 'out.reddit.com', 'away.vk.com', 'slack-redir.net', 'href.li'];
 const followFull = (e) => !!e && (e.on.length >= FOLLOW_N || e.sent === true);
 // S6: is the ID a site keeps for the user being handed to another company? Compared part by part: a part counts when it
 // has 8 or more letters and digits mixed, or 16 or more digits (a time or a version is not an ID). Only cookies the
@@ -60,4 +62,4 @@ const syncTokens = (text) => String(text ?? '').slice(0, 16000).split(/[^A-Za-z0
 const hash2 = (salt, t) => mark(salt + t) + '.' + mark(t + salt);
 const idHashes = (cookies, salt) => new Set((cookies || []).filter((c) => !c.httpOnly).flatMap((c) => syncTokens(c.value)).map((t) => hash2(salt, t)));
 const carries = (hashes, text, salt) => hashes.size > 0 && syncTokens(text).some((t) => hashes.has(hash2(salt, t)));
-if (typeof module !== 'undefined') module.exports = { syncTokens, idHashes, carries, NEEDED, SHARED, FOLLOW_N, FOLLOW_MAX, LATER_MS, STOPPED_MAX, STOPS_HOUR, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };
+if (typeof module !== 'undefined') module.exports = { PASSERS, syncTokens, idHashes, carries, NEEDED, SHARED, FOLLOW_N, FOLLOW_MAX, LATER_MS, STOPPED_MAX, STOPS_HOUR, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };

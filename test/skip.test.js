@@ -29,23 +29,26 @@ test('never on the way of a sign-in: a sign-in address as the link or as the des
   assert.equal(skipTo(hop(`to=${enc('https://accounts.google.com/o/oauth2/auth')}`), PAGE, SITES), null);
   assert.equal(skipTo(hop(`to=${enc('https://blog.example/login')}`), PAGE, SITES), null);
 });
-test('the list the page script gets: the sites seen passing you along, while that cleaning may run; empty when paused, off or during a sign-in', async () => {
-  const bg = await load(on()); await pass(bg);
-  assert.deepEqual(bg.state.storage.skip, { sites: ['hop.example'], off: [] });
+const { PASSERS } = require('../extension/learn.js');
+const mine = (bg) => ((bg.state.storage.skip || { sites: [] }).sites).filter((x) => !PASSERS.includes(x));   // beside the shipped redirectors
+const choose = async (bg) => { await pass(bg); await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'skip it next time' }); await bg.settle(); };
+test('the list the page script gets: the hosts the user chose to skip (1.25, J4), while that cleaning may run; empty when paused, off or during a sign-in', async () => {
+  const bg = await load(on()); await choose(bg);
+  assert.deepEqual(mine(bg), ['hop.example']); assert.deepEqual(bg.state.storage.skip.off, []);
   assert.ok(bg.state.scripts.some((s) => s.id === 'skip' && s.js.join() === 'guard.js,learn.js,skip.js' && s.excludeMatches.includes('*://accounts.google.com/*')));
   await bg.send({ type: 'pause', minutes: 5 }); await bg.settle(); assert.deepEqual(bg.state.storage.skip.sites, []);
-  await bg.send({ type: 'resume' }); await bg.settle(); assert.deepEqual(bg.state.storage.skip.sites, ['hop.example']);
+  await bg.send({ type: 'resume' }); await bg.settle(); assert.deepEqual(mine(bg), ['hop.example']);
   await bg.send({ type: 'siteOff', host: 'social.example', on: true }); await bg.settle(); assert.deepEqual(bg.state.storage.skip.off, ['social.example']);
   await bg.send({ type: 'setMode', group: 'bounce', mode: 'off' }); await bg.settle();
   assert.deepEqual(bg.state.storage.skip.sites, []); assert.equal(bg.state.scripts.some((s) => s.id === 'skip'), false);
-  const signing = await load(on({ tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }], storage: { bounce: { 'hop.example': { n: 2, done: 0, hosts: [], params: [], t: 1, to: ['a', 'b'], id: true } } } }));
+  const signing = await load(on({ tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }], storage: { skipok: ['hop.example'] } }));
   await signing.alarm('sweep'); assert.deepEqual((signing.state.storage.skip || { sites: [] }).sites, []);
 });
-test('"Let it through again" takes a site off the list and the report offers it; only a site name is accepted', async () => {
-  const bg = await load(on()); await pass(bg);
+test('"Let it through again" takes a host off the list and the report offers it; only a host name is accepted', async () => {
+  const bg = await load(on()); await choose(bg);
   const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
-  assert.match(html, /Sites that are skipped \(1\)/); assert.ok(html.includes('hop.example') && html.includes('&quot;type&quot;:&quot;unskip&quot;'));
+  assert.match(html, /Sites that are skipped \(\d+\)/); assert.ok(html.includes('hop.example') && html.includes('&quot;type&quot;:&quot;unskip&quot;'));
   assert.deepEqual(await bg.send({ type: 'unskip', site: 'hop.example' }), { ok: true }); await bg.settle();
-  assert.deepEqual(bg.state.storage.skip.sites, []); assert.deepEqual((await bg.send({ type: 'state' })).skipped, []);
+  assert.deepEqual(mine(bg), []); assert.equal((await bg.send({ type: 'state' })).skipped.includes('hop.example'), false);
   for (const site of [undefined, 7, '<img src=x>', 'a b']) assert.deepEqual(await bg.send({ type: 'unskip', site }), { ok: false });
 });

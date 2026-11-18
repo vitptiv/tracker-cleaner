@@ -137,6 +137,8 @@ async function carry(it, cookies, tabs, cx) {
   if (it.kind === 'used') return hardClean(it.site);
   if (it.kind === 'bounce') return cleanBounce(it.site);
   if (it.kind === 'param') return stripParam(it.name);
+  if (it.kind === 'skip') { if (!isHost(it.site)) return false; const { skipok = [] } = await chrome.storage.local.get('skipok');
+    await chrome.storage.local.set({ skipok: [...skipok.filter((s) => s !== it.site), it.site].slice(-BOUNCE_MAX) }); await applyFeatures(); return true; }
   if (it.kind === 'own') return cleanOwn(it.site, cx);
   if (it.kind === 'storage') await dropStorage(it.site);
   else if (it.kind === 'permission') await blockPermission(it.site, it.name);
@@ -152,7 +154,7 @@ async function approve(group, site, name) {
   if (cx.hold.paused) return { ok: false, why: 'paused' };
   if (cx.set.master === false) return { ok: false, why: 'off' };
   let items = [];
-  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : !['used', 'param', 'bounce'].includes(it.kind); items = g.items.filter(mine);   // the group button never answers a question that deletes something of a learned host or changes addresses
+  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => site ? it.site === site && (!name || it.name === name) : !['used', 'param', 'bounce', 'skip'].includes(it.kind); items = g.items.filter(mine);   // the group button never answers a question that deletes something of a learned host or changes addresses
     g.items = g.items.filter((it) => !mine(it)); if (!g.items.length) delete p[group];
     return items.length > 0; });
   const cookies = items.some((it) => it.kind === 'cookie') ? await allCookies() : [], tabs = await chrome.tabs.query({});
@@ -445,8 +447,9 @@ async function applyFeatures() {
     const old = (await chrome.declarativeNetRequest.getSessionRules()).filter((r) => r.id >= NET_BASE && r.id < NET_BASE + 10);
     if (JSON.stringify(old) !== JSON.stringify(want)) await installEach('session', (o) => chrome.declarativeNetRequest.updateSessionRules(o), old, want); } catch {}
   // what skip.js reads: the passing sites (none while paused, switched off or during a sign-in) and the sites not to touch
-  const { bounce = {}, noskip = [], skip: was } = await chrome.storage.local.get(['bounce', 'noskip', 'skip']);
-  const skip = { sites: can('C27', cx) ? Object.keys(bounce).filter((s) => (bounce[s].to || []).length >= 2 && bounce[s].id === true && !visited(cx, s) && !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
+  const { skipok = [], noskip = [], skip: was } = await chrome.storage.local.get(['skipok', 'noskip', 'skip']);
+  // J4: only the shipped redirectors and the hosts the user chose with "Skip it next time?" (`skipok`); never one that was only learned
+  const skip = { sites: can('C27', cx) ? [...new Set([...PASSERS, ...skipok])].filter((s) => !noskip.includes(s)) : [], off: cx.set.sitesOff || [] };
   if (JSON.stringify(skip) !== JSON.stringify(was)) await chrome.storage.local.set({ skip });
   try { const have = (await chrome.scripting.getRegisteredContentScripts()).map((x) => x.id);
     const want = [...(yt ? [YT_JS, YT_CSS] : []), ...(pings ? [NO_PING] : []), ...(mayRun('C27', cx.set) === 'run' && !cx.hold.paused ? [SKIP] : []), ...(mayRun('C32', cx.set) === 'run' && !cx.hold.paused ? SHIELD : [])], add = want.filter((x) => !have.includes(x.id)), drop = have.filter((id) => !want.some((x) => x.id === id));
@@ -691,7 +694,7 @@ async function unstop(site) {
 // chrome.storage.local { bounce: { '<site>': { n: passes, done: passes cleaned up after, hosts, params: names it added } } }.
 // Two questions per site, each asked once per need: delete what it saved, and cut the added name off every address
 // (`params`, one dynamic rule). Left alone: anything on the way of a sign-in, and a site the user has open in a tab.
-const BOUNCE_MAX = 100, PASSED = 'passed you on without showing a page';
+const BOUNCE_MAX = 100, PASSED = 'passed you on without showing a page', SKIPQ = 'skip it next time';
 async function noteRedirect(d) {
   if (d.type !== 'main_frame') return;
   let a, b; try { a = new URL(d.url); b = new URL(d.redirectUrl); } catch { return; }
@@ -713,8 +716,11 @@ try { chrome.webRequest.onBeforeRedirect.addListener((d) => { noteRedirect(d); }
 async function bounceSweep(cx, wait) {
   const v = verdict('C27', cx), cut = cx.set.params || [], done = [];
   if (v === 'no') return;
-  for (const [site, e] of Object.entries((await chrome.storage.local.get('bounce')).bounce || {})) {
-    const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === site) ? [{ kind: 'bounce', name: PASSED }] : []), ...e.params.filter((p) => !cut.includes(p)).map((name) => ({ kind: 'param', name }))];
+  const { bounce = {}, skipok = [], noskip = [] } = await chrome.storage.local.get(['bounce', 'skipok', 'noskip']), choices = [...skipok, ...noskip];
+  for (const [site, e] of Object.entries(bounce)) {
+    const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === siteOf(site)) ? [{ kind: 'bounce', name: PASSED }] : []), ...e.params.filter((p) => !cut.includes(p)).map((name) => ({ kind: 'param', name })),
+      // it sent the browser on to two different sites and added an ID, and is no site the user opens: may its links be changed to go straight there?
+      ...((e.to || []).length >= 2 && e.id === true && !visited(cx, siteOf(site)) && !choices.includes(site) ? [{ kind: 'skip', name: SKIPQ }] : [])];
     for (const x of asks) { const it = { cap: 'C27', site, why: 'a redirect', did: waitsAs(v), ...x };
       if (later(cx, 'C27', site, x.name)) continue;
       // never by itself (F2, J1): a tag is cut off, and what a passing site saved is deleted, only after the user's press on its question
@@ -740,8 +746,8 @@ async function stripParam(name) {
 // "Let it through again" for a passing site: its links are no longer changed (at most 100 such sites are remembered)
 async function unskip(site) {
   if (!isHost(site)) return { ok: false };
-  const { noskip = [] } = await chrome.storage.local.get('noskip');
-  await chrome.storage.local.set({ noskip: [...noskip.filter((s) => s !== site), site].slice(-BOUNCE_MAX) }); await applyFeatures();
+  const { noskip = [], skipok = [] } = await chrome.storage.local.get(['noskip', 'skipok']);
+  await chrome.storage.local.set({ noskip: [...noskip.filter((s) => s !== site), site].slice(-BOUNCE_MAX), skipok: skipok.filter((s) => s !== site) }); await applyFeatures(); await sweep('settings');
   return { ok: true };
 }
 // "Stop cutting it off": the name is forgotten everywhere, and asked about again only when a site adds it again
@@ -1000,7 +1006,7 @@ chrome.runtime.onInstalled.addListener(applyProxy);
 
 // A changed switch takes effect at once for what would otherwise wait: blocking, YouTube scripts, Tor.
 chrome.storage.onChanged.addListener((ch) => {
-  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.params || ch.bounce || ch.noskip || ch.sitesOff || ch.guardUntil) { applyFeatures(); applyProxy(); }
+  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.params || ch.skipok || ch.noskip || ch.sitesOff || ch.guardUntil) { applyFeatures(); applyProxy(); }
   if (ch.pending || ch.pauseUntil || ch.guardUntil) badge();
   // the sign-in guard was armed: wake up when it ends, so that what it held is done then and not at the next quarter-hour sweep
   if (ch.guardUntil && ch.guardUntil.newValue > Date.now()) chrome.alarms.create('unguard', { when: ch.guardUntil.newValue + 1000 });

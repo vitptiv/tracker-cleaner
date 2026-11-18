@@ -1049,3 +1049,9 @@ on the shipped lists; for anything learned it needs the user's press on one plai
   redirect_uri did). `GUARD_HOSTS` of H2 is gone. Any other sign-in-looking address holds deleting for that site
   alone; its five minutes an hour begin once and are not begun anew by going there again, and when 200 sites are
   held no further one is added (a running hold is never pushed out).
+- J4 pass-through skipping only for the shipped redirectors (`PASSERS` in `learn.js`, by exact host: l.facebook.com,
+  lm.facebook.com, l.instagram.com, l.messenger.com, out.reddit.com, away.vk.com, slack-redir.net, href.li) or after
+  the user's press on "X only passes you along and adds a tag. Skip it next time?" (`skipok`; asked when H4's
+  conditions hold: two destinations, an added ID, not a site the user opens). No group button answers it; "Let it
+  through again" works for both kinds. Never skipped, more words: sign_out, signout, logout, logoff, wsignout,
+  unsub, cart, checkout, pay, wp-login, adfs, as a part of the path or as a value handed over.
