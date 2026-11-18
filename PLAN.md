@@ -805,3 +805,6 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   cookie blacklist, tab limit and permanent drops it supplies therefore need that row on.
 - F7 the per-site clearing of saved copies also hit the visited site that merely carried a cookie with a tracker's
   name (`_ga` on the site itself), hourly. Now only when the deleted cookie sits on a tracker's own address.
+- F8 wording that was stale or untrue: the manifest description (no "can put it back": only a deleted cookie, for 10
+  minutes), the headers of `background.js` and `registry.js` (no "nothing is deleted before the user has turned
+  cleaning on"), README's first paragraph.

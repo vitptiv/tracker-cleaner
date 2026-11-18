@@ -1,6 +1,6 @@
 // Every capability of Tracker Cleaner (table in PLAN.md) and the one gate that decides whether it may act.
-// mode: what the group does until the user chooses: 'auto' runs by itself (1.25: everything that only touches what
-// follows you; what was done is shown and can be put back), 'ask' waits for Approve,
+// mode: what the group does until the user chooses: 'auto' runs by itself (1.25: every group that only touches what
+// follows you; what was done is in the log, and of it only deleted cookies can be put back), 'ask' waits for Approve,
 // 'off' does nothing, null = not an action group. destructive: it deletes, closes or reroutes something.
 // noAuto: never runs by itself, a stored 'auto' counts as 'ask' (Wi-Fi: a removed network cannot be put back).
 const C = (id, name, group, mode, destructive, noAuto) => ({ id, name, group, mode, destructive, ...(noAuto ? { noAuto } : {}) });
@@ -35,7 +35,7 @@ const CAPS = [
 const cap = (id) => CAPS.find((c) => c.id === id);
 // settings: { master: true|false, modes: { C03: 'auto', ... } } as stored in chrome.storage.local.
 // Returns 'run', 'ask' or 'no'. Master off stops every ID. A destructive capability runs only when the
-// master switch was stored as on: with nothing stored, the most it does is ask.
+// master switch was stored as on: with nothing stored, the most it does is ask. (A new install stores it as on.)
 const mayRun = (id, settings) => {
   const c = cap(id), s = settings || {};
   if (!c || s.master === false) return 'no';

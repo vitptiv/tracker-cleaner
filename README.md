@@ -1,10 +1,11 @@
-# Tracker Cleaner 1.24
+# Tracker Cleaner 1.25
 
 A Chrome extension (Manifest V3) for this machine. It blocks requests to tracker domains, strips
-tracking parameters from links, and cleans tracking cookies. Unlike 1.20 it deletes nothing until you
-turn it on, and each group of things is either off, asked about first (Approve / Postpone in the popup)
-or automatic. Everything is held while you sign in somewhere, and for 10 minutes a removed cookie can
-be put back with Undo.
+tracking parameters from links, and cleans tracking cookies. Since 1.25 a new install is switched on, and
+the groups that only touch what follows you run without asking; the popup says so once, and each group
+can be set to off, asked about first (Approve / Postpone in the popup) or automatic. Everything is held
+while you sign in somewhere, and for 10 minutes a removed cookie can be put back with Undo; emptied
+storage and cleared saved copies cannot be put back.
 
 ## Layout
 

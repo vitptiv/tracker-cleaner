@@ -2,7 +2,7 @@
  "manifest_version": 3,
  "name": "Tracker Cleaner (local)",
  "version": "1.25",
- "description": "Stops trackers and cleans what they saved, says what it did, and can put it back. Never disturbs a sign-in.",
+ "description": "Stops trackers and deletes what they saved without asking. A deleted cookie can be put back for 10 minutes. Waits while you sign in.",
  "permissions": [
   "cookies",
   "storage",

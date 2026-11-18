@@ -1,17 +1,20 @@
 // Tracker Cleaner 1.25: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
-// candidates wait in a queue for Approve or Postpone) or is automatic, and nothing is deleted before the user has
-// turned cleaning on. Everything is held while paused, and everything destructive while a sign-in is going on.
-// Login cookies (KEEP_RE) are never touched.
+// candidates wait in a queue for Approve or Postpone) or is automatic. A new install is switched on, and the groups
+// that only touch what follows you run without asking from the start; the popup says so once. Only deleted cookies
+// can be put back, for 10 minutes; emptied storage and cleared saved copies cannot. Everything is held while paused,
+// and everything destructive while a sign-in is going on. Login cookies (KEEP_RE) are deleted by nothing but the
+// user's own always-delete list and "Delete" in the report.
 importScripts('lists.js', 'core.js', 'registry.js', 'guard.js', 'queue.js', 'undo.js', 'loop.js', 'history.js', 'learn.js');
 const REPORT = 'http://127.0.0.1:8088/audit/cleaner';
 // The cookie decisions and their settings (S) live in core.js, where the Node tests can reach them.
 const { S, realHost, reason, firstParty, isTrackerHost, isGoogleHost } = makeCore({ DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE });
 // The gate (registry.js): every action below first asks can(id, cx), which combines the stored settings,
 // the pause and the sign-in guard. Only 'run' acts; what gets 'ask' or 'held' goes to the approval queue.
-// The 8088 server still supplies lists, but cannot switch a capability on.
+// The 8088 server supplies lists and can switch things off while its row (C15) is on; it cannot switch a capability on.
 // State is in chrome.storage.local because this worker sleeps: master, modes, guardUntil, pauseUntil, pending,
-// cacheClearedAt, log, allow, always, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
+// cacheClearedAt, log, allow, always, sitesOff, loops, history, follow, stopped, stops, own, bounce, params, skip, noskip,
+// mine, salt, later, firstRun. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
   const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params', 'mine', 'salt']), now = Date.now();
