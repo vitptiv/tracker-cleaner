@@ -499,10 +499,16 @@ async function learnedRules(want) {
 const REFUSED = { dynamic: new Set(), session: new Set() };
 const RULE_NAME = (id) => id === LEARNED + 1 ? 'Stopped trackers are blocked' : id === LEARNED + 2 ? 'Tags you chose are cut off addresses' : id === LEARNED + 3 ? 'Pings are blocked'
   : id >= NET_BASE + 10 ? 'Pages may not call this computer' : 'Other companies get no cookies or cache tags';
-async function installEach(kind, update, old, want) {
-  await update({ removeRuleIds: old.map((r) => r.id) }); REFUSED[kind].clear();
-  for (const r of want) try { await update({ addRules: [r] }); } catch { REFUSED[kind].add(RULE_NAME(r.id)); }
-}
+// One change at a time per kind (two at once would trip over each other's rule numbers); what counts as refused is what
+// is not there afterwards, read back from Chrome.
+const installing = { dynamic: Promise.resolve(), session: Promise.resolve() };
+const installEach = (kind, update, old, want) => (installing[kind] = installing[kind].catch(() => {}).then(async () => {
+  const read = () => kind === 'dynamic' ? chrome.declarativeNetRequest.getDynamicRules() : chrome.declarativeNetRequest.getSessionRules();
+  const mine = (r) => want.some((w) => w.id === r.id) || old.some((o) => o.id === r.id);
+  await update({ removeRuleIds: (await read()).filter(mine).map((r) => r.id) });
+  for (const r of want) try { await update({ addRules: [r] }); } catch {}
+  const have = (await read()).map((r) => r.id);
+  REFUSED[kind] = new Set([...[...REFUSED[kind]].filter((n) => !want.some((r) => RULE_NAME(r.id) === n) && !old.some((r) => RULE_NAME(r.id) === n)), ...want.filter((r) => !have.includes(r.id)).map((r) => RULE_NAME(r.id))]); }));
 const notWorking = () => [...new Set([...REFUSED.dynamic, ...REFUSED.session])];
 // "Not now" on one question (site and name) or on all about a site: not asked again for LATER_MS
 const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());
