@@ -988,3 +988,18 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   line and README's first paragraph (both name everything, including that request addresses and contents are read
   in memory to spot trackers). README no longer says "1.21 has not been run"; the report no longer says the history
   cannot be cleaned.
+- H11 score: `misses.json`, the screen and the page cells give three numbers of the 35 kinds built: still arriving
+  at the end and tied to her; arrived and tied to her; arrived at all (also tied to nobody); with `caveats` beside
+  them (the guard cut, the fingerprint not being a join key in this lab so the shield is unmeasured, T18/T19 as her
+  own history, T22 apart when only simulated, T34 not built). Why `.localhost` hosts lost the visited-site
+  protection: `core.js` `realHost` strips `.localhost` (for the Fit-browser's proxied copies), and `usedSite`
+  compared only that shortened name with the stopped list, which holds the name as Chrome has it. Not a suffix-table
+  bug, and it hits only names ending in `.localhost`; `usedSite` now compares both names (in H1's commit). It did
+  not change the count: the kinds concerned were not at the end before either.
+- After H1 to H11: A, of 35: 9 at the end; 14 arrived and tied to her; 25 arrived at all (before: 4; 13; 24 by the
+  same count). B0 the same; B 6; 9; 9. C 5; 7; 9. At the end in A beyond the four that no browser tool stops (T27,
+  T33, T31, T32): T17, T20, T21 (saved copies are no longer cleared at a stop that only blocks, nor at start: H1,
+  H7), T22 (its notifications are blocked only at a clean-out, and Friendface is a site she uses: H1), T30 (Hop is
+  passing only after its second destination, which is the trip's last pass: H4). The question "You use Friendface
+  ... Remove what it keeps?" would clean T17, T20, T21, T22 out on Remove; it does not come up within the trip
+  because the five-minute hold after her sign-in on Friendface's own page is still running.

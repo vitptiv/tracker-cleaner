@@ -3,7 +3,7 @@
 // extension/ loaded, in several settings. It measures only: nothing here demands "cleaned". The table goes to
 // lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A B0 B C]
 const fs = require('node:fs'), path = require('node:path');
-const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline, simulatedOnly, ownRecord } = require('./count');
+const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline, simulatedOnly, ownRecord, CAVEATS } = require('./count');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
@@ -137,6 +137,7 @@ async function run(name, set, cert, flags, chance = {}) {
       if (SAID[id]) row.cause += `; the report says "Tracker Cleaner ${SAID[id]} this"`;
       if (SIMULATED[id]) row.simulated = SIMULATED[id]; }
     out.counts = { tracked: 0, unlinked: 0, stopped: 0 }; for (const r of Object.values(out.rows)) if (r.status in out.counts) out.counts[r.status]++;
+    out.counts.arrived = Object.values(out.rows).filter((r) => r.records > 0).length;   // at all, also when tied to nobody
     out.counts.ever = Object.values(out.rows).filter((r) => r.ever).length; out.counts.atEnd = Object.values(out.rows).filter((r) => r.atEnd).length;
     out.counts.simulated = Object.keys(out.rows).filter((id) => out.rows[id].simulatedOnly); out.counts.own = Object.keys(out.rows).filter((id) => out.rows[id].ownRecord);
     out.counts.stillArrivingAfterRestart = Object.values(out.rows).filter((r) => r.lastStep > RESTART).length;   // the steps after the restart open the same sites again
@@ -152,7 +153,7 @@ async function run(name, set, cert, flags, chance = {}) {
   const chance = Object.fromEntries(Object.entries(ref.rows).filter(([, r]) => r.lastStep).map(([id, r]) => [id, r.lastStep]));
   const result = { what: 'Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). '
     + 'Two counts, of 36 kinds: ever = it arrived once, tied to her (status tracked). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome\'s own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is setting A, the fresh install.',
-    headline: null, reference: { says: OFF.says, counts: ref.counts, lastChance: chance, broken: ref.broken },
+    headline: null, caveats: CAVEATS, reference: { says: OFF.says, counts: ref.counts, lastChance: chance, broken: ref.broken },
     extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, settings: Object.fromEntries(names.map((n) => [n, SETTINGS[n].says])),
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
     testOnlyEntries: { how: 'B and C only, alive only while the script runs; no shipped file is edited', sessionRules: RULES, alwaysDeleteList: ALWAYS,
@@ -163,6 +164,6 @@ async function run(name, set, cert, flags, chance = {}) {
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);
   for (const n of names) { const r = result.runs[n]; console.log(`${n}: ${JSON.stringify(r.counts)} canary "${r.canary}" history ${r.history.rebuilt}/${r.history.opened}${r.history.complete ? ' complete' : ''} re-identified after step 12: ${r.reidentifiedAfterStep12}${r.afterManual ? `, after manual cleaning: ${r.afterManual.reidentified}` : ''} ext ${JSON.stringify(r.extension)}${r.broken.length ? ' broken: ' + r.broken.join('; ') : ''}`); }
   result.headline = headline(result.runs);
-  console.log(`reference (switched off): ${ref.counts.atEnd} at the end, ${ref.counts.ever} ever. ${result.headline}`);
+  console.log(`reference (switched off): ${ref.counts.atEnd} at the end; ${ref.counts.ever} arrived and tied to her; ${ref.counts.arrived} arrived at all. ${result.headline}`);
   if (names.length === Object.keys(SETTINGS).length) { fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'misses.json'), JSON.stringify(result, null, 1) + '\n'); console.log('written: lab/misses.json'); }
 })().catch((e) => { console.log(`BROKE (the run itself, not a verdict): ${e.stack || e}`); process.exit(1); });
