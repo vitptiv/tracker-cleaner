@@ -1255,3 +1255,10 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   settled here, to be checked (and fixed if needed) in a later batch.
 - Cleanup for a later batch (not done now): `learn.js` exports `idInUrl`, which is no longer used by `background.js`
   (an ID in a URL has not counted as evidence since F1); it can be removed.
+- F2-8 reconcile shield readPixels in the ff2 measurement: `ff2-trip.js` now runs the trip at the fresh-install
+  default (shield C32 off) and measures the fingerprint both off and on, writing both into `lab/ff2-misses.json`;
+  `readpx` is a full-array hash so the perturbation is caught deterministically (the earlier sparse sample was
+  run-dependent). With the shield ON it perturbs WebGL readPixels and spoofs the WebGL vendor/renderer
+  (getParameter 37445/37446); it does NOT touch installed fonts, matchMedia or screen, which is why the F6 join key
+  (built only from those) survives both ways and equals the cleaner-off baseline. With the shield OFF (the default)
+  it touches none of them.

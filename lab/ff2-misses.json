@@ -1,31 +1,43 @@
 {
- "what": "Friendface 2 against the shipped cleaner v1.25, fully on (master on, fingerprint shield C32 on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on.",
+ "what": "Friendface 2 against the shipped cleaner v1.25, fully on (master on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on. The trip runs at the fresh-install default (fingerprint shield C32 off); the shield is then measured both off and on, so the fingerprint numbers are not run-dependent.",
  "extension": "1.25",
- "browser": "ff2m-1a1ee255a8fc94b2a",
+ "browser": "ff2m-1a1ee2d955acc9ede",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
   "atlas.localhost"
  ],
- "headline": "10/10 ff2 kinds still tracked and tied to the browser with the cleaner fully on and answered; 6/10 still at the end",
+ "headline": "10/10 ff2 kinds still tracked and tied to the browser with the cleaner fully on and answered; 6/10 still at the end. The fingerprint join key survives the shield both off and on; readPixels is perturbed only with the shield on (off: unchanged, on: perturbed).",
  "nothingLearned": true,
  "questionsRaised": 0,
  "fingerprint": {
-  "shieldOn": true,
-  "codeAcrossSites": [
-   "fp2-6544ca5f"
-  ],
   "baselineCode": "fp2-6544ca5f",
-  "readpxAcrossSites": {
-   "ledger": "9ab63106",
-   "sundial": "68a50c01",
-   "atlas": "53671c9a"
+  "joinKey": "fp2-6544ca5f",
+  "keyStableAcrossSites": true,
+  "keyEqualsBaselineShieldOff": true,
+  "keyEqualsBaselineShieldOn": true,
+  "readPixels": {
+   "shieldOff": {
+    "hash": "bd825545",
+    "perturbed": false
+   },
+   "shieldOn": {
+    "hash": "5877ef41",
+    "perturbed": true
+   },
+   "baseline": "bd825545"
   },
-  "cleanerWinsOnReadPixels": true
+  "webglVendorRenderer": {
+   "shieldOff": "4d531da3",
+   "shieldOn": "6861b757",
+   "baseline": "4d531da3",
+   "spoofedWithShieldOn": true
+  }
  },
  "caveats": [
   "Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.",
-  "The shield (C32) is off by default; here it is switched ON to prove the fonts/screen join key (F6) survives it. readPixels is perturbed by the shield when on — a cleaner win, reported under fingerprint.cleanerWinsOnReadPixels.",
+  "The shield (C32) is off by default. The join key (F6) is built only from fonts, matchMedia and screen, which the shield never touches, so it survives with the shield off AND on and matches a cleaner-off baseline.",
+  "With the shield ON the cleaner DOES win on two fingerprint surfaces: it perturbs WebGL readPixels per site and spoofs the WebGL vendor/renderer (getParameter 37445/37446). Neither is in the join key. With the shield OFF (the default) it touches neither.",
   "Every ff2 piece is served first-party through the visited site’s own /f/ path, so the structural rules (C29/C30/C31, all thirdParty) never match and the learning never raises a question."
  ],
  "rows": [
@@ -33,7 +45,7 @@
    "id": "F1",
    "type": "First-party reverse-proxy ID",
    "mark": "tracked",
-   "value": "fp_id=fp-cbe4434fd4",
+   "value": "fp_id=fp-7a3e3c6906",
    "sites": [
     "ledger.localhost",
     "sundial.localhost",
@@ -46,7 +58,7 @@
    "id": "F2",
    "type": "Cookie-less first-party ID",
    "mark": "tracked",
-   "value": "ff2_id=ff2m-1a1ee255a8fc94b2a (kept in localStorage, IndexedDB, cacheStorage, no cookie)",
+   "value": "ff2_id=ff2m-1a1ee2d955acc9ede (kept in localStorage, IndexedDB, cacheStorage, no cookie)",
    "sites": [
     "ledger.localhost",
     "sundial.localhost",
@@ -59,7 +71,7 @@
    "id": "F3",
    "type": "URL-ID chain across sites",
    "mark": "tracked",
-   "value": "ff2_id=ff2m-1a1ee255a8fc94b2a carried to sundial.localhost/forecast",
+   "value": "ff2_id=ff2m-1a1ee2d955acc9ede carried to sundial.localhost/forecast",
    "sites": [
     "sundial.localhost",
     "atlas.localhost",
@@ -111,7 +123,7 @@
    "id": "F7",
    "type": "Sign-in-window cookie",
    "mark": "tracked",
-   "value": "SID=sess-76d15fe1d9",
+   "value": "SID=sess-d4b8f12ebc",
    "sites": [
     "ledger.localhost"
    ],
@@ -148,7 +160,7 @@
    "id": "F10",
    "type": "First-party cache tag (ETag)",
    "mark": "tracked",
-   "value": "ETag \"fp-cbe4434fd4\" on the site’s own image",
+   "value": "ETag \"fp-7a3e3c6906\" on the site’s own image",
    "sites": [
     "ledger.localhost",
     "sundial.localhost",

@@ -24,7 +24,8 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     const msg = (m) => within(popup.ev(`chrome.runtime.sendMessage(${JSON.stringify(m)})`), 20000, m.type);
     await until(async () => (await msg({ type: 'state' })).groups, 10000);
     await msg({ type: 'setMaster', on: true });
-    await msg({ type: 'setMode', group: 'shield', mode: 'auto' });   // turn the fingerprint shield ON, the hardest case for F6
+    // the trip runs at the fresh-install default: the fingerprint shield (C32) is OFF. It is switched ON only later,
+    // in the fingerprint reconciliation, so readPixels is measured both ways and the number is not run-dependent.
     // answer every question the extension raises (there should be none: ff2 is first-party and cookie-less)
     const answerAll = async () => { const st = await msg({ type: 'state' }); let did = 0;
       for (const g of st.groups || []) for (const it of (g.items || []).filter((x) => ['tracker', 'used', 'bounce', 'skip'].includes(x.kind))) { await msg({ type: 'approve', group: g.id, site: it.site, name: it.name }).catch(() => {}); did++; } return did; };
@@ -55,14 +56,25 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     await t.go(at('ledger', '/budget')); await seeStep(TRIP[8]);
     questions.push(await answerAll());
 
-    // the fingerprint, with the shield ON: the same code on every ff2 site, and equal to a cleaner-off baseline
-    const codes = {};
-    for (const s of ['ledger', 'sundial', 'atlas']) { await t.go(at(s)); await sleep(300); const fp = await fpOf(t); codes[s] = fp; }
-    ok(codes.ledger && codes.ledger.code && codes.ledger.code === codes.sundial.code && codes.ledger.code === codes.atlas.code, `one fingerprint code across sites with the shield on: ${JSON.stringify(Object.fromEntries(Object.entries(codes).map(([k, v]) => [k, v && v.code])))}`);
-    base = await launch(undefined, flags); const bt = await base.tab(at('ledger')); await bt.go(at('ledger', '/f/kit.js')); // load fp into the baseline tab
-    const bfp = await bt.ev(`fetch('/f/kit.js').then((r) => r.text()).then((js) => { const s = document.createElement('script'); s.textContent = js.replace('__PROBE__','').replace('__PORT__','${PORT}').replace('__CHAIN__','[]'); document.head.appendChild(s); return 0; })`).then(() => sleep(400)).then(() => bt.ev(`window.ff2fp ? window.ff2fp() : null`)).catch(() => null);
-    const cleanerWinsReadpx = !(bfp && bfp.readpx) || codes.ledger.readpx !== codes.sundial.readpx || (bfp && codes.ledger.readpx !== bfp.readpx);
-    ok(!bfp || bfp.code === codes.ledger.code, `the shield leaves the fonts/screen join key unchanged (baseline ${bfp && bfp.code} vs shielded ${codes.ledger.code})`);
+    // the fingerprint reconciliation: capture it on each site with the shield OFF (the default) and ON, and against a
+    // cleaner-off baseline, so readPixels is measured both ways and the result does not depend on the run.
+    const capture = async () => { const c = {}; for (const s of ['ledger', 'sundial', 'atlas']) { await t.go(at(s)); await sleep(300); c[s] = await fpOf(t); } return c; };
+    const off = await capture();                                   // shield off (fresh-install default)
+    await msg({ type: 'setMode', group: 'shield', mode: 'auto' }); // switch the fingerprint shield ON
+    const onc = await capture();
+    await msg({ type: 'setMode', group: 'shield', mode: 'off' });  // back to default
+    base = await launch(undefined, flags); const bt = await base.tab(at('ledger')); await sleep(500);   // a cleaner-off browser: no extension
+    const bfp = await bt.ev(`window.ff2fp ? window.ff2fp() : null`).catch(() => null);
+    const keyStable = (c) => c.ledger && c.ledger.code && c.ledger.code === c.sundial.code && c.ledger.code === c.atlas.code;
+    ok(keyStable(off) && keyStable(onc), 'one fingerprint join key across all three sites, shield off and on');
+    ok(bfp && off.ledger.code === bfp.code && onc.ledger.code === bfp.code, `the join key equals the cleaner-off baseline with the shield off AND on (baseline ${bfp && bfp.code}, off ${off.ledger.code}, on ${onc.ledger.code})`);
+    const winOff = !!(bfp && off.ledger.readpx !== bfp.readpx), winOn = !!(bfp && onc.ledger.readpx !== bfp.readpx);
+    ok(winOff === false, `shield off (default): readPixels is unchanged, so the cleaner does not win there (${off.ledger.readpx} vs baseline ${bfp && bfp.readpx})`);
+    ok(winOn === true, `shield on: readPixels is perturbed, a cleaner win on that one surface (${onc.ledger.readpx} vs baseline ${bfp && bfp.readpx})`);
+    const glSpoofedOn = !!(bfp && onc.ledger.gl !== bfp.gl && off.ledger.gl === bfp.gl);
+    const fingerprint = { baselineCode: bfp && bfp.code, joinKey: off.ledger.code, keyStableAcrossSites: keyStable(off) && keyStable(onc), keyEqualsBaselineShieldOff: bfp && off.ledger.code === bfp.code, keyEqualsBaselineShieldOn: bfp && onc.ledger.code === bfp.code,
+      readPixels: { shieldOff: { hash: off.ledger.readpx, perturbed: winOff }, shieldOn: { hash: onc.ledger.readpx, perturbed: winOn }, baseline: bfp && bfp.readpx },
+      webglVendorRenderer: { shieldOff: off.ledger.gl, shieldOn: onc.ledger.gl, baseline: bfp && bfp.gl, spoofedWithShieldOn: glSpoofedOn } };
 
     // the whole checklist: every ff2 kind tracked and tied to ONE browser, with the cleaner on and answered
     const k = await knows();
@@ -79,17 +91,17 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     const rows = TRACES2.map((tr) => { const r = k.rows.find((x) => x.id === tr.id); return { id: tr.id, type: tr.type, mark: r.mark, value: r.value, sites: r.sites,
       ever: r.mark === 'tracked', atEnd: done[tr.id] >= 9 || /^(F1|F2|F6|F8|F9|F10)$/.test(tr.id) }; });
     const counts = { ever: rows.filter((r) => r.ever).length, atEnd: rows.filter((r) => r.atEnd).length, of: TRACES2.length };
-    const out = { what: 'Friendface 2 against the shipped cleaner v1.25, fully on (master on, fingerprint shield C32 on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on.',
+    const out = { what: 'Friendface 2 against the shipped cleaner v1.25, fully on (master on) with every question answered. Each kind is a first-party evasion; a kind counts only if it is still tracked and tied to the browser with the cleaner on. The trip runs at the fresh-install default (fingerprint shield C32 off); the shield is then measured both off and on, so the fingerprint numbers are not run-dependent.',
       extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, browser: k.browser, sites: k.sites,
-      headline: `${counts.ever}/${counts.of} ff2 kinds still tracked and tied to the browser with the cleaner fully on and answered; ${counts.atEnd}/${counts.of} still at the end`,
+      headline: `${counts.ever}/${counts.of} ff2 kinds still tracked and tied to the browser with the cleaner fully on and answered; ${counts.atEnd}/${counts.of} still at the end. The fingerprint join key survives the shield both off and on; readPixels is perturbed only with the shield on (off: ${winOff ? 'perturbed' : 'unchanged'}, on: ${winOn ? 'perturbed' : 'unchanged'}).`,
       nothingLearned: (st.stopped || []).length === 0, questionsRaised: questions.reduce((a, c) => a + c, 0),
-      fingerprint: { shieldOn: true, codeAcrossSites: [...new Set(Object.values(codes).map((v) => v && v.code))], baselineCode: bfp && bfp.code,
-        readpxAcrossSites: Object.fromEntries(Object.entries(codes).map(([s, v]) => [s, v && v.readpx])), cleanerWinsOnReadPixels: cleanerWinsReadpx },
+      fingerprint,
       caveats: ['Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.',
-        'The shield (C32) is off by default; here it is switched ON to prove the fonts/screen join key (F6) survives it. readPixels is perturbed by the shield when on — a cleaner win, reported under fingerprint.cleanerWinsOnReadPixels.',
+        'The shield (C32) is off by default. The join key (F6) is built only from fonts, matchMedia and screen, which the shield never touches, so it survives with the shield off AND on and matches a cleaner-off baseline.',
+        'With the shield ON the cleaner DOES win on two fingerprint surfaces: it perturbs WebGL readPixels per site and spoofs the WebGL vendor/renderer (getParameter 37445/37446). Neither is in the join key. With the shield OFF (the default) it touches neither.',
         'Every ff2 piece is served first-party through the visited site’s own /f/ path, so the structural rules (C29/C30/C31, all thirdParty) never match and the learning never raises a question.'],
       rows };
     fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'ff2-misses.json'), JSON.stringify(out, null, 1) + '\n');
-    console.log(`PASS: ${passed} checks; ${out.headline}; readPixels cleaner-wins: ${cleanerWinsReadpx}; written lab/ff2-misses.json`);
+    console.log(`PASS: ${passed} checks; ${out.headline}; written lab/ff2-misses.json`);
   } finally { await b.close(); if (base) await base.close(); await lab.close(); }
 })().catch((e) => { console.log('FAIL: ' + (e.stack || e)); process.exit(1); });

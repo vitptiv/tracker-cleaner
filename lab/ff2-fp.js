@@ -21,7 +21,7 @@
   const readpxSig = () => { try { const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64; const gl = cv.getContext('webgl'); if (!gl) return 'none';
     gl.clearColor(0.2, 0.4, 0.6, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.enable(gl.SCISSOR_TEST); gl.scissor(8, 8, 40, 24); gl.clearColor(0.9, 0.3, 0.1, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     const px = new Uint8Array(64 * 64 * 4); gl.readPixels(0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    let h = 0x811c9dc5; for (let i = 0; i < px.length; i += 97) { h ^= px[i]; h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); } catch { return 'none'; } };
+    let h = 0x811c9dc5; for (let i = 0; i < px.length; i++) { h ^= px[i]; h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); } catch { return 'none'; } };   // every byte, so the shield's blur is caught deterministically
 
   window.ff2fp = async () => { const fonts = fnv(fontSig()), media = fnv(mediaSig()), gl = fnv(glSig()), readpx = readpxSig();
     // the join key uses ONLY the surfaces the shield never touches -- installed fonts (measureText) and matchMedia/screen --
