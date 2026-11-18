@@ -130,6 +130,7 @@ module.exports = function makeChrome(init = {}) {
     // with initiatorDomains counts at once.
     passes: (host, { reloaded = false } = {}) => state.dynamic.some((r) => { const under = (list) => (list || []).some((d) => host === d || host.endsWith('.' + d));
       return r.action.type === 'allowAllRequests' ? reloaded && under(r.condition.requestDomains) : r.action.type === 'allow' && under(r.condition.initiatorDomains); }),
+    redirect: (d) => chrome.webRequest.onBeforeRedirect.fire(d),   // a page address answers "go to another address"
     request: (d) => chrome.webRequest.onBeforeRequest.fire(d),   // a page asks for something
     closeTab: async (id) => { state.tabs = state.tabs.filter((t) => t.id !== id); await chrome.tabs.onRemoved.fire(id, {}); },
     // a message as the popup sends it; `from` = another sender. No listener takes it: the answer is undefined, as in Chrome.

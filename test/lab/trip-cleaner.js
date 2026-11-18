@@ -8,7 +8,7 @@ const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
 const HOSTS = ['friendface', 'hop', 'pennant', 'gazette', 'parcelpine', 'metrics.parcelpine', 'tidewater', 'loopreel'].map((h) => h + '.localhost');
-const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'unknown', 'storage', 'permissions', 'cache'];
+const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'unknown', 'bounce', 'storage', 'permissions', 'cache'];
 
 // ---- the lab's test-only entries. None of them is in a shipped list; they exist only while this script runs.
 // 1. Two session rules, added through the extension's own popup page, shaped like the shipped ones (rules.json rule 1, rules-params.json).
@@ -30,7 +30,7 @@ const NOT_SET = { tor: 'would send requests off this computer', tabs: 'would clo
   server: 'only reports and self-update', wifi: 'never automatic; touches this computer\'s saved networks, so it is not approved either' };
 
 // ---- which capability is aimed at each kind (journal page, chapter 4), and the thing it would have to remove
-const COVER = { T1: ['C01', 'C07'], T2: [], T3: ['C07'], T4: ['C23', 'C07'], T5: ['C07'], T6: ['C01', 'C07'], T7: ['C07'], T8: ['C01', 'C07'], T9: ['C06'], T10: [], T11: ['C06'], T12: ['C06'], T13: ['C06'],
+const COVER = { T1: ['C01', 'C07'], T2: [], T3: ['C07'], T4: ['C23', 'C07', 'C27'], T5: ['C07', 'C27'], T6: ['C01', 'C07'], T7: ['C07'], T8: ['C01', 'C07'], T9: ['C06'], T10: [], T11: ['C06'], T12: ['C06'], T13: ['C06'],
   T14: [], T15: ['C11'], T16: ['C11'], T17: ['C11'], T18: [], T19: [], T20: ['C11'], T21: ['C11'], T22: ['C09'], T23: ['C01'], T24: ['C01'], T25: ['C01'], T26: ['C01'], T27: ['C01'], T28: ['C01', 'C26'],
   T29: ['C26'], T30: [], T31: ['C01'], T32: [], T33: [], T35: ['C01'], T36: ['C01'] };
 const WHY_NONE = { T2: 'kept on purpose: a sign-in cookie', T32: 'kept on purpose: a sign-in', T33: 'the browser is not involved', T10: 'storage under the visited site\'s own name', T14: 'an answer the browser gives',
@@ -83,7 +83,7 @@ async function run(name, cert, flags) {
       out.afterManual = { reidentified: !!(kc && kc.who && kc.who.name === MARA.name), historyStillShown: kc ? kc.history.length : 0 }; }
     const ext = await E.b.msg({ type: 'state' }).catch(() => ({ log: [], groups: [], hold: {} }));
     const matched = await E.b.popup.ev(`chrome.declarativeNetRequest.getMatchedRules({}).then((r) => r.rulesMatchedInfo.map((x) => x.rule.rulesetId + ':' + x.rule.ruleId))`).catch(() => []);
-    out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], removed: ext.log.filter((l) => l.did === 'removed').length,
+    out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], cutOff: ext.params || [], removed: ext.log.filter((l) => l.did === 'removed').length,
       waiting: Object.fromEntries(ext.groups.filter((g) => g.pending).map((g) => [g.id, g.pending])), blockRuleMatches: matched.filter((m) => m.endsWith(':9001')).length, tagRuleMatches: matched.filter((m) => m.endsWith(':9002') || m.startsWith('url-params')).length };
     const dir = E.b.dir; await E.b.close(true); E.b = null; const files = outside(dir, PORT); fs.rmSync(dir, { recursive: true, force: true });
 

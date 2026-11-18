@@ -118,6 +118,7 @@
   "google",
   "params",
   "unknown",
+  "bounce",
   "storage",
   "permissions",
   "cache"
@@ -144,9 +145,11 @@
    "extension": {
     "guardHeldAtEnd": false,
     "stopped": [],
+    "cutOff": [],
     "removed": 0,
     "waiting": {
-     "unknown": 1
+     "unknown": 1,
+     "bounce": 2
     },
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
@@ -178,14 +181,14 @@
      "records": 12,
      "linked": 12,
      "lastStep": 11,
-     "cause": "not recognised: the lab's names are on no list"
+     "cause": "capability exists but did not fire"
     },
     "T5": {
      "status": "tracked",
      "records": 1,
      "linked": 1,
      "lastStep": 7,
-     "cause": "not recognised: the lab's names are on no list"
+     "cause": "capability exists but did not fire"
     },
     "T6": {
      "status": "tracked",
@@ -426,7 +429,10 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "removed": 5,
+    "cutOff": [
+     "ffclid"
+    ],
+    "removed": 10,
     "waiting": {},
     "blockRuleMatches": 0,
     "tagRuleMatches": 0
@@ -458,14 +464,12 @@
      "records": 3,
      "linked": 3,
      "lastStep": 4,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 4"
+     "cause": "capability exists but did not fire"
     },
     "T5": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "lastStep": 7,
-     "cause": "not recognised: the lab's names are on no list; learned and stopped later (friendface.localhost), last arrived in step 7"
+     "status": "stopped",
+     "records": 0,
+     "linked": 0
     },
     "T6": {
      "status": "tracked",
@@ -676,9 +680,9 @@
     }
    },
    "counts": {
-    "tracked": 29,
+    "tracked": 28,
     "unlinked": 1,
-    "stopped": 5,
+    "stopped": 6,
     "stillArrivingAfterRestart": 0
    }
   },
@@ -699,7 +703,10 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "removed": 10,
+    "cutOff": [
+     "ffclid"
+    ],
+    "removed": 13,
     "waiting": {
      "storage": 1
     },
@@ -1019,7 +1026,10 @@
     "stopped": [
      "friendface.localhost"
     ],
-    "removed": 22,
+    "cutOff": [
+     "ffclid"
+    ],
+    "removed": 25,
     "waiting": {
      "storage": 1
     },

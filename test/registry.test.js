@@ -6,13 +6,13 @@ const table = fs.readFileSync(path.join(__dirname, '../PLAN.md'), 'utf8').split(
   .map((m) => ({ id: m[1], mode: m[2] === 'n/a' ? null : m[2] }));
 
 test('every capability of PLAN.md is registered once, with the planned default mode', () => {
-  assert.equal(table.length, 24);
+  assert.equal(table.length, 25);
   assert.deepEqual(CAPS.map((c) => c.id), table.map((t) => t.id));
   for (const t of table) assert.equal(cap(t.id).mode, t.mode, t.id);
 });
 test('each entry has a name, a group and a destructive flag', () => {
   for (const c of CAPS) { assert.ok(c.name && c.group, c.id); assert.equal(typeof c.destructive, 'boolean', c.id); }
-  for (const id of ['C03', 'C04', 'C06', 'C07', 'C09', 'C11', 'C12', 'C13', 'C14', 'C24', 'C25']) assert.equal(cap(id).destructive, true, id);
+  for (const id of ['C03', 'C04', 'C06', 'C07', 'C09', 'C11', 'C12', 'C13', 'C14', 'C24', 'C25', 'C27']) assert.equal(cap(id).destructive, true, id);
   for (const id of ['C01', 'C02', 'C05', 'C23', 'C26']) assert.equal(cap(id).destructive, false, id);
 });
 test('no stored setting means no destructive action', () => {
@@ -42,7 +42,7 @@ test('an unknown ID never runs', () => assert.equal(mayRun('C99', { master: true
 // Where the history page and tools/inspect.js name the same thing, the popup row uses their words.
 test('each popup row is titled in everyday words, short enough for the popup', () => {
   assert.deepEqual(GROUPS.map((g) => [g.id, g.title]), [['signin', 'Pause cleaning while you sign in'], ['blocking', 'Ads and trackers blocked as pages load'],
-    ['cookies', "Trackers' cookies"], ['google', 'Cookies Google uses to recognise you'], ['params', 'Tracking tags removed from links'], ['unknown', 'Trackers that are on no list'],
+    ['cookies', "Trackers' cookies"], ['google', 'Cookies Google uses to recognise you'], ['params', 'Tracking tags removed from links'], ['unknown', 'Trackers that are on no list'], ['bounce', 'Sites that only pass you along'],
     ['storage', 'Data that sites keep (site storage)'], ['wifi', 'Remembered Wi-Fi networks'], ['permissions', 'What sites may do (site permissions)'],
     ['cache', 'Saved copies of pages (HTTP cache)'], ['allowlist', 'Keep only the cookies you list'], ['tabs', 'Limit how many tabs stay open'],
     ['tor', 'Hiding your address from websites (Tor)'], ['server', 'Reports to a server on this computer']]);

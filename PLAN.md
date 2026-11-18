@@ -56,8 +56,9 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C24 | Remove saved Wi-Fi networks unused for 30+ days (local helper, `nmcli`) | new | ask |
 | C25 | Stop a company on no list that is seen on 3+ sites with an ID (learned locally) | new in 1.24 | ask |
 | C26 | Block pings that tell someone which link was followed or how long a page was read | new in 1.24 | auto |
+| C27 | Clean a site that only passes you along (redirect): its cookies and storage, and the ID it added to the address | new in 1.24 | ask |
 
-Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C06,
+Usability rank (build and expose in this order): C18, C19, C01, C03, C04, C20, C21, C02, C05, C26, C22, C23, C25, C27, C06,
 C07, C08, C24, C09, C10, C11, C12, C13, C14, C15.
 
 ## Rules for every chunk
@@ -711,3 +712,8 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   dynamic rule, never on sign-in hosts), and `no-ping.js` takes a link's own ping address off as the link is pressed,
   which is what stops the lab's ping (it goes to Friendface from Friendface's own page). A 33/2, B0 29/5, B 9/26,
   C 7/28: the click ping and the page-close beacon are stopped in every setting, also on a fresh install.
+- R5 redirect bounces (C27, asks first): a page address that answers "go to another site" is noted; two questions,
+  "delete what it saved" and "cut off the ID it added" (only what was not in the address it was asked to open, so
+  a short link's own parts are never cut). Nothing on the way of a sign-in is touched. A 33/2 (two questions wait),
+  B0 28/6, B 9/26, C 7/28. In B0 Hop's cookie never comes back (stopped) and `ffclid` is cut off from the second
+  pass on; the first pass and Hop's own log of the click cannot be stopped (only a redirect by HTTP is seen at all).

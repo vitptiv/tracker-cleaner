@@ -22,5 +22,13 @@ const followNote = (store, site, host, page, id, now) => {
   if (e.on === old.on && e.id === old.id && e.hosts === old.hosts) return null;
   return Object.fromEntries(Object.entries({ ...store, [site]: e }).sort((a, b) => b[1].t - a[1].t).slice(0, FOLLOW_MAX));
 };
+// A page address answered "go to `to`" (C27). When the address it was asked with names where the user wanted to go
+// (…?to=https://blog/post), whatever `to` carries beyond that was added on the way: returned are the names of the
+// added parts that look like an ID. Never a part a sign-in hands over.
+const NEVER_PARAM = /^(code|state|token|id_token|access_token|refresh_token|session_state|nonce|ticket|SAMLResponse|RelayState|sig|signature|key)$/i;
+const bounceAdded = (from, to) => { try { const b = new URL(to);
+  for (const [, v] of new URL(from).searchParams) { let want; try { want = new URL(v); } catch { continue; }
+    if (want.host === b.host && want.pathname === b.pathname) return [...b.searchParams].filter(([k, x]) => !want.searchParams.has(k) && idLike(x) && !NEVER_PARAM.test(k)).map(([k]) => k); }
+  } catch {} return []; };
 const followFull = (e) => !!e && e.on.length >= FOLLOW_N;
-if (typeof module !== 'undefined') module.exports = { FOLLOW_N, FOLLOW_MAX, LATER_MS, siteOf, idLike, idInUrl, followNote, followFull };
+if (typeof module !== 'undefined') module.exports = { FOLLOW_N, FOLLOW_MAX, LATER_MS, siteOf, idLike, idInUrl, followNote, followFull, bounceAdded };

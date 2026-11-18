@@ -14,7 +14,7 @@ const { S, realHost, reason, firstParty, isTrackerHost } = makeCore({ DOMAINS, C
 // cacheClearedAt, log, allow, always, sitesOff, loops, history. Only chrome.storage.session (memory) holds removed cookies, for Undo.
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return ''; } };
 async function context() {
-  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later']), now = Date.now();
+  const set = await chrome.storage.local.get(['master', 'modes', 'guardUntil', 'pauseUntil', 'pending', 'cacheClearedAt', 'allow', 'always', 'sitesOff', 'loops', 'stopped', 'later', 'params']), now = Date.now();
   const tabs = await chrome.tabs.query({}), hold = holdNow(set, tabs, now), hosts = tabs.map((t) => hostOf(t.url || t.pendingUrl));
   if (mayRun('C19', set) !== 'run') hold.guard = false;
   // a sign-in page is the active tab: keep the guard armed, so it still holds GUARD_MS after the user leaves it
@@ -106,6 +106,8 @@ async function carry(it, cookies, tabs, cx) {
     if (!t || tabHost(t) !== it.site || isSignIn(t.url || t.pendingUrl)) return false;
     await chrome.tabs.remove(t.id); return true; }
   if (it.kind === 'tracker') return stopTracker(it.site);
+  if (it.kind === 'bounce') return cleanBounce(it.site);
+  if (it.kind === 'param') return stripParam(it.name);
   if (it.kind === 'storage') await dropStorage(it.site);
   else if (it.kind === 'permission') await blockPermission(it.site, it.name);
   else if (it.kind === 'cache') await clearCache();
@@ -113,15 +115,15 @@ async function carry(it, cookies, tabs, cx) {
   return true;
 }
 // Approve: exactly what is queued for this group, then the group is empty. Refused while paused; allowed during
-// the sign-in guard, because the user asked for it. site: only the items about that one, the rest keep waiting.
-async function approve(group, site) {
+// the sign-in guard, because the user asked for it. site, name: only that one question, the rest keep waiting.
+async function approve(group, site, name) {
   await ready;
   const cx = await context();
   if (cx.hold.paused) return { ok: false, why: 'paused' };
   if (cx.set.master === false) return { ok: false, why: 'off' };
   let items = [];
-  await withQueue((p) => { const g = p[group] || { items: [] }; items = g.items.filter((it) => !site || it.site === site);
-    if (site) g.items = g.items.filter((it) => it.site !== site); else delete p[group];
+  await withQueue((p) => { const g = p[group] || { items: [] }; const mine = (it) => (!site || it.site === site) && (!name || it.name === name); items = g.items.filter(mine);
+    if (site) g.items = g.items.filter((it) => !mine(it)); else delete p[group];
     return items.length > 0; });
   const cookies = items.some((it) => it.kind === 'cookie') ? await allCookies() : [], tabs = await chrome.tabs.query({});
   const done = [];
@@ -145,7 +147,7 @@ async function state() {
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
   const { wifi } = await chrome.storage.local.get('wifi');   // what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, hold: { ...hold, pauseUntil: set.pauseUntil || 0, guardUntil: set.guardUntil || 0 },
-    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [],
+    log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], params: set.params || [],
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
@@ -263,7 +265,7 @@ async function stored(m) {
   try { const [r] = await chrome.scripting.executeScript({ target: { tabId: m.tabId }, func: lookInPage, args: [show, CUT] });
     return r && r.result ? { ok: true, ...r.result } : { ok: false, refused: true }; } catch { return { ok: false, refused: true }; }
 }
-const MESSAGES = { state, stored, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site), notNow, unstop: (m) => unstop(m.site), postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unparam: (m) => unparam(m.name), postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
@@ -355,8 +357,12 @@ async function applyFeatures() {
     const enableRulesetIds = ids.filter((id) => want[id] && !on.includes(id)), disableRulesetIds = ids.filter((id) => !want[id] && on.includes(id));
     if (enableRulesetIds.length || disableRulesetIds.length) await chrome.declarativeNetRequest.updateEnabledRulesets({ enableRulesetIds, disableRulesetIds }); } catch {}
   const stopped = BLOCK && mayRun('C25', cx.set) !== 'no' && !cx.hold.paused ? cx.set.stopped || [] : [];
+  const strip = mayRun('C27', cx.set) !== 'no' && !cx.hold.paused ? cx.set.params || [] : [];
   await learnedRules([...(!stopped.length ? [] : [{ id: LEARNED + 1, priority: 1, action: { type: 'block' },
     condition: { requestDomains: stopped, domainType: 'thirdParty', resourceTypes: TYPES, excludedInitiatorDomains: SIGNIN_HOSTS } }]),
+    // C27: the tags the user chose to cut off, on every page address but a sign-in's
+    ...(!strip.length ? [] : [{ id: LEARNED + 2, priority: 1, action: { type: 'redirect', redirect: { transform: { queryTransform: { removeParams: strip } } } },
+      condition: { resourceTypes: ['main_frame'], excludedRequestDomains: SIGNIN_HOSTS } }]),
     // C26: a page telling another company what was pressed or how long it was read (the request kind "ping")
     ...(!pings ? [] : [{ id: LEARNED + 3, priority: 1, action: { type: 'block' },
       condition: { resourceTypes: ['ping'], domainType: 'thirdParty', excludedInitiatorDomains: SIGNIN_HOSTS, excludedRequestDomains: SIGNIN_HOSTS } }])]);
@@ -398,7 +404,7 @@ async function sweepOnce(cause) {
   const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
-  await wifiSweep(cx, wait); await followSweep(cx, all, wait);
+  await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait);
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
   await report({ reason: cause, scanned: all.length, removed, kept, ...rest });
@@ -415,23 +421,24 @@ async function learnedRules(want) {
   try { const old = (await chrome.declarativeNetRequest.getDynamicRules()).filter((r) => r.id > LEARNED);
     if (old.map(sig).join() !== want.map(sig).join()) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map((r) => r.id), addRules: want }); } catch {}
 }
-// "Not now" on one question: it is not asked again for LATER_MS
-const later = (cx, id, site) => ((cx.set.later || {})[`${id} ${site}`] || 0) > Date.now();
+// "Not now" on one question (site and name) or on all about a site: not asked again for LATER_MS
+const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());
 async function notNow(m) {
   const g = GROUPS.find((x) => x.id === m.group), now = Date.now();
   if (!g || !isHost(m.site)) return { ok: false };
   const old = Object.entries((await chrome.storage.local.get('later')).later || {}).filter(([, t]) => t > now);
-  await chrome.storage.local.set({ later: Object.fromEntries([...old, ...g.caps.map((id) => [`${id} ${m.site}`, now + LATER_MS])]) });
+  await chrome.storage.local.set({ later: Object.fromEntries([...old, ...g.caps.map((id) => [`${id} ${m.site}${typeof m.name === 'string' ? ' ' + m.name : ''}`, now + LATER_MS])]) });
   await sweep('settings');
   return { ok: true };
 }
+const signInCompany = (site) => site === 'github.com' || SIGNIN_HOSTS.some((h) => siteOf(h) === site);
 const seen = new Set();   // what this worker has counted already, so that a page's hundred requests cost one look
 async function noteRequest(d) {
   if (d.type === 'main_frame' || !d.initiator) return;
   let u, from; try { u = new URL(d.url); from = new URL(d.initiator); } catch { return; }
   if (!/^https?:$/.test(u.protocol) || !/^https?:$/.test(from.protocol)) return;
   const site = siteOf(u.hostname), page = siteOf(from.hostname), id = idInUrl(d.url), key = `${u.host} ${page} ${id}`;
-  if (site === page || seen.has(key) || isSignIn(d.url) || isTrackerHost(u.hostname) || site === 'github.com' || SIGNIN_HOSTS.some((h) => siteOf(h) === site)) return;
+  if (site === page || seen.has(key) || isSignIn(d.url) || isTrackerHost(u.hostname) || signInCompany(site)) return;
   if (seen.size > 5000) seen.clear();
   seen.add(key); await ready;
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
@@ -468,6 +475,62 @@ async function unstop(site) {
   return { ...(await notNow({ group: 'unknown', site })), stopped };
 }
 
+// ---- Sites that only pass you along (C27, learn.js bounceAdded). A page address that answers "go to another site" has
+// shown the user nothing, yet it can save a cookie and add an ID to the next address. Kept privately in
+// chrome.storage.local { bounce: { '<site>': { n: passes, done: passes cleaned up after, hosts, params: names it added } } }.
+// Two questions per site, each asked once per need: delete what it saved, and cut the added name off every address
+// (`params`, one dynamic rule). Left alone: anything on the way of a sign-in, and a site the user has open in a tab.
+const BOUNCE_MAX = 100, PASSED = 'passed you on without showing a page';
+async function noteRedirect(d) {
+  if (d.type !== 'main_frame') return;
+  let a, b; try { a = new URL(d.url); b = new URL(d.redirectUrl); } catch { return; }
+  const site = siteOf(a.hostname);
+  if (!/^https?:$/.test(a.protocol) || !/^https?:$/.test(b.protocol) || site === siteOf(b.hostname) || isSignIn(d.url) || isSignIn(d.redirectUrl) || signInCompany(site)) return;
+  await ready;
+  const cx = await context();
+  if (mayRun('C27', cx.set) === 'no' || cx.hold.guard || cx.hosts.some((h) => siteOf(h) === site)) return;
+  await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce'), old = bounce[site] || { n: 0, done: 0, hosts: [], params: [] };
+    bounce[site] = { n: old.n + 1, done: old.done, t: Date.now(), hosts: [...new Set([...old.hosts, a.host])].slice(0, 5), params: [...new Set([...old.params, ...bounceAdded(d.url, d.redirectUrl)])].slice(0, 10) };
+    await chrome.storage.local.set({ bounce: Object.fromEntries(Object.entries(bounce).sort((x, y) => y[1].t - x[1].t).slice(0, BOUNCE_MAX)) }); });
+  sweep('passed on');
+}
+try { chrome.webRequest.onBeforeRedirect.addListener((d) => { noteRedirect(d); }, { urls: ['<all_urls>'] }); } catch {}
+async function bounceSweep(cx, wait) {
+  const v = verdict('C27', cx), cut = cx.set.params || [], done = [];
+  if (v === 'no') return;
+  for (const [site, e] of Object.entries((await chrome.storage.local.get('bounce')).bounce || {})) {
+    const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === site) ? [{ kind: 'bounce', name: PASSED }] : []), ...e.params.filter((p) => !cut.includes(p)).map((name) => ({ kind: 'param', name }))];
+    for (const x of asks) { const it = { cap: 'C27', site, why: 'a redirect', did: waitsAs(v), ...x };
+      if (later(cx, 'C27', site, x.name)) continue;
+      if (waits(v)) wait.push(it); else if (await carry(it).catch(() => false)) done.push(it); } }
+  await logged(done, 'removed');
+}
+async function cleanBounce(site) {
+  const e = ((await chrome.storage.local.get('bounce')).bounce || {})[site], gone = [];
+  if (!e) return false;
+  for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name });
+  await dropStorage(e.hosts);
+  await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce'); if (bounce[site]) { bounce[site].done = bounce[site].n; await chrome.storage.local.set({ bounce }); } });
+  await logged(gone, 'removed');
+  return true;
+}
+async function stripParam(name) {
+  const { params = [] } = await chrome.storage.local.get('params');
+  if (typeof name !== 'string' || !name) return false;
+  if (!params.includes(name)) await chrome.storage.local.set({ params: [...params, name].slice(-50) });
+  await applyFeatures();
+  return true;
+}
+// "Stop cutting it off": the name is forgotten everywhere, and asked about again only when a site adds it again
+async function unparam(name) {
+  const params = ((await chrome.storage.local.get('params')).params || []).filter((p) => p !== name);
+  await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce');
+    for (const e of Object.values(bounce)) e.params = e.params.filter((p) => p !== name);
+    await chrome.storage.local.set({ params, bounce }); });
+  await sweep('settings');
+  return { ok: true, params };
+}
+
 // ---- Saved Wi-Fi networks (C24). Chrome cannot see them: a local program (wifi-helper/, started by Chrome through
 // native messaging) lists the stale ones and removes those it is sent. Never automatic (noAuto in registry.js), so
 // the gate only ever answers 'ask' or 'no' here. No helper, or an error from it, is null: C24 then simply has nothing.
@@ -499,7 +562,7 @@ try { chrome.runtime.onUpdateAvailable.addListener(async () => { const cx = awai
 
 // ---- Permanent drops (made permanent in the popup → settings → limits.json): site storage dropped and
 // site permissions blocked at every sweep. Cookies use the cookie blacklist (cookieBlacklist) above.
-const dropStorage = (site) => chrome.browsingData.remove({ origins: [`https://${site}`, `http://${site}`] },
+const dropStorage = (site) => chrome.browsingData.remove({ origins: [].concat(site).flatMap((s) => [`https://${s}`, `http://${s}`]) },
   { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true });
 const blockPermission = (site, perm) => chrome.contentSettings[perm].set({ primaryPattern: `${site}/*`, setting: 'block' });
 async function applyPermanentDrops(cx, wait) {
@@ -628,7 +691,7 @@ chrome.runtime.onInstalled.addListener(applyProxy);
 
 // A changed switch takes effect at once for what would otherwise wait: blocking, YouTube scripts, Tor.
 chrome.storage.onChanged.addListener((ch) => {
-  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped) { applyFeatures(); applyProxy(); }
+  if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.params) { applyFeatures(); applyProxy(); }
   if (ch.pending || ch.pauseUntil || ch.guardUntil) badge();
   // the sign-in guard was armed: wake up when it ends, so that what it held is done then and not at the next quarter-hour sweep
   if (ch.guardUntil && ch.guardUntil.newValue > Date.now()) chrome.alarms.create('unguard', { when: ch.guardUntil.newValue + 1000 });
