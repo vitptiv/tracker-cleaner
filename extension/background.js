@@ -480,7 +480,8 @@ async function stopTracker(site, keep) {
   if (!keep) for (const c of await allCookies()) if (under(bare(c.domain), site) && !KEEP_RE.test(c.name) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
   await logged(gone, 'removed');
   // a saved copy can carry the ID and bring it back: the saved copies go with the stop
-  if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {}
+  // (clearing them for the tracker's addresses alone was tried in a real Chrome: it leaves the compiled copy of its script and the remembered server)
+  await copiesNow(cx); chrome.alarms.create('copies', { when: Date.now() + 60e3 });   // once more a minute later: pages still open may have saved new ones
   return true;
 }
 // "Let it through again": the block goes, and it is not offered again for a while
@@ -641,6 +642,11 @@ async function copiesOf(hosts, cx) {
   try { await chrome.browsingData.remove({ origins: due.flatMap((h) => [`https://${h}`, `http://${h}`]) }, { cache: true }); } catch {}
 }
 const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
+const copiesNow = async (cx) => { if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
+// a minute after a stop, and when Chrome starts while a tracker is stopped
+const copiesAgain = async () => { await ready; const cx = await context(); if ((cx.set.stopped || []).length) await copiesNow(cx); };
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'copies') copiesAgain(); });
+chrome.runtime.onStartup.addListener(copiesAgain);
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
   if (v === 'no' || cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};

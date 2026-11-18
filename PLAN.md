@@ -759,3 +759,7 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   B 8 / 9, C 7 / 7: the fresh install now equals B0; B0 itself did not move, its ten are saved after the stop (T17,
   T20), need the history permission (T18, T19), sit on the tracker's own open page (T22, T31) or never pass a point
   an extension sees (T27, T30, T32, T33). Not updated yet: TESTING.md steps 2 and 3 still describe "Turn on".
+- S2a saved copies made after a stop (T17, T20): cleared once more a minute after the stop (alarm `copies`) and when
+  Chrome starts while a tracker is stopped. Tried in a real Chrome: clearing for the tracker's addresses alone
+  (`browsingData.remove` with `origins`) removes its saved file but leaves the compiled copy of its script and the
+  remembered server, so these clearings are of all saved copies.
