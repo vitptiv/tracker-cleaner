@@ -82,4 +82,17 @@ function stripNav(url, toks = [], returnParams = RETURN_PARAMS) {
   }
   return changed ? u.toString() : null;
 }
-if (typeof module !== 'undefined') module.exports = { XID_MIN, XID_MAX, idTokens, idValue, fnv1a, tokHash, pathPrefix, reEsc, blockRe, stripRes, applyStrip, xidRules, RETURN_PARAMS, stripNav, etagRe };
+// ---- N2 (1.28): what the Set-Cookie headers of one answer set. Per cookie: its name, the Domain it names ('' = for the
+// answering host alone) and the two flags a sign-in cookie carries. NEVER the value: it is not read past the name.
+// A name longer than XSET_NAME, or with a space or a control character in it, is left out.
+const XSET_NAME = 100;
+function setCookies(headers) {
+  const out = [];
+  for (const h of Array.isArray(headers) ? headers : []) { if (!h || String(h.name).toLowerCase() !== 'set-cookie' || typeof h.value !== 'string') continue;
+    for (const line of h.value.split('\n')) { const parts = line.split(';'), eq = parts[0].indexOf('='), name = eq > 0 ? parts[0].slice(0, eq).trim() : '';
+      if (!name || name.length > XSET_NAME || !/^[\x21-\x7e]+$/.test(name)) continue;
+      const attrs = parts.slice(1).map((a) => a.trim().toLowerCase()), dom = attrs.filter((a) => a.startsWith('domain=')).pop() || '';   // the last Domain counts, as in the browser
+      out.push({ name, domain: dom.slice(7).trim().replace(/^\./, ''), httpOnly: attrs.includes('httponly'), secure: attrs.includes('secure') }); } }
+  return out;
+}
+if (typeof module !== 'undefined') module.exports = { XID_MIN, XID_MAX, idTokens, idValue, fnv1a, tokHash, pathPrefix, reEsc, blockRe, stripRes, applyStrip, xidRules, RETURN_PARAMS, stripNav, etagRe, XSET_NAME, setCookies };

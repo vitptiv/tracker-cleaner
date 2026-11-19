@@ -497,11 +497,12 @@ async function sweepOnce(cause) {
   const xid = await xidSweep(cx);
   if (xid.changed) await applyFeatures();   // a newly confirmed cross-site id: install (or lift) its block and strip rules now (M2)
   const xidC = await xidClean(cx, all);     // delete a cookie whose value carries a confirmed cross-site id (M2)
+  const xidS = await xidSetClean(cx, all);  // delete the cookies a confirmed first-party collector path was seen setting (N2)
   // M6: first-party address/referrer collection the cleaner cannot stop without breaking the site -- reported honestly
   const cannot = mayRun('C33', cx.set) === 'no' ? 0 : Object.keys((await chrome.storage.session.get('xcannot')).xcannot || {}).length;
   const now = new Set(wait.map(queueKey));
   await queueUp(wait, (it) => now.has(queueKey(it)));
-  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...(xid.crossIds ? { crossIds: xid.crossIds } : {}), ...xidC, ...(cannot ? { cannotStop: cannot, cannotNote: "cannot stop (the site's own server)" } : {}) });
+  await report({ reason: cause, scanned: all.length, removed, kept, ...rest, ...(xid.crossIds ? { crossIds: xid.crossIds } : {}), ...xidC, ...xidS, ...(cannot ? { cannotStop: cannot, cannotNote: "cannot stop (the site's own server)" } : {}) });
 }
 
 // ---- Trackers on no list (C25, learn.js). Every request a page makes to another company is counted, privately: on
@@ -763,13 +764,15 @@ async function xidSweep(cx) {
 // The dynamic rules C33 installs for the confirmed cross-site ids (read by applyOnce). Behind the master switch and
 // held while paused or a sign-in is going on (`can`). Vets the collector endpoints: never a sign-in host or company,
 // and never a site the user turned off. Caps mirror the detector: at most 50 tokens, their endpoints de-duplicated.
+// never a sign-in host or company, never a site the user turned off (shared by the rules and by N2's cookie delete)
+const xidOkHost = (cx) => { const off = (cx.set.sitesOff || []).filter(isHost);
+  return (host) => { const bareHost = host.replace(/:\d+$/, ''), site = siteOf(bareHost);
+    return !signInCompany(site) && !SIGNIN_HOSTS.some((h) => under(bareHost, h)) && !off.some((o) => under(bareHost, o)); }; };
 async function xidActRules(cx) {
   if (!can('C33', cx)) return [];
   const { xsid = {} } = await chrome.storage.session.get('xsid');
   const vals = Object.values(xsid); if (!vals.length) return [];
-  const off = (cx.set.sitesOff || []).filter(isHost);
-  const okHost = (host) => { const bareHost = host.replace(/:\d+$/, ''), site = siteOf(bareHost);
-    return !signInCompany(site) && !SIGNIN_HOSTS.some((h) => under(bareHost, h)) && !off.some((o) => under(bareHost, o)); };
+  const off = (cx.set.sitesOff || []).filter(isHost), okHost = xidOkHost(cx);
   const eps = [...new Set(vals.flatMap((e) => e.eps))].filter((ep) => okHost(ep.split('/')[0])).slice(0, 60);
   const toks = [...new Set(vals.map((e) => e.raw))].slice(0, 50);
   const etags = [...new Set(vals.flatMap((e) => e.etag || []))].filter((r) => okHost(r.split('/')[0])).slice(0, 40);   // M5
@@ -789,17 +792,77 @@ async function xidClean(cx, all) {
   // always-delete); deletions go to the 10-minute undo buffer.
   const cols = new Set(vals.flatMap((e) => e.eps).map((ep) => siteOf(ep.split('/')[0].replace(/:\d+$/, ''))));
   if (!cols.size) return {};
-  const on = (list, c) => (list || []).some((a) => a.site === bare(c.domain) && a.name === c.name);
-  const stays = (c) => !on(cx.set.always, c) && (KEEP_RE.test(c.name) || on(cx.set.allow, c));
   const gone = [];
-  for (const c of all) { if (signinLike(c) || stays(c) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s))) continue;
+  for (const c of all) { if (xidSpares(cx, c)) continue;
     if (!cols.has(siteOf(realHost(c.domain)))) continue;
     if (toks.some((t) => String(c.value).includes(t)) && await remove(c)) gone.push({ cap: 'C33', kind: 'cookie', site: bare(c.domain), name: c.name, why: 'a cross-site code' }); }
   await logged(gone, 'removed');
   return gone.length ? { crossIdCookies: gone.length } : {};
 }
+// ---- N2 (1.28, C33): the first-party ID cookie that a confirmed collector path SET. A site's own reverse-proxy
+// collector answers with Set-Cookie under the visited site's own name; M2/M8 block the path, but the cookie stayed and
+// went on being sent to the site. So: (a) noteSetCookie keeps, per endpoint (host + path prefix, the detector's own key),
+// the NAMES of the cookies a first-party sub-resource answer sets -- chrome.storage.session { xset: { '<host/prefix>':
+// { t, names: [[name, domain]] } } }, memory only; never a value, never storage.local, the log, the queue or a report.
+// `domain` is the Domain the cookie named ('' = the answering host alone), so the delete is exact. Not noted: a page
+// address (main_frame), an answer from another company (the M8 rule: siteOf(host) === the tab's site), a sign-in address
+// or company, the bare root, and any cookie that looks like a sign-in when it is set (a KEEP_RE name, or HttpOnly and
+// Secure). Capped: XSET_NAMES per endpoint, XSET_SITE endpoints per site, XSET_EPS in all (the oldest go). (b) At the
+// sweep, once such an endpoint is in a confirmed entry's first-party `eps`, exactly the cookies it was seen setting are
+// deleted there, through remove() (10 minutes of Undo), each logged with one line; the endpoint's note is used up by
+// that one pass, so the same name set later by something else is left alone (the collector path itself is blocked; if
+// it is seen setting the cookie again, it is noted again). Never: a sign-in cookie, a cookie the user
+// keeps, a site that is switched off, a sign-in company, a site whose sign-in page holds deleting, a partitioned
+// cookie. (c) All of it behind can('C33'): main switch, the row's mode, pause.
+const XSET_EPS = 50, XSET_SITE = 5, XSET_NAMES = 10;
+const rootEp = (ep) => { const i = ep.indexOf('/'); return i < 0 || ep.slice(i) === '/'; };   // the bare site root: never acted on (M8)
+// what no C33 cookie delete touches: a sign-in cookie, a cookie the user keeps (allow, unless always-delete), a site switched off
+const xidSpares = (cx, c) => { const on = (list) => (list || []).some((a) => a.site === bare(c.domain) && a.name === c.name);
+  return signinLike(c) || (!on(cx.set.always) && (KEEP_RE.test(c.name) || on(cx.set.allow))) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s)); };
+async function noteSetCookie(d) {
+  if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
+  let u; try { u = new URL(d.url); } catch { return; }
+  if (!/^https?:$/.test(u.protocol) || isSignIn(d.url)) return;
+  const host = u.hostname.toLowerCase(), ep = (u.host + pathPrefix(u.pathname)).toLowerCase();
+  if (rootEp(ep)) return;
+  // a Domain must be the answering host or a name above it inside the same site (anything else the browser refuses)
+  const set = setCookies(d.responseHeaders).filter((c) => !KEEP_RE.test(c.name) && !(c.httpOnly && c.secure) && (!c.domain || (isHost(c.domain) && under(host, c.domain) && siteOf(c.domain) === siteOf(host))));
+  if (!set.length) return;
+  const page = await topSite(d);
+  if (!page || siteOf(host) !== page || signInCompany(page)) return;   // first-party to the page in the tab only
+  await ready;
+  if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
+  await serial(async () => { const xset = (await chrome.storage.session.get('xset')).xset || {}, had = (xset[ep] || {}).names || [], names = had.slice();
+    for (const c of set) if (names.length < XSET_NAMES && !names.some((x) => x[0] === c.name && x[1] === c.domain)) names.push([c.name, c.domain]);
+    if (names.length === had.length) return;
+    delete xset[ep];
+    const oldest = (keys) => keys.sort((a, b) => xset[a].t - xset[b].t)[0], ofSite = () => Object.keys(xset).filter((k) => siteOf(k.split('/')[0]) === page);
+    while (ofSite().length >= XSET_SITE) delete xset[oldest(ofSite())];
+    while (Object.keys(xset).length >= XSET_EPS) delete xset[oldest(Object.keys(xset))];
+    xset[ep] = { t: Date.now(), names };
+    await chrome.storage.session.set({ xset }); });
+}
+async function xidSetClean(cx, all) {
+  if (!can('C33', cx)) return {};
+  const okHost = xidOkHost(cx), eps = [...new Set(Object.values((await chrome.storage.session.get('xsid')).xsid || {}).flatMap((e) => e.eps))].filter((ep) => !rootEp(ep) && okHost(ep.split('/')[0]));
+  if (!eps.length) return {};
+  const { xset = {} } = await chrome.storage.session.get('xset'), gone = [], used = [];
+  for (const ep of eps) { const host = ep.split('/')[0].replace(/:\d+$/, '');
+    if (!xset[ep] || guarded(cx, siteOf(host))) continue;
+    used.push(ep);   // acted on once: whatever is spared or already gone now is not come back for
+    for (const [name, dom] of xset[ep].names) for (const c of all) {
+      // exactly where it was set: for the answering host alone, or for the Domain it named
+      if (c.name !== name || c.partitionKey || (dom ? c.hostOnly !== false || bare(c.domain) !== dom : c.hostOnly !== true || bare(c.domain) !== host)) continue;
+      if (xidSpares(cx, c) || !(await remove(c))) continue;
+      gone.push({ cap: 'C33', kind: 'cookie', site: bare(c.domain), name: c.name, why: 'set by a cross-site collector' }); } }
+  if (used.length) await serial(async () => { const now = (await chrome.storage.session.get('xset')).xset || {};
+    for (const ep of used) delete now[ep];
+    await chrome.storage.session.set({ xset: now }); });
+  await logged(gone, 'removed');
+  return gone.length ? { collectorCookies: gone.length } : {};
+}
 try { chrome.webRequest.onBeforeRequest.addListener((d) => { noteRequest(d); noteSent(d); noteOwnCollect(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
-try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); noteEtag(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
+try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); noteEtag(d); noteSetCookie(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
 // M3 (1.26, C33): strip a confirmed cross-site id from an in-page history pushState/replaceState
 // (onHistoryStateUpdated) -- the one hand-off the DNR strip rules (M2) cannot see, because changing the address in
 // script fires no request. The DNR rules already strip the id from EVERY network navigation (a link, a scripted

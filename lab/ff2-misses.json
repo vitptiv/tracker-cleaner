@@ -1,17 +1,17 @@
 {
- "what": "Friendface 2 against Tracker Cleaner v1.26 with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.",
+ "what": "Friendface 2 against Tracker Cleaner (the version is under \"extension\") with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.",
  "extension": "1.28",
- "browser": "ff2m-1a1f182ddce125ba8",
+ "browser": "ff2m-1a1f19144fa8f1515",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
   "atlas.localhost"
  ],
  "joinedOnFirstContact": 10,
- "stoppedGoingForward": 5,
- "survives": 5,
+ "stoppedGoingForward": 6,
+ "survives": 4,
  "of": 10,
- "headline": "10/10 kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops 5/10 (collector path blocked, incl. the ETag image under /f/) and 5/10 survive (first-party server-side F4/F5, per-site cookie F1, sign-in F7, hand-off chain F3).",
+ "headline": "10/10 kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops 6/10 (collector path blocked, incl. the ETag image under /f/; the per-site cookie F1 that the collector path set is deleted) and 4/10 survive (F3, F4, F5, F7: first-party server-side F4/F5, sign-in F7, hand-off chain F3).",
  "collectorBlocked": true,
  "crossIdConfirmed": 1,
  "nothingLearned": true,
@@ -25,9 +25,9 @@
   "keyEqualsBaselineShieldOff": true,
   "keyEqualsBaselineShieldOn": false,
   "shieldOnCodes": {
-   "ledger": "fp2-a07a83e6",
-   "sundial": "fp2-1a00d506",
-   "atlas": "fp2-a2ee1dce"
+   "ledger": "fp2-72534515",
+   "sundial": "fp2-bdbf5c26",
+   "atlas": "fp2-46659c06"
   },
   "readPixels": {
    "shieldOff": {
@@ -35,7 +35,7 @@
     "perturbed": false
    },
    "shieldOn": {
-    "hash": "fc31398f",
+    "hash": "829fab03",
     "perturbed": true
    },
    "baseline": "bd825545"
@@ -47,11 +47,44 @@
    "spoofedWithShieldOn": true
   }
  },
+ "f1": {
+  "cookiesBefore": [
+   "atlas.localhost",
+   "ledger.localhost",
+   "sundial.localhost"
+  ],
+  "cookiesRightAfter": [
+   "ledger.localhost"
+  ],
+  "cookiesAfterWait": [],
+  "waitedSeconds": 296,
+  "serverSees": {
+   "ledger": {
+    "browser": "",
+    "kindsTied": 0
+   },
+   "sundial": {
+    "browser": "",
+    "kindsTied": 0
+   },
+   "atlas": {
+    "browser": "",
+    "kindsTied": 0
+   }
+  },
+  "cookiesAfterRevisit": [],
+  "newRecordsAfterRestore": 0,
+  "logged": [
+   "atlas.localhost fp_id",
+   "ledger.localhost fp_id",
+   "sundial.localhost fp_id"
+  ]
+ },
  "caveats": [
   "Lab-only: loopback, made-up names, fake accounts; nothing leaves the machine.",
   "A value-based cross-site detector is reactive: the collector gets the id on first contact, before two sites reveal it is cross-site, so the initial join is not preventable; the cleaner stops every FURTHER send by blocking the exact collector path (never the site root) and stripping the id from request URLs and links.",
   "F4/F5 and F8-to-the-site's-own-server are first-party server-side; they cannot be stopped without breaking the site, so they are marked \"cannot\", not blocked.",
-  "F1 is a per-site first-party cookie (not cross-site) and F7 a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is per-site here, not a confirmed cross-site value. F10 (ETag) is per-site here and its image /f/px.gif is under the blocked /f/ path, so it is stopped going forward; M5 additionally strips the If-None-Match conditional for a cross-site ETag id on a resource that is not otherwise blocked (not exercised by ff2, whose ETag is per-site).",
+  "F1 (N2, 1.28): the per-site cookie fp_id is not a cross-site value itself, but it was SET by the path that is confirmed as a first-party collector of one, so it is deleted there (names noted in memory only; undoable for 10 minutes; never a sign-in cookie). Measured from the browser's cookies and from what the frozen ff2 server receives afterwards (see f1). F7 is a sign-in cookie: left alone on purpose. F3 (the hand-off chain) is per-site here, not a confirmed cross-site value. F10 (ETag) is per-site here and its image /f/px.gif is under the blocked /f/ path, so it is stopped going forward; M5 additionally strips the If-None-Match conditional for a cross-site ETag id on a resource that is not otherwise blocked (not exercised by ff2, whose ETag is per-site).",
   "The shield (C32) is ON by default from 1.26 (M4). It now blurs the font-measure widths and screen size (not only canvas/WebGL/audio), so the F6 join key -- built from fonts and matchMedia/screen -- no longer matches across the three sites or the cleaner-off baseline when the shield is on. matchMedia and the pixel ratio are left alone (a page needs them), so it is best effort, detectable, not perfect. The collector-path block (C33) already stops the code reaching the collector as well."
  ],
  "rows": [
@@ -59,8 +92,8 @@
    "id": "F1",
    "type": "First-party reverse-proxy ID",
    "joinedOnFirstContact": true,
-   "stoppedGoingForward": false,
-   "why": "survives: a per-site first-party cookie (fp_id), not a cross-site value: a visited site's own cookie is left alone"
+   "stoppedGoingForward": true,
+   "why": "stopped going forward: the cookie fp_id that the confirmed collector path /f/ set was deleted on all three sites (atlas.localhost fp_id, ledger.localhost fp_id, sundial.localhost fp_id; each can be put back for 10 minutes), the site's own server no longer receives it (its \"What I know\" finds no browser on any of the three sites), and /f/ is blocked so it is not set again. Ledger's went 296 s after the counter-repair was restored: deleting was held for that site for five minutes after its sign-in page (step 8)"
   },
   {
    "id": "F2",
