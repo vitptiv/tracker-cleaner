@@ -412,7 +412,7 @@ const YT_JS = { id: 'yt-adfree', matches: ['*://*.youtube.com/*'], js: ['yt-adfr
 const NO_PING = { id: 'no-ping', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['no-ping.js'], runAt: 'document_start', allFrames: true };
 // Known passing sites are skipped (S2c): skip.js changes a pressed link to the address it names; never on the sign-in hosts
 const SKIP = { id: 'skip', matches: ['http://*/*', 'https://*/*'], excludeMatches: SIGNIN_HOSTS.map((h) => `*://${h}/*`), js: ['guard.js', 'learn.js', 'skip.js'], runAt: 'document_start', allFrames: true };
-// Page shield (S7, J5; experimental, off unless switched on): shield.js alone, in the page's own world. It takes no message,
+// Page shield (S7, J5; ON by default since M4, C32 mode 'auto'): shield.js alone, in the page's own world. It takes no message,
 // so the only switch is whether it is put into a page: never on the sign-in hosts or on a site cleaning is switched off
 // for, and into no new page while paused or while a sign-in holds everything.
 const SHIELD = (off) => ({ id: 'shield', js: ['shield.js'], world: 'MAIN', matches: ['http://*/*', 'https://*/*'], runAt: 'document_start', allFrames: true, matchOriginAsFallback: true,
@@ -658,10 +658,12 @@ async function noteAnswer(d) {
 // by two or more DIFFERENT registrable sites the user actually visited is a cross-site tracking id, whoever serves it.
 // This catches a first-party reverse-proxy collector that carries one id across sites with no third-party signal: the
 // cleaner reacts to the VALUE, not the host. What it observes is kept in chrome.storage.session (memory), never in
-// storage.local, the log, the queue or a report: xseen { tokHash: { raw, sites: { siteHash }, eps: { 'host/prefix' },
-// t } } and, once confirmed, xsid { tokHash: { raw, eps: [...], n } }. A value counts for a site only where the cleaner
-// saw that site's OWN page send it -- a sub-resource it asked for, never the address bar -- so a value an attacker
-// merely reflects into a victim's address is not attributed to the victim; and both sites must be in `mine`. The token
+// storage.local, the log, the queue or a report: xseen { tokHash: { raw, sites: { siteHash }, eps: { 'host/prefix': fp },
+// t } } and, once confirmed, xsid { tokHash: { raw, eps: [first-party only], n } }. A value counts for a site only where
+// the cleaner saw that site's OWN page send it -- a sub-resource it asked for, never the address bar -- so a value an
+// attacker merely reflects into a victim's address is not attributed to the victim; and both sites must be in `mine`.
+// M8: an endpoint is actionable (blocked) only where it is FIRST-PARTY to a sending site (eps[ep] === true); a value
+// being cross-site never entitles the cleaner to block an unrelated host it was merely sent to. The token
 // hash uses a per-session salt kept beside xseen so the hashes stay stable while the worker sleeps. Caps: at most
 // XSEEN_MAX tokens tracked, XNEW_HOUR new per visited site per hour; a value seen 3 s after a scripted hand-off still
 // counts, because there is no timing gate. M1 only detects and reports; stripping and blocking are C33's job (M2).
@@ -671,17 +673,22 @@ async function xidSalt() { let { xsalt } = await chrome.storage.session.get('xsa
   return xsalt; }
 // Record id-like tokens a page sent (or that rode its ETag): the site that sent each, the endpoint it went to, and -- for
 // an ETag (M5) -- the exact resource. Per-page hourly cap of new tokens; at most XSEEN_MAX tracked.
-async function xidObserve(page, toks, ep, etagRes) {
+// `fp` (first-party): the endpoint/ETag resource is served under the SENDING site's own name. Only first-party endpoints
+// are ever blocked (M8): a value being cross-site does not entitle the cleaner to block an UNRELATED host it was merely
+// sent to -- that would let a script on two of the user's sites block any endpoint it chooses. A first-party collector
+// (Friendface 2) is exactly the case the structural rules cannot reach, so that is the one C33 acts on.
+async function xidObserve(page, toks, ep, fp, etagRes) {
   const salt = await saltNow(), xs = await xidSalt(), siteHash = mark(`${salt} ${page}`);
+  const setFp = (map, key) => { if (!(key in map)) { map[key] = !!fp; return true; } if (fp && map[key] !== true) { map[key] = true; return true; } return false; };
   await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, now = Date.now(); let changed = false;
     for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k];
-      if (e) { if (!e.sites[siteHash]) { e.sites[siteHash] = true; changed = true; } if (ep && !e.eps[ep]) { e.eps[ep] = true; changed = true; }
-        if (etagRes) { if (!e.etag) e.etag = {}; if (!e.etag[etagRes]) { e.etag[etagRes] = true; changed = true; } } e.t = now; continue; }
+      if (e) { if (!e.sites[siteHash]) { e.sites[siteHash] = true; changed = true; } if (ep && setFp(e.eps, ep)) changed = true;
+        if (etagRes) { if (!e.etag) e.etag = {}; if (setFp(e.etag, etagRes)) changed = true; } e.t = now; continue; }
       // a token new to this worker: it costs the site one of its XNEW_HOUR new tokens an hour, and at most XSEEN_MAX are kept
       const c = xnew.get(page); if (xnew.size > 500) xnew.clear();
       if (!c || c.t < now - 3600e3) xnew.set(page, { t: now, n: 1 }); else if (++c.n > XNEW_HOUR) continue;
       const ks = Object.keys(xseen); if (ks.length >= XSEEN_MAX) delete xseen[ks.sort((a, b) => xseen[a].t - xseen[b].t)[0]];
-      xseen[k] = { raw: tok, sites: { [siteHash]: true }, eps: ep ? { [ep]: true } : {}, ...(etagRes ? { etag: { [etagRes]: true } } : {}), t: now }; changed = true; }
+      xseen[k] = { raw: tok, sites: { [siteHash]: true }, eps: ep ? { [ep]: !!fp } : {}, ...(etagRes ? { etag: { [etagRes]: !!fp } } : {}), t: now }; changed = true; }
     if (changed) await chrome.storage.session.set({ xseen }); });
 }
 async function noteSent(d) {
@@ -693,7 +700,7 @@ async function noteSent(d) {
   await ready;
   if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
   const toks = idTokens(safeDecode(d.url) + ' ' + bodyText(d.requestBody));
-  if (toks.length) await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase());
+  if (toks.length) await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase(), siteOf(u.hostname) === page);
 }
 // M5 (F10): an ETag carries an id the browser echoes back as If-None-Match on revalidation. Feed its id-like tokens into
 // the same detector (so an ETag reused across sites is caught) and remember the exact resource, so that once the token is
@@ -709,7 +716,7 @@ async function noteEtag(d) {
   if (!page) return;
   await ready;
   if (mayRun('C33', await chrome.storage.local.get(['master', 'modes'])) === 'no') return;
-  await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase(), (u.host + u.pathname).toLowerCase());
+  await xidObserve(page, toks, (u.host + pathPrefix(u.pathname)).toLowerCase(), siteOf(u.hostname) === page, (u.host + u.pathname).toLowerCase());
 }
 // M6 (F8): first-party address/referrer collection -- the page posting its own URL (and referrer) to its OWN server.
 // This cannot be blocked without breaking the site, and no other company is involved, so the cleaner does NOT fake a
@@ -745,7 +752,10 @@ async function xidSweep(cx) {
   await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, was = (await chrome.storage.session.get('xsid')).xsid || {}, xsid = {};
     const ours = (h) => (cx.set.mine || []).includes(h) || (cx.set.mineShared || []).includes(h);
     for (const [k, e] of Object.entries(xseen)) { const sites = Object.keys(e.sites).filter(ours);
-      if (sites.length >= 2) xsid[k] = { raw: e.raw, eps: Object.keys(e.eps), ...(e.etag ? { etag: Object.keys(e.etag) } : {}), n: sites.length }; }
+      // Only FIRST-PARTY endpoints/ETags are actionable (M8): a cross-site value may be blocked/stripped at a collector
+      // only where it is served under a site's own name, never at an unrelated host it was merely sent to.
+      if (sites.length >= 2) { const eps = Object.keys(e.eps).filter((x) => e.eps[x] === true), etag = e.etag ? Object.keys(e.etag).filter((x) => e.etag[x] === true) : [];
+        xsid[k] = { raw: e.raw, eps, ...(etag.length ? { etag } : {}), n: sites.length }; } }
     n = Object.keys(xsid).length; changed = JSON.stringify(xsid) !== JSON.stringify(was);
     if (changed) await chrome.storage.session.set({ xsid }); });
   return { ...(n ? { crossIds: n } : {}), changed };
@@ -771,10 +781,19 @@ async function xidActRules(cx) {
 // says so where that is all that remains.
 async function xidClean(cx, all) {
   if (!can('C33', cx)) return {};
-  const toks = Object.values((await chrome.storage.session.get('xsid')).xsid || {}).map((e) => e.raw);
+  const vals = Object.values((await chrome.storage.session.get('xsid')).xsid || {}), toks = vals.map((e) => e.raw);
   if (!toks.length) return {};
+  // Only on a site that is itself a confirmed FIRST-PARTY collector -- its own name serves a blocked endpoint (M8). A
+  // cross-site value turning up inside an unrelated site's cookie (a shared build hash, a coincidence) is never grounds
+  // to delete that cookie. Never a sign-in cookie, a site the user turned off, or a cookie the user keeps (allow, unless
+  // always-delete); deletions go to the 10-minute undo buffer.
+  const cols = new Set(vals.flatMap((e) => e.eps).map((ep) => siteOf(ep.split('/')[0].replace(/:\d+$/, ''))));
+  if (!cols.size) return {};
+  const on = (list, c) => (list || []).some((a) => a.site === bare(c.domain) && a.name === c.name);
+  const stays = (c) => !on(cx.set.always, c) && (KEEP_RE.test(c.name) || on(cx.set.allow, c));
   const gone = [];
-  for (const c of all) { if (signinLike(c) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s))) continue;
+  for (const c of all) { if (signinLike(c) || stays(c) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s))) continue;
+    if (!cols.has(siteOf(realHost(c.domain)))) continue;
     if (toks.some((t) => String(c.value).includes(t)) && await remove(c)) gone.push({ cap: 'C33', kind: 'cookie', site: bare(c.domain), name: c.name, why: 'a cross-site code' }); }
   await logged(gone, 'removed');
   return gone.length ? { crossIdCookies: gone.length } : {};

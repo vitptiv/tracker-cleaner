@@ -42,10 +42,22 @@ test('xidRules builds a priority-2 collector block and priority-1 URL-strip rule
   const rules = xidRules({ eps: ['col.example:8300/f/'], toks: [T], block: 102000, strip: 102400, signin: ['accounts.google.com'], off: ['mine.example'], blockTypes: ['image'], stripTypes: ['main_frame'] });
   const block = rules.find((r) => r.action.type === 'block'), strips = rules.filter((r) => r.action.type === 'redirect');
   assert.equal(block.id, 102000); assert.equal(block.priority, 2);
-  assert.match(block.condition.regexFilter, /col\\\.example:8300\/f\//); assert.deepEqual(block.condition.excludedInitiatorDomains, ['accounts.google.com']);
+  assert.match(block.condition.regexFilter, /col\\\.example:8300\/f\//);
+  // M8: an off-site is excluded as INITIATOR too (not only as the request host), so turning a site off fully lifts C33
+  // for that site's own outbound requests, and sign-in hosts are never cut.
+  assert.deepEqual(block.condition.excludedInitiatorDomains, ['accounts.google.com', 'mine.example']);
   assert.deepEqual(block.condition.excludedRequestDomains, ['mine.example']);
   assert.equal(strips.length, 3); assert.ok(strips.every((r) => r.priority === 1 && r.condition.excludedRequestDomains.includes('accounts.google.com') && r.condition.excludedRequestDomains.includes('mine.example')));
+  assert.ok(strips.every((r) => r.condition.excludedInitiatorDomains.includes('accounts.google.com') && r.condition.excludedInitiatorDomains.includes('mine.example')));
   assert.ok(strips.every((r) => r.condition.regexFilter.includes('xq7m2k9p4w1z8c3v')));
+});
+// M8: a bare-root endpoint is NEVER turned into a block rule (blocking '/' would take down the whole site)
+test('xidRules never blocks a bare site root', () => {
+  const rules = xidRules({ eps: ['victim.example/', 'col.example/f/'], toks: [], block: 1000, strip: 2000 });
+  const blocks = rules.filter((r) => r.action.type === 'block');
+  assert.equal(blocks.length, 1, 'only the real collector path, never the bare root');
+  assert.match(blocks[0].condition.regexFilter, /col\\\.example\/f\//);
+  assert.ok(!blocks.some((r) => /victim\\\.example\/\$|victim\\\.example\/[^a-z]/.test(r.condition.regexFilter)));
 });
 test('blockRe matches the collector path but not the site root', () => {
   const re = new RegExp(blockRe('col.example', '/f/'));

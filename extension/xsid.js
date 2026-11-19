@@ -2,9 +2,10 @@
 // Cross-site identifier detection (1.26, M1). Orthogonal to first/third party: a high-entropy VALUE that the cleaner
 // sees SENT by two or more different registrable sites the user actually visited is a cross-site tracking id, whoever
 // serves it. This catches a first-party reverse-proxy collector (Friendface 2) that carries one id across sites, with
-// no third-party signal. Pure helpers; the worker keeps the state in chrome.storage.session and never writes a raw
-// value to disk -- the mass of observed values is kept as salted hashes, and a raw value is held only once a token is
-// confirmed a cross-site id (needed to strip and block it), in memory.
+// no third-party signal. Pure helpers; the worker keeps the state in chrome.storage.session (in-memory, cleared on
+// restart) and never writes a raw value to disk, the log, the queue or a report. An observed value is kept there in the
+// clear -- the raw bytes are needed to strip and block the id later, and a one-way hash could not be reversed for that
+// -- keyed by a per-session salted hash; nothing is persisted and nothing is sent anywhere.
 const XID_MIN = 12, XID_MAX = 256;
 // the id-like tokens in a text (a request's decoded URL query + path, or its body): a long, high-entropy run of
 // url-safe characters -- letters and digits, or long hex -- not a date, a plain number or a dictionary word.
@@ -52,14 +53,16 @@ const nz = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => !Array.
 // M5: match one EXACT resource (host + full path) whose ETag carried a confirmed cross-site id.
 const etagRe = (res) => { const i = res.indexOf('/'), host = i < 0 ? res : res.slice(0, i), path = i < 0 ? '/' : res.slice(i); return `^https?://([^/?#@]*@)?${reEsc(host)}${reEsc(path)}([?#]|$)`; };
 function xidRules({ eps = [], toks = [], etags = [], block, strip, etag, signin = [], off = [], blockTypes, stripTypes }) {
-  const rules = []; let b = block, s = strip, g = etag;
-  for (const ep of eps) { const i = ep.indexOf('/'); if (i < 0) continue;
-    rules.push({ id: b++, priority: 2, action: { type: 'block' }, condition: nz({ regexFilter: blockRe(ep.slice(0, i), ep.slice(i)), excludedInitiatorDomains: signin, excludedRequestDomains: off, resourceTypes: blockTypes }) }); }
+  const rules = []; let b = block, s = strip, g = etag, inOff = signin.concat(off);
+  // Never the bare site root: an endpoint whose path prefix is '/' (a top-level POST with no directory) is
+  // indistinguishable from the site itself, so it is not blocked -- the URL strip and the cookie delete still act on it.
+  for (const ep of eps) { const i = ep.indexOf('/'); if (i < 0 || ep.slice(i) === '/') continue;
+    rules.push({ id: b++, priority: 2, action: { type: 'block' }, condition: nz({ regexFilter: blockRe(ep.slice(0, i), ep.slice(i)), excludedInitiatorDomains: inOff, excludedRequestDomains: off, resourceTypes: blockTypes }) }); }
   for (const tok of toks) for (const [rf, sub] of stripRes(reEsc(tok)))
-    rules.push({ id: s++, priority: 1, action: { type: 'redirect', redirect: { regexSubstitution: sub } }, condition: nz({ regexFilter: rf, excludedInitiatorDomains: signin, excludedRequestDomains: signin.concat(off), resourceTypes: stripTypes }) });
+    rules.push({ id: s++, priority: 1, action: { type: 'redirect', redirect: { regexSubstitution: sub } }, condition: nz({ regexFilter: rf, excludedInitiatorDomains: inOff, excludedRequestDomains: inOff, resourceTypes: stripTypes }) });
   // M5: strip the conditional request headers for the id-bearing resource only, so caching for every other resource stays
   for (const res of etags) rules.push({ id: g++, priority: 1, action: { type: 'modifyHeaders', requestHeaders: [{ header: 'if-none-match', operation: 'remove' }, { header: 'if-modified-since', operation: 'remove' }] },
-    condition: nz({ regexFilter: etagRe(res), excludedInitiatorDomains: signin, excludedRequestDomains: signin.concat(off), resourceTypes: blockTypes }) });
+    condition: nz({ regexFilter: etagRe(res), excludedInitiatorDomains: inOff, excludedRequestDomains: inOff, resourceTypes: blockTypes }) });
   return rules;
 }
 // ---- M3 (1.26): strip a confirmed cross-site id from a navigation URL (a scripted or meta hand-off, or a pushState),

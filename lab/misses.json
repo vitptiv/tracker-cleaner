@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Three counts, of the 35 kinds built (one of 36, T34, is not built in the lab): arrived = it arrived at all, also tied to nobody. ever = it arrived, tied to her (in Q and C: after the answers or the cleaning, on the second look). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is A (the fresh install, no press) and Q (the same with every question answered yes).",
- "headline": "A (fresh install, nothing changed), of the 35 kinds built: 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 7 at the end; 9 tied to her after the answers; 25 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
+ "headline": "A (fresh install, nothing changed), of the 35 kinds built: 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 6 at the end; 8 tied to her after the answers; 24 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 22 at the end; 24 arrived and tied to her; 27 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
  "caveats": [
   "Nothing is cut short in the measurement any more: there is no hold on everything (L4). The lab's own \"Sign in with\" page holds deleting for the network's own site for five minutes, as it would for a user.",
   "A is the fresh install with no press; Q is the same with every question the extension asks answered yes; since L1 a company on no list is not even blocked without such a press.",
@@ -567,7 +567,7 @@
       "tidewater.localhost"
      ],
      "via": [
-      "canvas d7567de0, graphics de1a1cf2, audio f40cbe0c, fonts bd8a2c56, traits 800,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 8b53d7cb, graphics de1a1cf2, audio c3e88a31, fonts bd8a2c56, traits 802,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 11,
      "atEnd": true,
@@ -782,7 +782,7 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 14,
+    "removed": 12,
     "waiting": {},
     "blockRuleMatches": 0,
     "tagRuleMatches": 0,
@@ -972,21 +972,15 @@
      "ever": false
     },
     "T17": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "this Chrome profile"
-     ],
-     "via": [
-      "checked from outside, in Chrome's own files"
-     ],
-     "lastStep": 8,
-     "atEnd": true,
-     "duringTrip": "tracked",
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "duringTrip": "stopped",
      "sameIdAfterCleaning": false,
-     "ever": true,
-     "cause": "re-created after cleaning (new ID)"
+     "ever": false
     },
     "T18": {
      "status": "kept on purpose: your own history, readable by no website",
@@ -1262,12 +1256,12 @@
     }
    },
    "counts": {
-    "tracked": 7,
+    "tracked": 6,
     "unlinked": 1,
-    "stopped": 25,
-    "arrived": 25,
-    "ever": 9,
-    "atEnd": 7,
+    "stopped": 26,
+    "arrived": 24,
+    "ever": 8,
+    "atEnd": 6,
     "simulated": [],
     "own": [
      "T18",
@@ -1295,7 +1289,6 @@
     "cutOff": [],
     "removed": 6,
     "waiting": {
-     "unknown": 1,
      "bounce": 2
     },
     "blockRuleMatches": 0,
@@ -1641,7 +1634,7 @@
       "tidewater.localhost"
      ],
      "via": [
-      "canvas cb15463a, graphics de1a1cf2, audio d68c54b6, fonts bd8a2c56, traits 802,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 58969ea0, graphics de1a1cf2, audio 53b129bf, fonts bd8a2c56, traits 800,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 11,
      "atEnd": true,

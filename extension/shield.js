@@ -1,4 +1,4 @@
-// Page shield (S7; reworked in H3 and J5). EXPERIMENTAL, and off unless the user switches its row on. Some pages recognise
+// Page shield (S7; reworked in H3, J5; ON by default since M4, C32 mode 'auto'). Some pages recognise
 // a browser without any cookie, by measuring it: how it draws a picture, what a sound comes out as, what its graphics
 // chip is called. This script runs inside a page, in the page's own world, before the page's
 // own code, and makes those answers a little different: a few dots of a picture read back change by one step, a few
