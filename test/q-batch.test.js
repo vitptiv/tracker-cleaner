@@ -181,3 +181,42 @@ test('F3: a tracker blocked by itself is offered "Let it through" on its row too
   await bg.send({ type: 'letThrough', site: 'app.bank.example' }); await bg.settle();
   assert.deepEqual(bg.blockedHosts(), []); assert.deepEqual(bg.state.storage.unauto, ['bank.example']);
 });
+
+// ---- The pending decision: one constant, USED_SITE_AUTO, says what the automatic answer does for a site the user uses
+const used = (how) => (o) => load({ ...o, patch: how ? [["const USED_SITE_AUTO = 'full';", `const USED_SITE_AUTO = '${how}';`]] : [] });
+const usedBank = async (mk) => { const bg = await mk(strong({ cookies: [UID, { name: 'prefs', domain: '.bank.example', value: 'p-55aa44bb33' }] }));
+  await bg.opens('https://app.bank.example/home'); await bg.closeTab(bg.tabOf('https://app.bank.example/home'));
+  await adHit(bg, 1, 'app.bank.example'); await adHit(bg, 2, 'app.bank.example'); await bg.alarm('sweep'); return bg; };
+test("USED_SITE_AUTO: the shipped line is 'full', and it is the one place that decides", () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'extension', 'background.js'), 'utf8');
+  assert.equal(src.match(/const USED_SITE_AUTO = '(\w+)';/g).length, 1); assert.match(src, /const USED_SITE_AUTO = 'full';/);
+});
+test("USED_SITE_AUTO 'full' (1.31, the default): a tracker that is a site you use is blocked and emptied by itself", async () => {
+  for (const mk of [load, used('full')]) { const bg = await usedBank(mk);
+    assert.deepEqual(bg.blockedHosts(), ['app.bank.example']); assert.equal(emptied(bg, 'app.bank.example').length, 1);
+    assert.deepEqual(auto(bg).filter((l) => ['tracker', 'used'].includes(l.kind)).map((l) => l.kind), ['tracker', 'used']); }
+});
+test("USED_SITE_AUTO 'block': blocked on other sites by itself, nothing first-party deleted, no storage wiped; removing what it saved stays a question", async () => {
+  const bg = await usedBank(used('block'));
+  assert.deepEqual(bg.blockedHosts(), ['app.bank.example']); assert.equal(emptied(bg, 'app.bank.example').length, 0);
+  assert.deepEqual((await bg.names()).sort(), ['prefs', 'uid']);
+  assert.deepEqual(auto(bg).map((l) => l.kind), ['tracker']);
+  assert.deepEqual(pend(bg, 'unknown').map((i) => [i.kind, i.site]), [['used', 'app.bank.example']]);
+});
+test("USED_SITE_AUTO 'ask': a site you use is never answered by itself; it waits as a question", async () => {
+  const bg = await usedBank(used('ask'));
+  assert.deepEqual(bg.blockedHosts(), []); assert.equal(emptied(bg, 'app.bank.example').length, 0); assert.deepEqual(auto(bg), []);
+  assert.deepEqual(pend(bg, 'unknown').map((i) => [i.kind, i.site]), [['tracker', 'app.bank.example']]);
+});
+test("USED_SITE_AUTO 'block' and 'ask': a site you do NOT use is still answered in full; a pass-through via a used site is a question", async () => {
+  for (const how of ['block', 'ask']) {
+    const bg = await used(how)(strong({ cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }, { name: 'XSRF-TOKEN', domain: 'www.bank.example', value: 'x-1' }] }));
+    await adHit(bg, 1, 'trk.example'); await adHit(bg, 2, 'trk.example');
+    assert.deepEqual(bg.blockedHosts(), ['trk.example'], how); assert.equal(emptied(bg, 'trk.example').length, 1, how);
+    await bg.opens('https://www.bank.example/home'); await bg.closeTab(bg.tabOf('https://www.bank.example/home'));
+    await bg.redirect({ url: 'https://www.bank.example/out?url=https%3A%2F%2Fevil.example%2F', redirectUrl: 'https://evil.example/', type: 'main_frame', tabId: 1 }); await bg.settle();
+    assert.equal(emptied(bg, 'www.bank.example').length, 0, how); assert.ok(pend(bg, 'bounce').some((i) => i.site === 'www.bank.example'), how);
+    // a press still answers it
+    await bg.send({ type: 'cleanNow', group: 'bounce' }); await bg.settle(); assert.equal(emptied(bg, 'www.bank.example').length, 1, how);
+  }
+});

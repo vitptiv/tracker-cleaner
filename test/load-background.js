@@ -7,10 +7,15 @@
 const vm = require('node:vm'), fs = require('fs'), path = require('path');
 const makeChrome = require('./chrome-fake.js');
 
-module.exports = async function load({ dir = 'extension', limits, tor, ...init } = {}) {
+// patch: [[text, replacement], ...] made to background.js before it runs (each text must be there exactly once), so a test
+// can flip one switch line the way the owner would (Q-batch: USED_SITE_AUTO)
+module.exports = async function load({ dir = 'extension', limits, tor, patch = [], ...init } = {}) {
   const root = path.join(__dirname, '..', dir), bg = makeChrome({ manifest: JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')), ...init });
   bg.limits = limits; bg.tor = tor; bg.asked = []; bg.reports = []; bg.timers = []; bg.now = 1.8e12;   // the clock: tests move bg.now
-  const run = (f) => vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
+  const source = (f) => { let src = fs.readFileSync(path.join(root, f), 'utf8');
+    if (f === 'background.js') for (const [from, to] of patch) { if (src.split(from).length !== 2) throw new Error(`patch: not there exactly once: ${from}`); src = src.replace(from, to); }
+    return src; };
+  const run = (f) => vm.runInContext(source(f), ctx, { filename: f });
   // the clock: Date.now() and new Date() are bg.now; new Date(t) is the real thing
   const Clock = class extends Date { constructor(...a) { super(...(a.length ? a : [bg.now])); } static now() { return bg.now; } };
   const ctx = vm.createContext({ chrome: bg.chrome, URL, console, Date: Clock, AbortSignal, crypto: globalThis.crypto, TextDecoder, Uint8Array,

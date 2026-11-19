@@ -1014,13 +1014,14 @@ async function followSweep(cx, all, wait) {
   // once: blocked, and what it saved removed, as the presses on Block and Remove do; logged as done by itself (auto)
   const yes = answersYes('C25', cx.set, cx.hold);
   for (const { w, ...it } of asks.sort((a, b) => b.w - a.w).slice(0, QUESTIONS_MAX)) {
-    if (yes && await yesNow(cx, it.site) && await stopTracker(it.site)) { const used = await hardClean(it.site, true);   // its saved copies: copiesNow, there
+    const how = yes ? usedAuto(cx, all, it.site) : 'ask';   // 'full', or for a site the user uses what USED_SITE_AUTO says
+    if (how !== 'ask' && await yesNow(cx, it.site) && await stopTracker(it.site)) { const used = how === 'full' && await hardClean(it.site, true);   // its saved copies: copiesNow, there
       await logged([{ ...it, auto: true }, ...(used ? [{ cap: 'C25', kind: 'used', site: it.site, name: USED, auto: true }] : [])], 'removed'); await noteAuto(it.site, 'unknown'); continue; }
     wait.push(it); }
   // a blocked host: the second question, once (USED: remove what it saved)
   for (const site of stopped) if (!hard.includes(site) && !later(cx, 'C25', site, USED)) {
     const it = { cap: 'C25', kind: 'used', site, name: USED, why: String(((follow[site] || {}).on || []).length), did: 'queued' };
-    if (yes && await yesNow(cx, site) && await hardClean(site, true)) { await logged([{ ...it, auto: true }], 'removed'); await noteAuto(site, 'unknown'); continue; }
+    if (yes && usedAuto(cx, all, site) === 'full' && await yesNow(cx, site) && await hardClean(site, true)) { await logged([{ ...it, auto: true }], 'removed'); await noteAuto(site, 'unknown'); continue; }
     wait.push(it); }
 }
 // ---- What the cleaner may answer yes by itself (Strongest), and what a press answers in bulk (Clean now). 1.31 (the
@@ -1030,6 +1031,17 @@ async function followSweep(cx, all, wait) {
 // switched off, nothing while a tab is on a sign-in host or that site's sign-in page holds deleting (the answer waits and
 // is given at the sweep after the hold). By itself only: never a host the user let through or said "Not now" to (`unauto`);
 // the user's own press still answers it.
+// ---- THE PENDING DECISION (audit 6, fix 1): what the automatic answer (Strongest, no press) does for a site the user USES
+// (usesSite: opens as a page, has open in a tab, has an allowed cookie at, or seems signed in to). One line decides it:
+//   'full'  -- as 1.31: blocked on other sites, and its cookies (but the sign-in-like and allowed ones) and its saved data emptied
+//   'block' -- blocked on other sites only: nothing of it is deleted and no storage is wiped; "remove what it saved" and a
+//              pass-through clean stay questions
+//   'ask'   -- nothing by itself: every question about it waits for the user's press
+// A site the user does not use is answered in full whatever this says. A press (Clean now, Approve) is not affected.
+const USED_SITE_AUTO = 'full';
+const usesSite = (cx, all, co) => visited(cx, co) || cx.hosts.some((h) => siteOf(h) === co) || (cx.set.allow || []).some((a) => siteOf(a.site) === co)
+  || (all || []).some((c) => siteOf(realHost(c.domain)) === co && signinLike(c));
+const usedAuto = (cx, all, site) => usesSite(cx, all, siteOf(site)) ? USED_SITE_AUTO : 'full';
 const mayYes = (cx, site, press = false) => { const co = siteOf(site);
   return isHost(site) && !signInCompany(co) && !SIGNIN_HOSTS.some((h) => siteOf(h) === co) && !(cx.set.sitesOff || []).some((s) => under(site, s) || siteOf(s) === co)
     && !cx.signing && !guarded(cx, co) && (press || !unautoHas(cx, co)); };
@@ -1151,7 +1163,7 @@ async function bounceSweep(cx, wait, all) {
     // (BOUNCE_AUTO_MS); within the day it is a question again. The popup then offers "Let it through" for it (autoDone).
     const site_ = siteOf(site), tabOpen = cx.hosts.some((h) => siteOf(h) === site_);
     const again = Object.entries(autoDone).some(([h, a]) => a.row === 'bounce' && siteOf(h) === site_ && a.t > Date.now() - BOUNCE_AUTO_MS);
-    const mayAuto = open.filter((it) => it.kind !== 'bounce' || !again);
+    const mayAuto = !yes || usedAuto(cx, all, site) !== 'full' ? [] : open.filter((it) => it.kind !== 'bounce' || !again);   // a pass-through only deletes: nothing to do by 'block'
     if (yes && mayAuto.length && !tabOpen && await yesNow(cx, site)) {
       for (const it of mayAuto) if (await (it.kind === 'bounce' ? cleanBounce(site, true) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true });
       if (mayAuto.some((it) => it.kind === 'bounce')) await noteAuto(site, 'bounce');
