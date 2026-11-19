@@ -6,18 +6,21 @@ const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12,
 const removed = (r, k) => (r.action[k] || []).map((h) => h.header);
 
 test('a header rule Chrome refuses: the others are installed, and the popup names what is not working instead of saying nothing', async () => {
-  const bg = await load(on()); bg.refuse = (r) => r.id === NET_BASE;
-  await bg.send({ type: 'setMode', group: 'othercookies', mode: 'off' }); await bg.send({ type: 'setMode', group: 'othercookies', mode: 'auto' }); await bg.settle();
+  // (P1, 1.29: a rule that is there and works is never taken out before its replacement is in, so the header rules are
+  // first switched off altogether: Chrome then refuses one of them as they are installed anew)
+  const bg = await load(on()); const flip = async (mode) => { for (const group of ['othercookies', 'othertags']) await bg.send({ type: 'setMode', group, mode }); await bg.settle(); };
+  await flip('off'); bg.refuse = (r) => r.id === NET_BASE; await flip('auto');
   const ids = bg.state.rules.map((r) => r.id);
   assert.equal(ids.includes(NET_BASE), false); assert.ok(ids.includes(NET_BASE + 1) && ids.includes(NET_BASE + 5));
   const s = await bg.send({ type: 'state' });
   assert.deepEqual(s.notWorking, ['Other companies get no cookies or cache tags']);
   assert.ok(renderPopup(s, null).includes('Not working right now, because Chrome refused a rule: Other companies get no cookies or cache tags.'));
-  bg.refuse = null; await bg.send({ type: 'setMode', group: 'othercookies', mode: 'off' }); await bg.send({ type: 'setMode', group: 'othercookies', mode: 'auto' }); await bg.settle();
+  bg.refuse = null; await flip('off'); await flip('auto');
   assert.equal((await bg.send({ type: 'state' })).notWorking, undefined);
 });
 test('the same for the other rules: a refused local-network rule or stop rule is named', async () => {
-  const bg = await load(on({ storage: { stopped: ['trk.example'] } })); bg.refuse = (r) => r.id === NET_BASE + 22 || r.id === 101000;
+  const bg = await load(on()); bg.refuse = (r) => r.id === NET_BASE + 22 || r.id === 101000;
+  await bg.chrome.storage.local.set({ stopped: ['trk.example'] }); await bg.settle();   // (P1: a rule that is there is not installed anew, so the block is made after Chrome starts refusing it)
   await bg.send({ type: 'setMode', group: 'local', mode: 'off' }); await bg.send({ type: 'setMode', group: 'local', mode: 'auto' }); await bg.settle();
   assert.deepEqual((await bg.send({ type: 'state' })).notWorking.sort(), ['Hosts you blocked', 'Pages may not call this computer']);
 });

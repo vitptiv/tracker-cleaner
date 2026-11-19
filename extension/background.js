@@ -1,4 +1,4 @@
-// Tracker Cleaner 1.28: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.29: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic. A new install is switched on, and the groups
 // that only touch what follows you run without asking from the start; the popup says so once. Only deleted cookies
@@ -514,7 +514,11 @@ async function sweepOnce(cause) {
 const LEARNED = 100000, TYPES = ['script', 'xmlhttprequest', 'image', 'ping', 'sub_frame', 'media', 'other', 'websocket', 'font', 'stylesheet'];
 // Cross-site-id stripping (C33, M2) also cleans navigations, so a hand-off link carrying the id is cleaned: main_frame on top of TYPES.
 const STRIP_TYPES = ['main_frame', ...TYPES];
-const sig = (r) => JSON.stringify([r.id, r.condition.requestDomains, r.condition.excludedRequestDomains, r.condition.regexFilter, r.action]);
+// A rule as one text, whatever order its fields come in: Chrome hands a rule back with its fields in its own order, so
+// comparing the plain texts never found "nothing changed" and the session rules were taken out and put back at every
+// look (P1, 1.29: a request to another company that fell into that gap kept its cookies).
+const ordered = (v) => Array.isArray(v) ? v.map(ordered) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, ordered(v[k])])) : v;
+const sig = (r) => JSON.stringify(ordered(r));
 async function learnedRules(want) {
   try { await installEach('dynamic', (o) => chrome.declarativeNetRequest.updateDynamicRules(o), (r) => r.id > LEARNED, want); } catch {}
 }
@@ -533,14 +537,21 @@ const RULE_NAME = (id) => id >= XETAG ? 'Cross-site code cache tags stripped' : 
 const installing = { dynamic: Promise.resolve(), session: Promise.resolve() };
 // What is there is read inside the turn, not before it: of two changes asked for at nearly the same moment the later one
 // decides (L4: the earlier one could otherwise be installed last and stay).
+// P1 (1.29): a rule that is there as wanted is not touched; with nothing to change no call is made. A change is ONE call
+// that removes and adds together (Chrome applies one call whole), so no rule is ever absent in between. Only when Chrome
+// refuses that call (it refuses a whole change for one bad rule, H6): the rules no longer wanted go, and each changed
+// rule is swapped in a call of its own that removes the old one and adds the new one together, so a refused rule
+// leaves the working one it was to replace in place. Refused = not there as wanted afterwards, read back from Chrome.
 const installEach = (kind, update, mine, want) => (installing[kind] = installing[kind].catch(() => {}).then(async () => {
-  const read = () => kind === 'dynamic' ? chrome.declarativeNetRequest.getDynamicRules() : chrome.declarativeNetRequest.getSessionRules();
-  const cur = (await read()).filter(mine), same = kind === 'dynamic' ? cur.map(sig).join() === want.map(sig).join() : JSON.stringify(cur) === JSON.stringify(want);
-  if (same) return;
-  await update({ removeRuleIds: cur.map((r) => r.id) });
-  for (const r of want) try { await update({ addRules: [r] }); } catch {}
-  const have = (await read()).map((r) => r.id), names = new Set([...cur, ...want].map((r) => RULE_NAME(r.id)));
-  REFUSED[kind] = new Set([...[...REFUSED[kind]].filter((n) => !names.has(n)), ...want.filter((r) => !have.includes(r.id)).map((r) => RULE_NAME(r.id))]); }));
+  const read = async () => (await (kind === 'dynamic' ? chrome.declarativeNetRequest.getDynamicRules() : chrome.declarativeNetRequest.getSessionRules())).filter(mine);
+  const cur = await read(), there = new Map(cur.map((r) => [r.id, sig(r)])), ids = new Set(want.map((r) => r.id));
+  const change = want.filter((r) => there.get(r.id) !== sig(r)), stale = cur.map((r) => r.id).filter((id) => !ids.has(id));
+  const swap = (rules, gone = []) => update({ removeRuleIds: [...gone, ...rules.filter((r) => there.has(r.id)).map((r) => r.id)], addRules: rules });
+  if (change.length || stale.length) try { await swap(change, stale); }
+    catch { if (stale.length) try { await update({ removeRuleIds: stale }); } catch {}
+      for (const r of change) try { await swap([r]); } catch {} }
+  const have = new Set((change.length || stale.length ? await read() : cur).map(sig)), names = new Set([...cur, ...want].map((r) => RULE_NAME(r.id)));
+  REFUSED[kind] = new Set([...[...REFUSED[kind]].filter((n) => !names.has(n)), ...want.filter((r) => !have.has(sig(r))).map((r) => RULE_NAME(r.id))]); }));
 const notWorking = () => [...new Set([...REFUSED.dynamic, ...REFUSED.session])];
 // "Not now" on one question (site and name) or on all about a site: not asked again for LATER_MS
 const later = (cx, id, site, name) => [`${id} ${site}`, `${id} ${site} ${name}`].some((k) => (cx.set.later || {})[k] > Date.now());

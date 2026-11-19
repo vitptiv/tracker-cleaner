@@ -16,6 +16,8 @@ const pageGlobals = (p) => {
     navigator: { serviceWorker: { getRegistrations: async () => (p.workers || []).map((scope) => ({ scope })) } } });
 };
 
+// Chrome hands a rule back with its fields in its own (alphabetical) order, not the order it was given in
+const sorted = (v) => Array.isArray(v) ? v.map(sorted) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v;
 module.exports = function makeChrome(init = {}) {
   const calls = [];
   const state = { cookies: [], tabs: (init.tabs || []).map((t) => ({ windowId: 1, ...t })), storage: { ...init.storage }, alarms: {},
@@ -93,16 +95,17 @@ module.exports = function makeChrome(init = {}) {
     declarativeNetRequest: { getEnabledRulesets: rec('declarativeNetRequest.getEnabledRulesets', () => [...state.rulesets]),
       updateEnabledRulesets: rec('declarativeNetRequest.updateEnabledRulesets', (o) => {
         state.rulesets = [...new Set([...state.rulesets, ...(o.enableRulesetIds || [])])].filter((id) => !(o.disableRulesetIds || []).includes(id)); }),
-      getDynamicRules: rec('declarativeNetRequest.getDynamicRules', () => JSON.parse(JSON.stringify(state.dynamic))),
+      getDynamicRules: rec('declarativeNetRequest.getDynamicRules', () => sorted(JSON.parse(JSON.stringify(state.dynamic)))),
       // init.matched: { <tab id>: [the rule file of each request Chrome stopped or changed on that tab] }; none given = Chrome does not say
       getMatchedRules: rec('declarativeNetRequest.getMatchedRules', ({ tabId } = {}) => { if (!init.matched) throw new Error('This function may not be called this often.');
         return { rulesMatchedInfo: (init.matched[tabId] || []).map((rulesetId) => ({ rule: { ruleId: 1, rulesetId }, tabId, timeStamp: 0 })) }; }),
-      getSessionRules: rec('declarativeNetRequest.getSessionRules', () => JSON.parse(JSON.stringify(state.rules))),
+      getSessionRules: rec('declarativeNetRequest.getSessionRules', () => sorted(JSON.parse(JSON.stringify(state.rules)))),
+      // one call is applied whole or not at all; fake.ruleLog keeps the rule ids there after every change, so a test can look for a gap
       updateSessionRules: rec('declarativeNetRequest.updateSessionRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');
-        state.rules = [...state.rules.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }),
+        state.rules = [...state.rules.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; fake.ruleLog.push({ kind: 'session', ids: state.rules.map((r) => r.id) }); }),
       // fake.refuse(rule) true = Chrome refuses that rule, and with it the whole change (as it does)
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');
-        state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; }) },
+        state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; fake.ruleLog.push({ kind: 'dynamic', ids: state.dynamic.map((r) => r.id) }); }) },
     webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event(), onHeadersReceived: event() },
     // any permission name works: chrome.contentSettings.camera.set(...)
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), clear: rec('contentSettings.clear', () => {}), perm }) }),
@@ -132,7 +135,7 @@ module.exports = function makeChrome(init = {}) {
       reload: () => { calls.push({ api: 'runtime.reload', args: [] }); } },
   };
 
-  const fake = { chrome, calls, state, badge, native: init.native,
+  const fake = { chrome, calls, state, badge, native: init.native, ruleLog: [],
     called: (api) => calls.filter((c) => c.api === api),
     destructive: () => calls.filter((c) => DESTRUCTIVE.includes(c.api)),
     fireAlarm: (name) => onAlarm.fire({ name }),

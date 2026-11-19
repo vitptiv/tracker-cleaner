@@ -18,7 +18,7 @@ test('its own row, on by default, deletes nothing; each of the two rows can be s
   const all = () => [...new Set(net(bg).flatMap((r) => removed(r, 'requestHeaders')))];
   assert.deepEqual(all(), ['cookie', 'if-none-match', 'if-modified-since', 'referer']); assert.deepEqual(removed(net(bg)[0], 'responseHeaders'), ['set-cookie', 'etag']);
   await bg.send({ type: 'setMode', group: 'othercookies', mode: 'off' }); await bg.settle();
-  assert.deepEqual(all(), ['if-none-match', 'if-modified-since', 'referer']);
+  assert.deepEqual(all().sort(), ['if-modified-since', 'if-none-match', 'referer']);   // (P1, 1.29: a changed rule is swapped in place, so the order Chrome lists them in is not the order of their numbers)
   await bg.send({ type: 'setMode', group: 'othertags', mode: 'off' }); await bg.settle();
   assert.deepEqual(net(bg), []);
 });
