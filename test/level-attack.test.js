@@ -99,7 +99,7 @@ test('ATTACK (d): every automatic answer is in the log, marked as done by itself
   const bg = await load(strong({ cookies: [ID('.trk.example'), { name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }] }));
   for (const p of ['a.example', 'b.example']) await req(bg, 'trk.example', p);
   await hop(bg);
-  assert.deepEqual(auto(bg).map((l) => [l.cap, l.kind, l.site]), [['C25', 'tracker', 'trk.example'], ['C25', 'used', 'trk.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'skip', 'hop.example']]);   // each pass through it saved something anew
+  assert.deepEqual(auto(bg).map((l) => [l.cap, l.kind, l.site]), [['C25', 'cookie', 'trk.example'], ['C11', 'cache', '*'], ['C25', 'tracker', 'trk.example'], ['C25', 'used', 'trk.example'], ['C27', 'cookie', 'hop.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'skip', 'hop.example']]);   // F7 (1.32): the cookie and cache lines inside an answer too   // each pass through it saved something anew
   assert.equal((await bg.send({ type: 'restoreAll' })).restored, 2);
   await bg.send({ type: 'unstop', site: 'trk.example' }); await bg.send({ type: 'unskip', site: 'hop.example' }); await bg.settle();
   assert.deepEqual(bg.blockedHosts(), []); assert.equal(bg.state.storage.skip.sites.includes('hop.example'), false);

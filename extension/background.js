@@ -1058,12 +1058,12 @@ async function hardClean(site, auto = false) {
   const { stopped = [], follow = {}, later: lt = {} } = await chrome.storage.local.get(['stopped', 'follow', 'later']);
   if (!isHost(site) || !stopped.includes(site)) return false;
   const cx = await context(), gone = [], origins = [...new Set([site, ...((follow[site] || {}).hosts || []).filter((h) => under(h.replace(/:\d+$/, ''), site))])].flatMap((h) => [`https://${h}`, `http://${h}`]);
-  for (const c of await allCookies()) if (under(bare(c.domain), site) && !kept(cx, c) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
+  for (const c of await allCookies()) if (under(bare(c.domain), site) && !kept(cx, c) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name, ...(auto ? { auto: true } : {}) });   // F7: marked like its answer
   await logged(gone, 'removed');
   if (!(cx.set.sitesOff || []).some((s) => under(site, s))) try { await chrome.browsingData.remove({ origins }, cx.hosts.some((h) => under(h, site)) ? { serviceWorkers: true } : { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true }); } catch {}
   // the saved copies are cleared with it. This is the user's own press, so it is not counted against the hour's one clearing,
   // which bounds only what a page can cause (K1)
-  if (auto) await copiesNow(cx);
+  if (auto) await copiesNow(cx, true);
   else if (can('C11', cx)) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {}
   await chrome.storage.local.set({ later: Object.fromEntries([...Object.entries(lt).filter(([, t]) => t > Date.now()), [`C25 ${site} ${USED}`, Date.now() + 3650 * 86400e3]].slice(-500)) });
   return true;
@@ -1122,7 +1122,7 @@ async function bounceSweep(cx, wait, all) {
       ...((e.to || []).length >= 2 && e.id === true && !visited(cx, siteOf(site)) && !choices.includes(site) ? [{ kind: 'skip', name: SKIPQ }] : [])];
     const open = asks.filter((x) => !later(cx, 'C27', site, x.name)).map((x) => ({ cap: 'C27', site, why: 'a redirect', ...x, did: v === 'held' ? 'held' : 'queued' }));
     // 1.30, Strongest ('yes'): both questions about a site answered yes by itself, as one of the hour's STOPS_HOUR (mayYes)
-    if (yes && open.length && await yesNow(cx, site)) { for (const it of open) if (await (it.kind === 'bounce' ? cleanBounce(site) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true }); continue; }
+    if (yes && open.length && await yesNow(cx, site)) { for (const it of open) if (await (it.kind === 'bounce' ? cleanBounce(site, true) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true }); continue; }
     // otherwise never by itself (F2, J1): what a passing site saved is deleted, and its links changed, only after the user's press on its question
     wait.push(...open); }
   await logged(done, 'removed');
@@ -1133,11 +1133,11 @@ async function skipAdd(site) {
   const { skipok = [] } = await chrome.storage.local.get('skipok');
   await chrome.storage.local.set({ skipok: [...skipok.filter((s) => s !== site), site].slice(-BOUNCE_MAX) }); await applyFeatures(); return true;
 }
-async function cleanBounce(site) {
+async function cleanBounce(site, auto = false) {
   const e = ((await chrome.storage.local.get('bounce')).bounce || {})[site], gone = [];
   if (!e) return false;
   const cx = await context();
-  for (const c of await allCookies()) if (under(bare(c.domain), site) && !kept(cx, c) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name });
+  for (const c of await allCookies()) if (under(bare(c.domain), site) && !kept(cx, c) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name, ...(auto ? { auto: true } : {}) });
   const hosts = (e.hosts || []).filter((h) => !(cx.set.sitesOff || []).some((s) => under(h.replace(/:\d+$/, ''), s)));   // never a site switched off
   if (hosts.length) await dropStorage(hosts);
   await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce'); if (bounce[site]) { bounce[site].done = bounce[site].n; await chrome.storage.local.set({ bounce }); } });
@@ -1289,10 +1289,10 @@ const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, 
 // Every clearing of all saved copies that the extension starts by itself around a block or a clean-out shares one budget:
 // once an hour in total (`softClearAt`), however many blocks or clean-outs there are (J6). The daily clearing and the
 // user's own "Clean now" are not counted against it.
-const copiesNow = async (cx) => { const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt'), now = Date.now();
+const copiesNow = async (cx, auto = false) => { const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt'), now = Date.now();
   if (softClearAt > now - 3600e3 || !can('C11', cx)) return;
   await chrome.storage.local.set({ softClearAt: now });
-  try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
+  try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', ...(auto ? { auto: true } : {}) }], 'removed'); } catch {} };
 // (1.25, H7 and I1: all saved copies are cleared at most once a day, once at a clean-out, and once after a stop that only
 // blocks, that last one at most once an hour in total; never a minute later.)
 // N1 (1.28) takes back H7's "never at a start of Chrome": a server Chrome remembers (Alt-Svc) and a forced-HTTPS entry

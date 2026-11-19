@@ -77,3 +77,22 @@ test('F8: an approved site-storage drop of a site turned off is not carried out'
   await bg.send({ type: 'approve', group: 'storage' }); await bg.settle();
   assert.equal(dropped(bg, 'off.example').length, 0); assert.equal(dropped(bg, 'on.example').length, 1);
 });
+
+// ---- F7: every log line written inside an automatic answer says so (auto: true), like the answer's own line
+test('F7: the per-cookie deletions and the cache clearing of an automatic block and clean-out, and of an automatic pass-through clean, are logged as done by itself', async () => {
+  const bg = await load(strong({ storage: { cacheClearedAt: 1.8e12, modes: {} }, cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }, { name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }] }));
+  await adHit(bg, 1, 'trk.example'); await adHit(bg, 2, 'trk.example');
+  for (const to of ['https://blog.example/post', 'https://shop.example/x']) { await bg.redirect({ url: `https://hop.example/r?to=${encodeURIComponent(to)}`, redirectUrl: to + '?hid=h-77ab12cd34ef', type: 'main_frame' }); await bg.settle(); }
+  const log = bg.state.storage.log || [];
+  const of = (pred) => log.filter(pred).map((l) => `${l.cap} ${l.kind} ${l.site} ${l.name} ${l.auto === true}`);
+  assert.deepEqual(of((l) => l.kind === 'cookie'), ['C25 cookie trk.example uid true', 'C27 cookie hop.example hop_id true']);
+  assert.deepEqual(of((l) => l.kind === 'cache'), ['C11 cache * http-cache true']);
+  assert.equal(log.filter((l) => !l.auto && l.cap !== 'C28').length, 0, JSON.stringify(log.filter((l) => !l.auto)));   // C28: the row's own daily emptying, no answer
+});
+test('F7: the same deletions at the user\'s own press are not marked as done by itself', async () => {
+  const bg = await load(strong({ storage: { level: 'balanced' }, cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
+  await adHit(bg, 1, 'trk.example'); await adHit(bg, 2, 'trk.example');
+  await bg.send({ type: 'cleanNow', group: 'unknown' }); await bg.settle();
+  assert.ok((bg.state.storage.log || []).some((l) => l.kind === 'cookie' && l.name === 'uid'));
+  assert.equal((bg.state.storage.log || []).some((l) => l.auto), false);
+});

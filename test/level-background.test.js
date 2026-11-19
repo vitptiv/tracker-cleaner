@@ -51,7 +51,7 @@ test('Strongest, no press: a company on no list seen on two sites is blocked and
   await two(bg);
   assert.deepEqual(bg.blockedHosts(), ['trk.example']); assert.deepEqual(await bg.names(), []);
   assert.deepEqual(queued(bg, 'unknown'), []);
-  assert.deepEqual(auto(bg), ['C25 tracker trk.example removed', 'C25 used trk.example removed']);
+  assert.deepEqual(auto(bg), ['C25 cookie trk.example removed', 'C11 cache * removed', 'C25 tracker trk.example removed', 'C25 used trk.example removed'], 'F7 (1.32): its cookie and cache lines too');
   assert.ok(bg.state.storage.log.some((l) => l.cap === 'C25' && l.kind === 'cookie' && l.name === 'uid' && l.did === 'removed'));
 });
 test('Strongest: "Let it through again" undoes the block, and that host is never answered by itself again: it is asked', async () => {
@@ -67,7 +67,7 @@ test('Strongest, no press: a site that passes you along is cleaned and skipped n
   const bg = await fresh({ cookies: [{ name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }, { name: 'own', domain: 'blog.example', value: 'x' }], tabs: ELSEWHERE });
   await hops(bg);
   assert.deepEqual(await bg.names(), ['own']); assert.ok(bg.state.storage.skipok.includes('hop.example')); assert.ok(bg.state.storage.skip.sites.includes('hop.example'));
-  assert.deepEqual(queued(bg, 'bounce'), []); assert.deepEqual(auto(bg), ['C27 bounce hop.example removed', 'C27 bounce hop.example removed', 'C27 skip hop.example removed'], 'each pass, then the skip');
+  assert.deepEqual(queued(bg, 'bounce'), []); assert.deepEqual(auto(bg), ['C27 cookie hop.example removed', 'C27 bounce hop.example removed', 'C27 bounce hop.example removed', 'C27 skip hop.example removed'], 'its cookie (F7), each pass, then the skip');
   await bg.send({ type: 'unskip', site: 'hop.example' }); await bg.settle();
   assert.equal(bg.state.storage.skip.sites.includes('hop.example'), false); assert.ok(bg.state.storage.unauto.includes('hop.example'));
 });
