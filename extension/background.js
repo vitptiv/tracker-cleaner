@@ -687,18 +687,24 @@ const topSite = async (d) => siteOf(hostOf(d.frameId === 0 && d.initiator ? d.in
 const tabKey = (page) => SHARED.find((s) => page.endsWith('.' + s)) || page;
 // At most NEW_HOUR companies are noted for the first time per visited site in an hour (in memory): a page that asks hundreds
 // of made-up hosts cannot fill the list. followStore gives the list, or null when this one may not be added now.
-const NEW_HOUR = 20, fresh = new Map();
+const NEW_HOUR = 20;
+// F6 (1.32): every per-page hourly cap (NEW_HOUR `fresh`, ASK_HOUR `asked`, XNEW_HOUR `xnew`) is kept in chrome.storage.session
+// (memory, gone when Chrome closes), not in this worker's memory: Chrome puts the worker to sleep after a short idle time,
+// and a cap that started again at every wake-up was no cap. Called inside serial() only, so a count is never lost.
+// `key`: the session entry; one { t, n } per page, at most 500 pages (the hour started longest ago goes first).
+async function hourCap(key, page, max) { const now = Date.now(); let m = {};
+  try { m = (await chrome.storage.session.get(key))[key] || {}; } catch {}
+  const e = m[page], ok = !e || e.t < now - 3600e3 ? !!(m[page] = { t: now, n: 1 }) : ++e.n <= max;
+  const ks = Object.keys(m); if (ks.length > 500) for (const k of ks.sort((a, b) => m[a].t - m[b].t).slice(0, ks.length - 500)) delete m[k];
+  try { await chrome.storage.session.set({ [key]: m }); } catch {}
+  return ok; }
 // Questions (L5): a candidate may be asked about only when it is marked `q`, and a visited site can mark at most ASK_HOUR
 // of them in an hour (in memory), so one page cannot fill the list of questions; at most QUESTIONS_MAX wait at a time.
-const ASK_HOUR = 2, QUESTIONS_MAX = 20, asked = new Map();
-const mayAsk = (page) => { const now = Date.now(), e = asked.get(page); if (asked.size > 500) asked.clear();
-  if (!e || e.t < now - 3600e3) { asked.set(page, { t: now, n: 1 }); return true; }
-  return ++e.n <= ASK_HOUR; };
+const ASK_HOUR = 2, QUESTIONS_MAX = 20;
+const mayAsk = (page) => hourCap('asked', page, ASK_HOUR);
 async function followStore(site, page) { const { follow = {} } = await chrome.storage.local.get('follow');
   if (follow[site]) return follow;
-  const now = Date.now(), e = fresh.get(page); if (fresh.size > 500) fresh.clear();
-  if (!e || e.t < now - 3600e3) { fresh.set(page, { t: now, n: 1 }); return follow; }
-  return ++e.n > NEW_HOUR ? null : follow; }
+  return await hourCap('fresh', page, NEW_HOUR) ? follow : null; }
 async function noteRequest(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
   let u; try { u = new URL(d.url); } catch { return; }
@@ -718,7 +724,7 @@ async function noteRequest(d) {
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes', 'level'])) === 'no') return;
   let full = false; const salt = await saltNow();
   await serial(async () => { const st = await followStore(site, page), next = st && followNote(st, site, u.host, `${salt} ${tabKey(page)}`, false, Date.now(), sent);
-    if (next) { full = followFull(next[site]); if (full && next[site].q !== true && mayAsk(page)) next[site] = { ...next[site], q: true };
+    if (next) { full = followFull(next[site]); if (full && next[site].q !== true && await mayAsk(page)) next[site] = { ...next[site], q: true };
       await chrome.storage.local.set({ follow: next }); } });
   if (full) sweep('learned');
 }
@@ -750,7 +756,7 @@ async function noteAnswer(d) {
   if (mayRun('C25', await chrome.storage.local.get(['master', 'modes', 'level'])) === 'no') return;
   let full = false; const salt = await saltNow();
   await serial(async () => { const st = await followStore(site, page), next = st && followNote(st, site, u.host, `${salt} ${tabKey(page)}`, true, Date.now());
-    if (next) { full = followFull(next[site]); if (full && next[site].q !== true && mayAsk(page)) next[site] = { ...next[site], q: true };
+    if (next) { full = followFull(next[site]); if (full && next[site].q !== true && await mayAsk(page)) next[site] = { ...next[site], q: true };
       await chrome.storage.local.set({ follow: next }); } });
   if (full) sweep('learned');
 }
@@ -767,7 +773,7 @@ async function noteAnswer(d) {
 // hash uses a per-session salt kept beside xseen so the hashes stay stable while the worker sleeps. Caps: at most
 // XSEEN_MAX tokens tracked, XNEW_HOUR new per visited site per hour; a value seen 3 s after a scripted hand-off still
 // counts, because there is no timing gate. M1 only detects and reports; stripping and blocking are C33's job (M2).
-const XSEEN_MAX = 50, XNEW_HOUR = 10, xnew = new Map();   // xnew: per visited site, tokens new to this worker this hour
+const XSEEN_MAX = 50, XNEW_HOUR = 10;   // session `xnew` (hourCap): per visited site, tokens new to the detector this hour
 async function xidSalt() { let { xsalt } = await chrome.storage.session.get('xsalt');
   if (!xsalt) { xsalt = [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join(''); await chrome.storage.session.set({ xsalt }); }
   return xsalt; }
@@ -785,8 +791,7 @@ async function xidObserve(page, toks, ep, fp, etagRes) {
       if (e) { if (!e.sites[siteHash]) { e.sites[siteHash] = true; changed = true; } if (ep && setFp(e.eps, ep)) changed = true;
         if (etagRes) { if (!e.etag) e.etag = {}; if (setFp(e.etag, etagRes)) changed = true; } e.t = now; continue; }
       // a token new to this worker: it costs the site one of its XNEW_HOUR new tokens an hour, and at most XSEEN_MAX are kept
-      const c = xnew.get(page); if (xnew.size > 500) xnew.clear();
-      if (!c || c.t < now - 3600e3) xnew.set(page, { t: now, n: 1 }); else if (++c.n > XNEW_HOUR) continue;
+      if (!(await hourCap('xnew', page, XNEW_HOUR))) continue;
       const ks = Object.keys(xseen); if (ks.length >= XSEEN_MAX) delete xseen[ks.sort((a, b) => xseen[a].t - xseen[b].t)[0]];
       xseen[k] = { raw: tok, sites: { [siteHash]: true }, eps: ep ? { [ep]: !!fp } : {}, ...(etagRes ? { etag: { [etagRes]: !!fp } } : {}), t: now }; changed = true; }
     if (changed) await chrome.storage.session.set({ xseen }); });

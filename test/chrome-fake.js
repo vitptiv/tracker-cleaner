@@ -22,7 +22,7 @@ module.exports = function makeChrome(init = {}) {
   const calls = [];
   const state = { cookies: [], tabs: (init.tabs || []).map((t) => ({ windowId: 1, ...t })), storage: { ...init.storage }, alarms: {},
     rulesets: ((init.manifest || {}).declarative_net_request || { rule_resources: [{ id: 'trackers', enabled: true }] }).rule_resources.filter((r) => r.enabled).map((r) => r.id),
-    scripts: [], proxy: null, dynamic: [], session: {}, sync: {}, rules: [], history: (init.history || []).map((url) => ({ url })), granted: [...(init.granted || [])] };
+    scripts: [], proxy: null, dynamic: [], session: JSON.parse(JSON.stringify(init.session || {})), sync: {}, rules: [], history: (init.history || []).map((url) => ({ url })), granted: [...(init.granted || [])] };
   const badge = { text: '', color: null };
   // rec wraps an API function: logs the call, returns a promise like the real MV3 APIs
   const rec = (api, fn) => async (...args) => { calls.push({ api, args }); return fn(...args); };

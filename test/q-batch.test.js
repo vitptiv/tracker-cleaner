@@ -96,3 +96,38 @@ test('F7: the same deletions at the user\'s own press are not marked as done by 
   assert.ok((bg.state.storage.log || []).some((l) => l.kind === 'cookie' && l.name === 'uid'));
   assert.equal((bg.state.storage.log || []).some((l) => l.auto), false);
 });
+
+// ---- F6: the per-page hourly caps hold across a sleep of the worker (they live in chrome.storage.session)
+// the worker sleeps and wakes: a new run of background.js with the same stored settings and the same session memory
+const restart = (bg, o = {}) => load({ ...o, storage: JSON.parse(JSON.stringify(bg.state.storage)), session: JSON.parse(JSON.stringify(bg.state.session)) });
+const bal = (o = {}) => ({ tabs: [{ id: 1, active: true, url: 'https://elsewhere.example/' }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, level: 'balanced', ...o.storage } });
+const req2 = async (bg, host, page) => { await bg.request({ url: `https://${host}/px.gif`, initiator: `https://www.${page}`, type: 'image' }); await bg.settle(); };
+const trackerCookies = (hosts) => hosts.map((h) => ({ name: 'uid', domain: '.' + h, value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }));
+test('F6: ASK_HOUR: a page that has used its two questions of the hour gets no third after the worker slept', async () => {
+  const hosts = ['t1.example', 't2.example', 't3.example'], cookies = trackerCookies(hosts);
+  const bg = await load(bal({ cookies }));
+  for (const h of hosts.slice(0, 2)) { await req2(bg, h, 'news.example'); await req2(bg, h, 'shop.example'); }
+  assert.equal(pend(bg, 'unknown').length, 2);
+  const bg2 = await restart(bg, { cookies, tabs: [{ id: 1, active: true, url: 'https://elsewhere.example/' }] });
+  await req2(bg2, 't3.example', 'news.example'); await req2(bg2, 't3.example', 'shop.example'); await bg2.alarm('sweep');
+  assert.deepEqual(pend(bg2, 'unknown').map((i) => i.site).sort(), ['t1.example', 't2.example'], 'the cap was reset by the restart');
+  bg2.now += 61 * 60e3; await req2(bg2, 't4.example', 'news.example');
+  assert.ok(bg2.state.session.asked, 'kept in chrome.storage.session');
+});
+test('F6: NEW_HOUR: the companies a page may note for the first time in an hour stay counted across a restart', async () => {
+  const bg = await load(bal());
+  for (let i = 0; i < 20; i++) await req2(bg, `n${i}.example`, 'news.example');
+  assert.equal(Object.keys(bg.state.storage.follow).length, 20);
+  const bg2 = await restart(bg, { tabs: [{ id: 1, active: true, url: 'https://elsewhere.example/' }] });
+  await req2(bg2, 'n20.example', 'news.example');
+  assert.equal(Object.keys(bg2.state.storage.follow).length, 20, 'a 21st was noted after the restart');
+});
+test('F6: XNEW_HOUR: the new cross-site tokens a page may add in an hour stay counted across a restart', async () => {
+  const tok = (i) => `Tk${i}x9Qm2Lp7Vz${i}r`;
+  const bg = await load(bal({ tabs: [{ id: 1, active: true, url: 'https://news.example/' }] }));
+  for (let i = 0; i < 10; i++) { await bg.request({ url: `https://news.example/api/x?v=${tok(i)}`, initiator: 'https://news.example', type: 'xmlhttprequest' }); await bg.settle(); }
+  assert.equal(Object.keys(bg.state.session.xseen).length, 10);
+  const bg2 = await restart(bg, { tabs: [{ id: 1, active: true, url: 'https://news.example/' }] });
+  await bg2.request({ url: `https://news.example/api/x?v=${tok(10)}`, initiator: 'https://news.example', type: 'xmlhttprequest' }); await bg2.settle();
+  assert.equal(Object.keys(bg2.state.session.xseen).length, 10, 'an 11th new token was taken after the restart');
+});
