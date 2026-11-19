@@ -32,7 +32,8 @@ const mark = (s) => { let h = 0x811c9dc5; for (const ch of String(s)) h = Math.i
 const followNote = (store, site, host, page, ck, now, sent) => {
   const old = (store || {})[site] || { on: [], hosts: [] }, m = mark(page);
   const e = { on: old.on.includes(m) || old.on.length >= FOLLOW_N ? old.on : [...old.on, m], ck: !!old.ck || !!ck, sent: !!old.sent || !!sent,
-    hosts: !host || old.hosts.includes(host) || old.hosts.length >= 5 ? old.hosts : [...old.hosts, host], t: now };
+    hosts: !host || old.hosts.includes(host) || old.hosts.length >= 5 ? old.hosts : [...old.hosts, host], t: now,
+    ...(old.q === true ? { q: true } : {}) };   // P3 (1.29): the mark "may be asked about" (L5), once given, is kept; it is never set here
   if (e.on === old.on && e.ck === !!old.ck && e.sent === !!old.sent && e.hosts === old.hosts) return null;
   // over FOLLOW_MAX the least evidence goes first, then the longest unseen: junk cannot push out what was really learned (H9)
   const weight = (x) => (x.sent ? 4 : 0) + (x.ck ? 2 : 0) + x.on.length;
