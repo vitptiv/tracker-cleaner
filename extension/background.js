@@ -794,21 +794,28 @@ async function xidSalt() { let { xsalt } = await chrome.storage.session.get('xsa
 // (Friendface 2) is exactly the case the structural rules cannot reach, so that is the one C33 acts on.
 async function xidObserve(page, toks, ep, fp, etagRes, tabId) {
   const salt = await saltNow(), xs = await xidSalt(), siteHash = mark(`${salt} ${page}`), liveUrl = await tabUrl(tabId);
-  const setFp = (map, key) => { if (!(key in map)) { map[key] = !!fp; return true; } if (fp && map[key] !== true) { map[key] = true; return true; } return false; };
+  // an endpoint's mark: true (first-party, the site's own value), 'e' (first-party, but an echo of a value the tab was handed),
+  // false (another company's). Only ever raised: false < 'e' < true.
+  const rank = (v) => v === true ? 2 : v === 'e' ? 1 : 0;
+  const setFp = (map, key, v) => { if (!(key in map) || rank(v) > rank(map[key])) { map[key] = v; return true; } return false; };
   await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, now = Date.now(); let changed = false;
     // Q-batch F4 (a): a value that came into this tab from outside -- in its address (query, path or fragment), the address
-    // of the page it came from, the Referer or the form body of the navigation (`xtab`) -- is not this site's own id
+    // of the page it came from, the Referer or the form body of the navigation (`xtab`) -- is not this site's own id. Such a
+    // send still counts towards seeing the value on two sites (Friendface 2 hands its id on in the address, and the
+    // receiving site's echo is what reveals it), but it makes that site's endpoint one to act on ('e') only once that site
+    // has itself handed the value on to another site in a navigation its own page started (noteForward, `fwd`): a collector
+    // network carries its id along, a site that merely echoes a search box does not. Measured on Friendface 2: dropping such
+    // sends altogether left nothing confirmed; acting on no echo at all left two of its three /f/ collectors open.
     const outside = await outsideToks(tabId, page, xs, liveUrl);
-    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k];
-      if (outside.has(k)) continue;
+    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k], own = !fp ? false : outside.has(k) ? 'e' : true;
       // F4 (b'): a site counts towards a confirmation only where it sent the value to an endpoint under its OWN name (true);
       // a send to another company is noted (false) but confirms nothing
-      if (e) { if (e.sites[siteHash] !== true && (fp || !(siteHash in e.sites))) { e.sites[siteHash] = !!fp; changed = true; } if (ep && setFp(e.eps, ep)) changed = true;
-        if (etagRes) { if (!e.etag) e.etag = {}; if (setFp(e.etag, etagRes)) changed = true; } e.t = now; continue; }
+      if (e) { if (e.sites[siteHash] !== true && (fp || !(siteHash in e.sites))) { e.sites[siteHash] = !!fp; changed = true; } if (ep && setFp(e.eps, ep, own)) changed = true;
+        if (etagRes) { if (!e.etag) e.etag = {}; if (setFp(e.etag, etagRes, own)) changed = true; } e.t = now; continue; }
       // a token new to this worker: it costs the site one of its XNEW_HOUR new tokens an hour, and at most XSEEN_MAX are kept
       if (!(await hourCap('xnew', page, XNEW_HOUR))) continue;
       const ks = Object.keys(xseen); if (ks.length >= XSEEN_MAX) delete xseen[ks.sort((a, b) => xseen[a].t - xseen[b].t)[0]];
-      xseen[k] = { raw: tok, sites: { [siteHash]: !!fp }, eps: ep ? { [ep]: !!fp } : {}, ...(etagRes ? { etag: { [etagRes]: !!fp } } : {}), t: now }; changed = true; }
+      xseen[k] = { raw: tok, sites: { [siteHash]: !!fp }, eps: ep ? { [ep]: own } : {}, ...(etagRes ? { etag: { [etagRes]: own } } : {}), fwd: {}, t: now }; changed = true; }
     if (changed) await chrome.storage.session.set({ xseen }); });
 }
 // ---- Q-batch F4 (a), 1.32: what came into a tab from outside. The sixth audit: an attacker sends the user to
@@ -818,7 +825,8 @@ async function xidObserve(page, toks, ep, fp, etagRes, tabId) {
 // tabs, XTAB_TOKS hashes each, never a raw value) holds the id-like tokens of: every main-frame address the tab had on its
 // current site (request, redirects, the address with its fragment as the tab reports it, pushState), the address of the page
 // the navigation came from, its Referer and its form body. A new site in the tab starts the set anew. noteSent and noteEtag
-// do not count such a token for that site; the live address of the tab is checked as well, in case an event came late.
+// never make that site's endpoint actionable for such a token (xidObserve `own`); the live address of the tab is checked as
+// well, in case an event came late.
 const XTAB_MAX = 200, XTAB_TOKS = 60;
 const tabUrl = async (tabId) => Number.isInteger(tabId) && tabId >= 0 ? ((await chrome.tabs.get(tabId).catch(() => null)) || {}).url || '' : '';
 async function outsideToks(tabId, page, xs, liveUrl) {
@@ -846,6 +854,20 @@ try { chrome.webRequest.onBeforeSendHeaders.addListener((d) => { if (d.type !== 
   { urls: ['<all_urls>'], types: ['main_frame'] }, ['requestHeaders', 'extraHeaders']); } catch {}
 try { chrome.webRequest.onCompleted.addListener((d) => { if (d.type === 'main_frame') noteOutside(d.tabId, d.url); }, { urls: ['<all_urls>'], types: ['main_frame'] }); } catch {}
 chrome.tabs.onUpdated.addListener((id, info) => { if (info.url) noteOutside(id, info.url); });
+// F4: a page of site S starts a navigation to another site with a value in the address: S hands that value on. Noted only
+// on values the detector already holds (`fwd`, a salted site mark per value), never as a new value; C33 off notes nothing.
+async function noteForward(d) {
+  if (d.type !== 'main_frame' || !d.initiator) return;
+  const from = siteOf(hostOf(d.initiator)), to = siteOf(hostOf(d.url));
+  if (!from || !to || from === to || !/^https?:/i.test(String(d.url))) return;
+  const toks = idTokens(safeDecode(d.url)); if (!toks.length) return;
+  await ready;
+  if (mayRun('C33', await chrome.storage.local.get(['master', 'modes', 'level'])) === 'no') return;
+  const salt = await saltNow(), xs = await xidSalt(), m = mark(`${salt} ${from}`);
+  await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}; let changed = false;
+    for (const t of toks) { const e = xseen[tokHash(xs, t)]; if (e && !(e.fwd = e.fwd || {})[m]) { e.fwd[m] = true; changed = true; } }
+    if (changed) await chrome.storage.session.set({ xseen }); });
+}
 async function noteSent(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;   // not the address bar: only what a page itself sends counts
   let u; try { u = new URL(d.url); } catch { return; }
@@ -909,7 +931,9 @@ async function xidSweep(cx) {
     for (const [k, e] of Object.entries(xseen)) { const sites = Object.keys(e.sites).filter((h) => e.sites[h] === true && ours(h));   // F4: each sent it to its own name
       // Only FIRST-PARTY endpoints/ETags are actionable (M8): a cross-site value may be blocked/stripped at a collector
       // only where it is served under a site's own name, never at an unrelated host it was merely sent to.
-      if (sites.length >= 2) { const eps = Object.keys(e.eps).filter((x) => e.eps[x] === true), etag = e.etag ? Object.keys(e.etag).filter((x) => e.etag[x] === true) : [];
+      // F4: an echo endpoint ('e') counts only when its own site handed the value on (fwd)
+      const act = (map) => Object.keys(map || {}).filter((x) => map[x] === true || (map[x] === 'e' && !!(e.fwd || {})[mark(`${cx.set.salt} ${siteOf(x.split('/')[0])}`)]));
+      if (sites.length >= 2) { const eps = act(e.eps), etag = act(e.etag);
         xsid[k] = { raw: e.raw, eps, ...(etag.length ? { etag } : {}), n: sites.length }; } }
     n = Object.keys(xsid).length; changed = JSON.stringify(xsid) !== JSON.stringify(was);
     if (changed) await chrome.storage.session.set({ xsid }); });
@@ -1015,7 +1039,7 @@ async function xidSetClean(cx, all) {
   await logged(gone, 'removed');
   return gone.length ? { collectorCookies: gone.length } : {};
 }
-try { chrome.webRequest.onBeforeRequest.addListener((d) => { if (d.type === 'main_frame') noteOutside(d.tabId, d.url, [tabUrl(d.tabId), bodyText(d.requestBody)]);   // F4
+try { chrome.webRequest.onBeforeRequest.addListener((d) => { if (d.type === 'main_frame') { noteOutside(d.tabId, d.url, [tabUrl(d.tabId), bodyText(d.requestBody)]); noteForward(d); }   // F4
   noteRequest(d); noteSent(d); noteOwnCollect(d); }, { urls: ['<all_urls>'] }, ['requestBody']); } catch {}
 try { chrome.webRequest.onHeadersReceived.addListener((d) => { noteAnswer(d); noteEtag(d); noteSetCookie(d); }, { urls: ['<all_urls>'] }, ['responseHeaders', 'extraHeaders']); } catch {}
 // M3 (1.26, C33): strip a confirmed cross-site id from an in-page history pushState/replaceState
