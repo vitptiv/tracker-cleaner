@@ -334,3 +334,55 @@ test('F10: the Strongest sentence, the first-run line, the two question rows and
   for (const k of ['dial', 'first', 'readme']) assert.match(texts[k], /cannot be put back/, k);
   assert.match(texts.readme, /other sites (ask|call) it/);
 });
+
+// ---- R (owner, 1.32): at Strongest the sweep runs every 10 minutes and the saved copies of pages are cleared every 10 minutes
+const { cleanEvery } = require('../extension/registry.js');
+const clears = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length;
+const at10 = (level, o = {}) => load({ tabs: [{ id: 1, active: true, url: 'https://news.example/' }], ...o, storage: { master: true, level, cacheClearedAt: 1.8e12, ...o.storage } });
+test('R: the cadence follows the level, in registry.js: Strongest 10 minutes, the others as before; a hand-set cache row keeps the day', () => {
+  assert.deepEqual(cleanEvery({ level: 'strong' }), { sweepMin: 10, cacheMs: 10 * 60e3 });
+  for (const level of ['balanced', 'ask', undefined]) assert.deepEqual(cleanEvery({ level }), { sweepMin: 15, cacheMs: 24 * 3600e3 }, String(level));
+  assert.deepEqual(cleanEvery({ level: 'strong', modes: { C11: 'auto' } }), { sweepMin: 10, cacheMs: 24 * 3600e3 });
+});
+test('R: the one sweep alarm is every 10 minutes at Strongest and every 15 otherwise, and follows a change of level', async () => {
+  const bg = await at10('strong'); await bg.settle();
+  assert.equal(bg.state.alarms.sweep.periodInMinutes, 10);
+  await bg.send({ type: 'setLevel', level: 'balanced' }); await bg.settle(); assert.equal(bg.state.alarms.sweep.periodInMinutes, 15);
+  await bg.send({ type: 'setLevel', level: 'strong' }); await bg.settle(); assert.equal(bg.state.alarms.sweep.periodInMinutes, 10);
+  assert.equal(Object.keys(bg.state.alarms).filter((n) => /sweep|fast/.test(n)).length, 1);
+  assert.equal((await at10('balanced')).state.alarms.sweep.periodInMinutes, 15);
+});
+test('R: Strongest clears the saved copies every 10 minutes, one log line per clear; Balanced and a hand-set row keep the day; Ask first only asks', async () => {
+  const bg = await at10('strong'); await bg.alarm('sweep'); assert.equal(clears(bg), 0, 'cleared within 10 minutes of the last');
+  bg.now += 10 * 60e3 + 1; await bg.alarm('sweep'); assert.equal(clears(bg), 1);
+  bg.now += 10 * 60e3 + 1; await bg.alarm('sweep'); assert.equal(clears(bg), 2);
+  assert.equal(bg.state.storage.log.filter((l) => l.kind === 'cache').length, 2);
+  for (const o of [{ level: 'balanced' }, { level: 'strong', modes: { C11: 'auto' } }, { level: 'ask' }]) {
+    const b = await at10(o.level, { storage: o }); b.now += 11 * 60e3; await b.alarm('sweep'); assert.equal(clears(b), 0, JSON.stringify(o)); }
+});
+test('R: held while paused, with the main switch off and while a tab is on a sign-in page', async () => {
+  for (const o of [{ storage: { pauseUntil: 1.8e12 + 3600e3 } }, { storage: { master: false } }, { tabs: [{ id: 1, active: true, url: 'https://accounts.google.com/signin' }] }]) {
+    const b = await at10('strong', o); b.now += 11 * 60e3; await b.alarm('sweep'); assert.equal(clears(b), 0, JSON.stringify(o)); }
+});
+test('R: no overlapping runs: an alarm while a sweep runs is skipped', async () => {
+  const bg = await at10('strong'); bg.now += 11 * 60e3;
+  await Promise.all([bg.fireAlarm('sweep'), bg.fireAlarm('sweep'), bg.fireAlarm('sweep')]); await bg.settle();
+  assert.equal(clears(bg), 1);
+  assert.equal(bg.called('cookies.getAll').length > 0, true);
+});
+test('R: a 10-minute sweep that removes nothing writes nothing to the log', async () => {
+  const bg = await at10('strong', { storage: { modes: { C11: 'off' } } });
+  for (let i = 0; i < 6; i++) { bg.now += 10 * 60e3 + 1; await bg.alarm('sweep'); }
+  assert.deepEqual((bg.state.storage.log || []).filter((l) => l.cap !== 'C28'), []);
+});
+test('R: the hourly clear after a block does not add a second clear within 10 minutes of the timed one', async () => {
+  const bg = await at10('strong', { tabs: [{ id: 1, active: true, url: 'https://news1.example/a' }, { id: 2, url: 'https://news2.example/b' }], cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] });
+  bg.now += 11 * 60e3; await bg.alarm('sweep'); assert.equal(clears(bg), 1);
+  bg.now += 60e3; await adHit(bg, 1, 'trk.example'); await adHit(bg, 2, 'trk.example');
+  assert.ok(bg.blockedHosts().includes('trk.example')); assert.equal(clears(bg), 1, 'a second clear one minute after the timed one');
+});
+test('R: the cache row at Strongest says every 10 minutes', async () => {
+  const s = await (await at10('strong')).send({ type: 'state' }), row = renderPopup(s, null).split('data-group="cache"')[1].split('data-group=')[0];
+  assert.match(row, /every 10 minutes/);
+  const b = await (await at10('balanced')).send({ type: 'state' }); assert.equal(/every 10 minutes/.test(renderPopup(b, null)), false);
+});

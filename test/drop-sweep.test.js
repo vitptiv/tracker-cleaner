@@ -79,7 +79,7 @@ test('popup-audit.js: Drop sends the drop message and reports the result to 8088
 const runs = (bg) => bg.called('cookies.getAll').length;
 test('one sweep at a time: three requests while the first is still running give exactly two runs', async () => {
   const bg = await load(on()), before = runs(bg);
-  bg.fireAlarm('sweep'); bg.fireAlarm('sweep'); bg.fireAlarm('sweep');
+  bg.fireAlarm('unguard'); bg.fireAlarm('unguard'); bg.fireAlarm('unguard');   // 1.32: the timed 'sweep' alarm skips while one runs (q-batch R); other causes still coalesce
   await bg.settle(); await bg.settle();
   assert.equal(runs(bg) - before, 2);
   await bg.alarm('sweep'); assert.equal(runs(bg) - before, 3);       // idle again: a request runs at once

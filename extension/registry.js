@@ -55,6 +55,12 @@ const levelMode = (id, level) => { const c = cap(id);
 const modeOf = (id, settings) => { const c = cap(id), s = settings || {}, stored = (s.modes || {})[id];
   if (!c || c.mode === null) return null;
   return ['auto', 'ask', 'off'].includes(stored) || (stored === 'yes' && c.answers) ? stored : levelMode(id, s.level); };
+// How often the cleaning runs by itself (owner, 1.32), decided here with the level: at Strongest the sweep of every row runs
+// every 10 minutes and the saved copies of pages (C11, the call that also drops remembered servers and forced-HTTPS
+// entries) are cleared every 10 minutes; at the other levels the sweep is every 15 minutes and the clearing daily. A cache
+// row the user set by hand keeps the daily clearing.
+const cleanEvery = (settings) => { const s = settings || {}, fast = s.level === 'strong';
+  return { sweepMin: fast ? 10 : 15, cacheMs: fast && !(s.modes || {}).C11 ? 10 * 60e3 : 24 * 3600e3 }; };
 // what the dial shows: the stored level, or 'custom' when a row on the dial was set by hand to something else
 const levelNow = (settings) => { const s = settings || {}, level = LEVELS.includes(s.level) ? s.level : 'balanced';
   return CAPS.some((c) => onDial(c) && modeOf(c.id, s) !== levelMode(c.id, level)) ? 'custom' : level; };
@@ -124,4 +130,4 @@ const cleanLimits = (l) => {
     permissionBlacklist: list(l.permissionBlacklist, 200, (p) => p && typeof p.site === 'string' && /^https?:\/\//.test(p.site) && host(p.site.replace(/^https?:\/\//, '')) && LIMIT_PERMS.includes(p.perm), (p) => ({ site: p.site, perm: p.perm })),
     cookieAllow: list(l.cookieAllow, 200, (a) => a && host(a.site) && Array.isArray(a.names) && a.names.every(text), (a) => ({ site: a.site, names: a.names.slice(0, 100) })) };
 };
-if (typeof module !== 'undefined') module.exports = { CAPS, GROUPS, cap, mayRun, gate, cleanLimits, LEVELS, OWN_SWITCH, CLEANABLE, onDial, levelMode, modeOf, levelNow, answersYes };
+if (typeof module !== 'undefined') module.exports = { CAPS, GROUPS, cap, mayRun, gate, cleanLimits, LEVELS, OWN_SWITCH, CLEANABLE, onDial, levelMode, modeOf, levelNow, answersYes, cleanEvery };

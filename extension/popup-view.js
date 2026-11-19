@@ -86,7 +86,7 @@ const renderPopup = (state, tab) => {
     const post = until === 'restart' ? 'Postponed until restart' : until > s.now ? `Postponed until ${hhmm(until)}` : '';
     // the cache row, while nothing waits: how much there is (when the state says) and when it is next due
     const idle = g.id !== 'cache' ? '' : [Number.isFinite(g.size) ? `${bytes(g.size)} of saved pages` : '',
-      mode !== 'off' && g.nextAt > s.now ? `${mode === 'auto' ? 'cleared' : 'offered'} again ${dayAt(g.nextAt, s.now)}` : ''].filter(Boolean).join(', ');
+      mode === 'auto' && g.every10 ? 'cleared every 10 minutes' : mode !== 'off' && g.nextAt > s.now ? `${mode === 'auto' ? 'cleared' : 'offered'} again ${dayAt(g.nextAt, s.now)}` : ''].filter(Boolean).join(', ');
     const [verb, thing] = DOES[g.id] || ['Remove', 'item'];
     const approve = hint ? '' : btn(g.id === 'cache' ? 'Clear the saved copies of pages' : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`, { type: 'approve', group: g.id }, 'go', stopped);
     const today = Number((((s.history || {}).days || {})[DAY_OF(s.now)] || {})[g.id]) || 0, cmd = COMMAND[g.id];

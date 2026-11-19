@@ -279,7 +279,7 @@ async function state() {
     groups: GROUPS.filter((g) => g.caps.length).map((g) => ({ id: g.id, title: g.title, says: g.says, ask: g.caps.some((id) => cap(id).destructive), mode: modeOf(g.caps[0], set), ...queueView(pending[g.id]), looping: looping(pending[g.id]),
       ...(g.caps.some((id) => cap(id).answers) ? { answers: true } : {}), ...(CLEANABLE.includes(g.id) ? { cleanable: true } : {}), ...(cleanedNow[g.id] ? { cleanedNow: cleanedNow[g.id] } : {}),
       // the cache: when it is next offered or cleared. Its size is not here: no Chrome API tells an extension (tools/inspect.js does)
-      ...(g.id === 'cache' ? { nextAt: (set.cacheClearedAt || 0) + CACHE_MS } : {}), ...(g.id === 'wifi' ? { noAuto: true, ...wifi } : {}) })) };
+      ...(g.id === 'cache' ? { nextAt: (set.cacheClearedAt || 0) + cleanEvery(set).cacheMs, ...(cleanEvery(set).cacheMs < CACHE_MS ? { every10: true } : {}) } : {}), ...(g.id === 'wifi' ? { noAuto: true, ...wifi } : {}) })) };
 }
 async function setMode(group, mode) {
   const g = GROUPS.find((x) => x.id === group);
@@ -1402,13 +1402,14 @@ async function copiesOf(hosts, cx) {
   try { await chrome.browsingData.remove({ origins: due.flatMap((h) => [`https://${h}`, `http://${h}`]) }, { cache: true }); } catch {}
 }
 // Any clearing of all saved copies also settles the one that is due since Chrome started (`startClear`, N1).
-const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() });
+const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now(), cacheWipedAt: Date.now() });   // cacheWipedAt: a real clearing (cacheClearedAt is also set at install)
   try { if ((await chrome.storage.session.get('startClear')).startClear === true) await chrome.storage.session.set({ startClear: false }); } catch {} };
 // Every clearing of all saved copies that the extension starts by itself around a block or a clean-out shares one budget:
 // once an hour in total (`softClearAt`), however many blocks or clean-outs there are (J6). The daily clearing and the
 // user's own "Clean now" are not counted against it.
-const copiesNow = async (cx, auto = false) => { const { softClearAt = 0 } = await chrome.storage.local.get('softClearAt'), now = Date.now();
-  if (softClearAt > now - 3600e3 || !can('C11', cx)) return;
+const copiesNow = async (cx, auto = false) => { const { softClearAt = 0, cacheWipedAt = 0 } = await chrome.storage.local.get(['softClearAt', 'cacheWipedAt']), now = Date.now();
+  // 1.32: and never within 10 minutes of any clearing of all saved copies, so it cannot stack with the 10-minute one
+  if (softClearAt > now - 3600e3 || cacheWipedAt > now - 10 * 60e3 || !can('C11', cx)) return;
   await chrome.storage.local.set({ softClearAt: now });
   try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', ...(auto ? { auto: true } : {}) }], 'removed'); } catch {} };
 // (1.25, H7 and I1: all saved copies are cleared at most once a day, once at a clean-out, and once after a stop that only
@@ -1426,8 +1427,10 @@ async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
   if (v === 'no') return {};
   let start = false; try { start = v === 'run' && !cx.signing && (await chrome.storage.session.get('startClear')).startClear === true; } catch {}
-  if (!start && cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};
-  const it = { cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', why: start ? 'chrome start' : 'daily', did: waitsAs(v) };
+  // 1.32: every 10 minutes at Strongest (registry.js cleanEvery), never while a tab is on a sign-in host; daily otherwise
+  const every = cleanEvery(cx.set).cacheMs, fast = every < CACHE_MS;
+  if (!start && (cx.set.cacheClearedAt > Date.now() - every || (fast && cx.signing && !(cx.set.cacheClearedAt <= Date.now() - CACHE_MS)))) return {};
+  const it = { cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', why: start ? 'chrome start' : fast ? 'every 10 minutes' : 'daily', did: waitsAs(v) };
   if (waits(v)) { wait.push(it); return {}; }
   try { await clearCache(); await logged([it], 'removed'); return { serversForgotten: true }; }
   catch (e) { return { serversForgotten: false, serversError: String(e) }; }
@@ -1457,8 +1460,14 @@ async function report(body) {
   try { await fetch(REPORT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: Date.now(), state: STATE(), ...body }) }); } catch {}
 }
 
-chrome.alarms.create('sweep', { periodInMinutes: 15 });
-chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep') sweep('every-15-min'); if (a.name === 'unguard') sweep('sign-in over'); });
+// One alarm for the timed sweep; its period follows the level (registry.js cleanEvery: 10 minutes at Strongest, else 15). Made
+// anew only when missing or of another period, so a wake-up of the worker does not restart its clock. A timed sweep that
+// comes while one is still running is skipped, so runs never pile up.
+const syncSweepAlarm = async () => { try { const want = cleanEvery(await chrome.storage.local.get(['level', 'modes'])).sweepMin;
+  const have = ((await chrome.alarms.getAll()) || []).find((x) => x.name === 'sweep');
+  if (!have || have.periodInMinutes !== want) chrome.alarms.create('sweep', { periodInMinutes: want }); } catch {} };
+syncSweepAlarm();
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'sweep' && !sweeping) sweep('timed'); if (a.name === 'unguard') sweep('sign-in over'); });
 // A notification block this extension set can be gone when Chrome starts or the extension is loaded again: the note that it
 // was set is taken away then, so the sweep that follows sets it again.
 const unmute = () => serial(async () => { const { own = {} } = await chrome.storage.local.get('own');
@@ -1545,5 +1554,6 @@ chrome.runtime.onInstalled.addListener(applyProxy);
 chrome.storage.onChanged.addListener((ch) => {
   if (ch.master || ch.modes || ch.pauseUntil || ch.stopped || ch.skipok || ch.noskip || ch.sitesOff) { applyFeatures(); applyProxy(); }
   if (ch.pending || ch.pauseUntil) badge();
+  if (ch.level || ch.modes) syncSweepAlarm();
 });
 badge();
