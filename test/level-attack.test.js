@@ -45,7 +45,8 @@ test('ATTACK (a, 1.31): a staged pass-through via a site you open or seem signed
   assert.deepEqual(emptied(bg, ['off.example']), []); assert.ok(emptied(bg, ['used.example']).length && emptied(bg, ['bank.example']).length);
   // the skip question is asked only of a site the user does not open (J4), so only bank.example can be skipped
   assert.deepEqual(bg.state.storage.skipok, ['bank.example']);
-  assert.ok(queued(bg, 'bounce').length >= 1 && queued(bg, 'bounce').every((i) => i.site === 'off.example'));
+  // F3 (1.32): each site's second pass-through within the day is a question, not a second clean-out
+  assert.deepEqual([...new Set(queued(bg, 'bounce').map((i) => `${i.kind} ${i.site}`))].sort(), ['bounce bank.example', 'bounce off.example', 'bounce used.example', 'skip off.example']);
 });
 test('ATTACK (1.31): what the removal of a site you use deletes: plain and storage-held sign-ins go, HttpOnly+Secure, KEEP_RE and allowed cookies stay; with its tab open only the background program goes', async () => {
   const cookies = [ID('.used.example'), { name: 'plain_session', domain: 'used.example', value: 'p-1234abcd5678' }, { name: 'auth', domain: 'used.example', value: 'a-1234abcd5678', httpOnly: true, secure: true },
@@ -99,7 +100,7 @@ test('ATTACK (d): every automatic answer is in the log, marked as done by itself
   const bg = await load(strong({ cookies: [ID('.trk.example'), { name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }] }));
   for (const p of ['a.example', 'b.example']) await req(bg, 'trk.example', p);
   await hop(bg);
-  assert.deepEqual(auto(bg).map((l) => [l.cap, l.kind, l.site]), [['C25', 'cookie', 'trk.example'], ['C11', 'cache', '*'], ['C25', 'tracker', 'trk.example'], ['C25', 'used', 'trk.example'], ['C27', 'cookie', 'hop.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'skip', 'hop.example']]);   // F7 (1.32): the cookie and cache lines inside an answer too   // each pass through it saved something anew
+  assert.deepEqual(auto(bg).map((l) => [l.cap, l.kind, l.site]), [['C25', 'cookie', 'trk.example'], ['C11', 'cache', '*'], ['C25', 'tracker', 'trk.example'], ['C25', 'used', 'trk.example'], ['C27', 'cookie', 'hop.example'], ['C27', 'bounce', 'hop.example'], ['C27', 'skip', 'hop.example']]);   // 1.32: F7 the cookie and cache lines inside an answer too; F3 the second pass within the day is a question   // each pass through it saved something anew
   assert.equal((await bg.send({ type: 'restoreAll' })).restored, 2);
   await bg.send({ type: 'unstop', site: 'trk.example' }); await bg.send({ type: 'unskip', site: 'hop.example' }); await bg.settle();
   assert.deepEqual(bg.blockedHosts(), []); assert.equal(bg.state.storage.skip.sites.includes('hop.example'), false);

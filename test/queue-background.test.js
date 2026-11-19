@@ -106,7 +106,7 @@ test('state message: settings, hold state, and per group its mode, pending count
   const bg = await load(ask({ cookies: many }));
   await bg.alarm('sweep'); await bg.send({ type: 'pause', minutes: 3 }); await bg.settle();
   const s = await bg.send({ type: 'state' });
-  assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'groups', 'hard', 'histOn', 'hold', 'level', 'log', 'master', 'modes', 'now', 'server', 'sitesOff', 'skipped', 'stopped', 'stoppedUsed', 'tor', 'undo']);   // 1.30: level (the dial)
+  assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'autoDone', 'groups', 'hard', 'histOn', 'hold', 'level', 'log', 'master', 'modes', 'now', 'server', 'sitesOff', 'skipped', 'stopped', 'stoppedUsed', 'tor', 'undo']);   // 1.30: level (the dial); 1.32: autoDone (F3)
   assert.equal(s.level, 'custom');   // the four rows the loader stores as "Ask first" differ from Balanced
   assert.equal(s.master, true); assert.deepEqual(s.modes, { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C03: 'ask' });
   assert.deepEqual(s.hold, { paused: true, guard: false, tab: false, pauseUntil: bg.now + 3 * MIN, guardUntil: 0 });

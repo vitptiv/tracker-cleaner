@@ -87,7 +87,7 @@ test('F7: the per-cookie deletions and the cache clearing of an automatic block 
   const of = (pred) => log.filter(pred).map((l) => `${l.cap} ${l.kind} ${l.site} ${l.name} ${l.auto === true}`);
   assert.deepEqual(of((l) => l.kind === 'cookie'), ['C25 cookie trk.example uid true', 'C27 cookie hop.example hop_id true']);
   assert.deepEqual(of((l) => l.kind === 'cache'), ['C11 cache * http-cache true']);
-  assert.equal(log.filter((l) => !l.auto && l.cap !== 'C28').length, 0, JSON.stringify(log.filter((l) => !l.auto)));   // C28: the row's own daily emptying, no answer
+  assert.equal(log.filter((l) => !l.auto && l.cap !== 'C28' && l.did === 'removed').length, 0, JSON.stringify(log.filter((l) => !l.auto)));   // C28: the row's own daily emptying, no answer
 });
 test('F7: the same deletions at the user\'s own press are not marked as done by itself', async () => {
   const bg = await load(strong({ storage: { level: 'balanced' }, cookies: [{ name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' }] }));
@@ -130,4 +130,54 @@ test('F6: XNEW_HOUR: the new cross-site tokens a page may add in an hour stay co
   const bg2 = await restart(bg, { tabs: [{ id: 1, active: true, url: 'https://news.example/' }] });
   await bg2.request({ url: `https://news.example/api/x?v=${tok(10)}`, initiator: 'https://news.example', type: 'xmlhttprequest' }); await bg2.settle();
   assert.equal(Object.keys(bg2.state.session.xseen).length, 10, 'an 11th new token was taken after the restart');
+});
+
+// ---- F3: a pass-through answered by itself has a visible "Let it through", repeats at most once a day, never with its tab open
+const { renderPopup } = require('../extension/popup-view.js');
+const msgs = (html) => [...html.matchAll(/data-msg="([^"]*)"/g)].map((m) => JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&')));
+test('F3: a pass-through via a site you use is cleaned by itself once, then at most once a day; the popup offers "Let it through" and that stops it', async () => {
+  const bg = await load(strong({ cookies: [{ name: 'XSRF-TOKEN', domain: 'www.bank.example', value: 'x-1' }] }));
+  await bg.opens('https://www.bank.example/home'); await bg.closeTab(bg.tabOf('https://www.bank.example/home'));
+  const bounce = async () => { await bg.redirect({ url: 'https://www.bank.example/out?url=https%3A%2F%2Fevil.example%2F', redirectUrl: 'https://evil.example/', type: 'main_frame', tabId: 1 }); await bg.settle(); };
+  await bounce();
+  assert.equal(emptied(bg, 'www.bank.example').length, 1, 'the first one is answered by itself (Strongest, full)');
+  let s = await bg.send({ type: 'state' });
+  assert.deepEqual(s.autoDone.map((a) => [a.site, a.row]), [['www.bank.example', 'bounce']]);
+  for (const tab of [null, { host: 'www.bank.example' }]) {
+    const lets = msgs(renderPopup(s, tab)).filter((m) => m.type === 'letThrough');
+    assert.deepEqual(lets.map((m) => m.site), tab ? ['www.bank.example', 'www.bank.example'] : ['www.bank.example'], 'on the row, and under This site when it is open');
+  }
+  for (let i = 0; i < 5; i++) { bg.now += 61 * 60e3; await bounce(); }
+  assert.equal(emptied(bg, 'www.bank.example').length, 1, 'wiped again within the day');
+  assert.deepEqual(pend(bg, 'bounce').filter((i) => i.kind === 'bounce').map((i) => i.site), ['www.bank.example'], 'the next ones are a question');
+  bg.now += 24 * 3600e3; await bounce();
+  assert.equal(emptied(bg, 'www.bank.example').length, 2, 'a day later once more');
+  assert.deepEqual(await bg.send({ type: 'letThrough', site: 'www.bank.example' }), { ok: true }); await bg.settle();
+  assert.deepEqual(bg.state.storage.unauto, ['bank.example']);
+  s = await bg.send({ type: 'state' }); assert.deepEqual(s.autoDone, [], 'still offered after the press');
+  bg.now += 48 * 3600e3; await bounce(); await bounce();
+  assert.equal(emptied(bg, 'www.bank.example').length, 2, 'answered by itself after Let it through');
+  assert.ok(pend(bg, 'bounce').some((i) => i.site === 'www.bank.example'));
+  for (const site of [undefined, '', 'not a host!', 7]) assert.deepEqual(await bg.send({ type: 'letThrough', site }), { ok: false });
+});
+test('F3: never by itself while a tab is open on that site: neither the clean nor the skip', async () => {
+  const bg = await load(strong({ storage: { level: 'balanced' }, cookies: [{ name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }] }));
+  for (const to of ['https://blog.example/post', 'https://shop.example/x']) { await bg.redirect({ url: `https://hop.example/r?to=${encodeURIComponent(to)}`, redirectUrl: to + '?hid=h-77ab12cd34ef', type: 'main_frame', tabId: 1 }); await bg.settle(); }
+  assert.deepEqual(pend(bg, 'bounce').map((i) => i.kind).sort(), ['bounce', 'skip']);
+  await bg.openTab({ id: 3, url: 'https://hop.example/page' });
+  await bg.send({ type: 'setLevel', level: 'strong' }); await bg.settle();
+  assert.equal(emptied(bg, 'hop.example').length, 0); assert.deepEqual(await bg.names(), ['hop_id']);
+  assert.equal((bg.state.storage.skipok || []).includes('hop.example'), false, 'skipped by itself with its tab open');
+  await bg.closeTab(3); await bg.alarm('sweep');
+  assert.ok((bg.state.storage.skipok || []).includes('hop.example'), 'answered once the tab is closed');
+});
+test('F3: a tracker blocked by itself is offered "Let it through" on its row too, which undoes the block', async () => {
+  const bg = await load(strong({ cookies: [UID] }));
+  await adHit(bg, 1, 'app.bank.example'); await adHit(bg, 2, 'app.bank.example');
+  const s = await bg.send({ type: 'state' });
+  assert.deepEqual(s.autoDone.map((a) => [a.site, a.row]), [['app.bank.example', 'unknown']]);
+  const row = renderPopup(s, null).split('data-group="unknown"')[1].split('data-group=')[0];
+  assert.ok(msgs(row).some((m) => m.type === 'letThrough' && m.site === 'app.bank.example'));
+  await bg.send({ type: 'letThrough', site: 'app.bank.example' }); await bg.settle();
+  assert.deepEqual(bg.blockedHosts(), []); assert.deepEqual(bg.state.storage.unauto, ['bank.example']);
 });

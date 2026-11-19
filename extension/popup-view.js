@@ -66,9 +66,12 @@ const renderPopup = (state, tab) => {
           + (allowed(l) ? '<span class="m">allowed</span>' : btn('Allow', { type: 'allow', site: l.site, name: l.name }))}</span></div>`
         + (here(l.site) ? '' : '<div class="m sub">set while you were on this site</div>')).join('')
         || '<p class="m">Nothing cleaned here yet.</p>')
+      + autoLines((s.autoDone || []).filter((a) => here(a.site)))
       + `<p>${check("Don't clean on this site", { type: 'siteOff', host: off || h }, !!off)}</p>`;
   };
 
+  // F3: a host answered by itself, with the press that stops it (no host of its site is then answered by itself again)
+  const autoLines = (list) => list.map((a) => `<div class="c h"><span>${esc(a.site)} <span class="m">${a.row === 'bounce' ? 'cleaned' : 'blocked and cleaned'} by itself</span></span>${btn('Let it through', { type: 'letThrough', site: a.site })}</div>`).join('');
   const group = (g) => {
     const n = Number(g.pending) || 0, items = g.items || [], until = g.postponedUntil;
     const mode = g.ask === false && g.mode !== 'auto' ? 'off' : g.noAuto && g.mode === 'auto' ? 'ask' : g.mode;   // nothing to ask about: 'ask' acts as off
@@ -93,6 +96,7 @@ const renderPopup = (state, tab) => {
       + (g.id === 'cache' && mode !== 'off' && !n ? `<div class="b">${btn('Clean now', { type: 'drop', kind: 'servers' }, '', stopped)}</div>` : '')
       // 1.30: Clean now on every other row with something to clean (the cache row's is the one above), and what the last press did
       + (g.cleanable && g.id !== 'cache' && mode !== 'off' ? `<div class="b">${btn('Clean now', { type: 'cleanNow', group: g.id }, '', noClean)}${asksOnly && n ? ' <span class="m">Clean now answers them all yes, except for sites you turned off</span>' : ''}</div>` : '')
+      + (asksOnly ? autoLines((s.autoDone || []).filter((a) => a.row === g.id)) : '')
       + (g.cleanedNow && g.cleanedNow.t > s.now - CLEANED_SHOWN_MS ? `<div class="m">Cleaned at ${hhmm(g.cleanedNow.t)}: ${g.cleanedNow.n ? `${Number(g.cleanedNow.n)} removed` : 'nothing to remove'}</div>` : '')
       + (!n || asksOnly ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
         + `${btn('Until restart', { type: 'postpone', group: g.id, minutes: 'restart' }, 'small')}</div>`

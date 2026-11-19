@@ -67,7 +67,8 @@ test('Strongest, no press: a site that passes you along is cleaned and skipped n
   const bg = await fresh({ cookies: [{ name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }, { name: 'own', domain: 'blog.example', value: 'x' }], tabs: ELSEWHERE });
   await hops(bg);
   assert.deepEqual(await bg.names(), ['own']); assert.ok(bg.state.storage.skipok.includes('hop.example')); assert.ok(bg.state.storage.skip.sites.includes('hop.example'));
-  assert.deepEqual(queued(bg, 'bounce'), []); assert.deepEqual(auto(bg), ['C27 cookie hop.example removed', 'C27 bounce hop.example removed', 'C27 bounce hop.example removed', 'C27 skip hop.example removed'], 'its cookie (F7), each pass, then the skip');
+  assert.deepEqual(queued(bg, 'bounce').map((i) => i.kind), ['bounce'], 'F3: the second pass within the day is a question');
+  assert.deepEqual(auto(bg), ['C27 cookie hop.example removed', 'C27 bounce hop.example removed', 'C27 skip hop.example removed'], 'its cookie (F7), the first pass, then the skip');
   await bg.send({ type: 'unskip', site: 'hop.example' }); await bg.settle();
   assert.equal(bg.state.storage.skip.sites.includes('hop.example'), false); assert.ok(bg.state.storage.unauto.includes('hop.example'));
 });

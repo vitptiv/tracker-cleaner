@@ -255,13 +255,15 @@ async function state() {
   await ready;
   const { set, hold, signing } = await context(), modes = set.modes || {}, pending = set.pending || {};
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
-  const { wifi, cleanedNow = {} } = await chrome.storage.local.get(['wifi', 'cleanedNow']);   // wifi: what the helper last said: { helper: 'ok' | 'missing', canDelete }
+  const { wifi, cleanedNow = {}, autoDone = {} } = await chrome.storage.local.get(['wifi', 'cleanedNow', 'autoDone']);   // wifi: what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, level: levelNow(set), hold: { ...hold, guard: signing, pauseUntil: set.pauseUntil || 0, guardUntil: 0 },   // guard: a tab is on a sign-in host right now (for the popup's line)
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], hard: set.hard || [], stoppedUsed: (set.stopped || []).filter((s) => visited({ set }, siteOf(s))), skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
     ...(serverOff().length ? { serverOff: serverOff() } : {}), ...(notWorking().length ? { notWorking: notWorking() } : {}), histOn: set.histOn === true,
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
+    // F3: the hosts answered by itself that can still be let through, newest first
+    autoDone: Object.entries(autoDone).filter(([h]) => isHost(h) && !unautoHas({ set }, siteOf(h))).map(([site, a]) => ({ site, row: a.row, t: a.t })).sort((a, b) => b.t - a.t),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
     // one row per group that has an action capability; it shows the mode of its first one (its own, or the level's),
     // setMode keeps them all the same. ask: false = nothing destructive in the group, so 'ask' would only mean off: the
@@ -399,7 +401,7 @@ async function lineSeen(m) {
   if (m.auto === true) await sweep('settings');
   return { ok: true };
 }
-const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), unskip: (m) => unskip(m.site), keepRemoving: (m) => keepRemoving(m.site, m.on), histOn: (m) => histOn(m.on), clearBrowsing, postpone: (m) => postpone(m.group, m.minutes),
+const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), letThrough: (m) => letThrough(m.site), unskip: (m) => unskip(m.site), keepRemoving: (m) => keepRemoving(m.site, m.on), histOn: (m) => histOn(m.on), clearBrowsing, postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setLevel: (m) => setLevel(m.level), cleanNow: (m) => CLEANABLE.includes(m.group) ? cleanPress([m.group]) : Promise.resolve({ ok: false }),
   cleanAll: () => cleanPress(CLEANABLE), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
@@ -1013,12 +1015,12 @@ async function followSweep(cx, all, wait) {
   const yes = answersYes('C25', cx.set, cx.hold);
   for (const { w, ...it } of asks.sort((a, b) => b.w - a.w).slice(0, QUESTIONS_MAX)) {
     if (yes && await yesNow(cx, it.site) && await stopTracker(it.site)) { const used = await hardClean(it.site, true);   // its saved copies: copiesNow, there
-      await logged([{ ...it, auto: true }, ...(used ? [{ cap: 'C25', kind: 'used', site: it.site, name: USED, auto: true }] : [])], 'removed'); continue; }
+      await logged([{ ...it, auto: true }, ...(used ? [{ cap: 'C25', kind: 'used', site: it.site, name: USED, auto: true }] : [])], 'removed'); await noteAuto(it.site, 'unknown'); continue; }
     wait.push(it); }
   // a blocked host: the second question, once (USED: remove what it saved)
   for (const site of stopped) if (!hard.includes(site) && !later(cx, 'C25', site, USED)) {
     const it = { cap: 'C25', kind: 'used', site, name: USED, why: String(((follow[site] || {}).on || []).length), did: 'queued' };
-    if (yes && await yesNow(cx, site) && await hardClean(site, true)) { await logged([{ ...it, auto: true }], 'removed'); continue; }
+    if (yes && await yesNow(cx, site) && await hardClean(site, true)) { await logged([{ ...it, auto: true }], 'removed'); await noteAuto(site, 'unknown'); continue; }
     wait.push(it); }
 }
 // ---- What the cleaner may answer yes by itself (Strongest), and what a press answers in bulk (Clean now). 1.31 (the
@@ -1045,6 +1047,24 @@ const yesNow = async (cx, site) => mayYes(cx, site) && await spendYes();
 // the user let it through again, or said "Not now": no host of that site is answered by itself again (it is asked)
 const noAuto = (host) => serial(async () => { const { unauto = [] } = await chrome.storage.local.get('unauto'), site = isHost(host) ? siteOf(host) : '';
   if (site && !unauto.includes(site)) await chrome.storage.local.set({ unauto: [...unauto, site].slice(-STOPPED_MAX) }); });
+// F3 (1.32): the hosts answered by itself, { autoDone: { '<host>': { t, row } } } (row: 'unknown' or 'bounce'), at most
+// AUTODONE_MAX: the popup shows each on its row, and under "This site", with "Let it through" (letThrough). A host of a site
+// the user let through is no longer shown.
+const AUTODONE_MAX = 100, BOUNCE_AUTO_MS = 24 * 3600e3;
+const noteAuto = (host, row) => serial(async () => { const { autoDone = {} } = await chrome.storage.local.get('autoDone');
+  await chrome.storage.local.set({ autoDone: Object.fromEntries([...Object.entries(autoDone).filter(([h]) => h !== host), [host, { t: Date.now(), row }]].slice(-AUTODONE_MAX)) }); });
+// "Let it through" on a host answered by itself: its block goes (as "Let it through again"), its links are no longer
+// skipped, and no host of its site is answered by itself again (unauto). What was emptied cannot be put back.
+async function letThrough(site) {
+  if (!isHost(site)) return { ok: false };
+  const { stopped = [], skipok = [] } = await chrome.storage.local.get(['stopped', 'skipok']);
+  if (stopped.includes(site)) await unstop(site);
+  if (skipok.includes(site)) await unskip(site);
+  await noAuto(site);
+  await serial(async () => { const { autoDone = {} } = await chrome.storage.local.get('autoDone');
+    if (autoDone[site]) { delete autoDone[site]; await chrome.storage.local.set({ autoDone }); } });
+  return { ok: true };
+}
 async function stopTracker(site) {
   if (!isHost(site)) return false;
   const { stopped = [] } = await chrome.storage.local.get('stopped');
@@ -1120,14 +1140,22 @@ try { chrome.webRequest.onBeforeRedirect.addListener((d) => { noteRedirect(d); }
 async function bounceSweep(cx, wait, all) {
   const v = verdict('C27', cx), done = [], yes = answersYes('C27', cx.set, cx.hold);
   if (v === 'no') return;
-  const { bounce = {}, skipok = [], noskip = [] } = await chrome.storage.local.get(['bounce', 'skipok', 'noskip']), choices = [...skipok, ...noskip];
+  const { bounce = {}, skipok = [], noskip = [], autoDone = {} } = await chrome.storage.local.get(['bounce', 'skipok', 'noskip', 'autoDone']), choices = [...skipok, ...noskip];
   for (const [site, e] of Object.entries(bounce)) {
     const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === siteOf(site)) ? [{ kind: 'bounce', name: PASSED }] : []),
       // it sent the browser on to two different sites and added an ID, and is no site the user opens: may its links be changed to go straight there?
       ...((e.to || []).length >= 2 && e.id === true && !visited(cx, siteOf(site)) && !choices.includes(site) ? [{ kind: 'skip', name: SKIPQ }] : [])];
     const open = asks.filter((x) => !later(cx, 'C27', site, x.name)).map((x) => ({ cap: 'C27', site, why: 'a redirect', ...x, did: v === 'held' ? 'held' : 'queued' }));
-    // 1.30, Strongest ('yes'): both questions about a site answered yes by itself, as one of the hour's STOPS_HOUR (mayYes)
-    if (yes && open.length && await yesNow(cx, site)) { for (const it of open) if (await (it.kind === 'bounce' ? cleanBounce(site, true) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true }); continue; }
+    // 1.30, Strongest ('yes'): both questions about a site answered yes by itself, as one of the hour's STOPS_HOUR (mayYes).
+    // F3 (1.32): never while a tab is open on that site, and a site's pass-through is cleaned by itself at most once a day
+    // (BOUNCE_AUTO_MS); within the day it is a question again. The popup then offers "Let it through" for it (autoDone).
+    const site_ = siteOf(site), tabOpen = cx.hosts.some((h) => siteOf(h) === site_);
+    const again = Object.entries(autoDone).some(([h, a]) => a.row === 'bounce' && siteOf(h) === site_ && a.t > Date.now() - BOUNCE_AUTO_MS);
+    const mayAuto = open.filter((it) => it.kind !== 'bounce' || !again);
+    if (yes && mayAuto.length && !tabOpen && await yesNow(cx, site)) {
+      for (const it of mayAuto) if (await (it.kind === 'bounce' ? cleanBounce(site, true) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true });
+      if (mayAuto.some((it) => it.kind === 'bounce')) await noteAuto(site, 'bounce');
+      wait.push(...open.filter((it) => !mayAuto.includes(it))); continue; }
     // otherwise never by itself (F2, J1): what a passing site saved is deleted, and its links changed, only after the user's press on its question
     wait.push(...open); }
   await logged(done, 'removed');
