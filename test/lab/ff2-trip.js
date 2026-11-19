@@ -1,8 +1,8 @@
 'use strict';
-// Friendface 2 (lab-only), F2-7: the coded trip with the SHIPPED cleaner FULLY ON (master on, the fingerprint shield
+// The hidden collector (lab-only), F2-7: the coded trip with the SHIPPED cleaner FULLY ON (master on, the fingerprint shield
 // C32 switched on too, every question answered yes) through the ff2 sites, and the parallel "What I know about you".
 // It proves each ff2 kind is still tracked and tied to one browser although the cleaner is on, and that the structural
-// rules never touched ff2 (nothing learned, nothing blocked). Results to lab/ff2-misses.json. The frozen Friendface 1
+// rules never touched ff2 (nothing learned, nothing blocked). Results to lab/ff2-misses.json. The frozen test-network
 // files and the extension are never edited. node test/lab/ff2-trip.js
 const assert = require('node:assert'), fs = require('node:fs'), path = require('node:path');
 const { start2 } = require('../../lab/ff2-server'), { launch, sleep, until } = require('./chrome');
@@ -176,7 +176,7 @@ let passed = 0; const ok = (c, w) => { assert.ok(c, w); passed++; };
     ok(stoppedN >= 5, `the four collector kinds and the ETag image are stopped going forward (stopped ${stoppedN})`);
 
     const survIds = rows.filter((r) => !r.stoppedGoingForward).map((r) => r.id).join(', ');
-    const out = { what: 'Friendface 2 against Tracker Cleaner (the version is under "extension") with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.',
+    const out = { what: 'The hidden collector against Tracker Cleaner (the version is under "extension") with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.',
       extension: JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8')).version, browser: k.browser, sites: k.sites,
       joinedOnFirstContact: joined.length, stoppedGoingForward: stoppedN, survives: survN, of: TRACES2.length,
       headline: `${joined.length}/${TRACES2.length} kinds joined on first contact (a value detector cannot prevent that); going forward the cleaner stops ${stoppedN}/${TRACES2.length} (collector path blocked, incl. the ETag image under /f/${f1Stopped ? '; the per-site cookie F1 that the collector path set is deleted' : ''}) and ${survN}/${TRACES2.length} survive (${survIds}: first-party server-side F4/F5, sign-in F7, hand-off chain F3${f1Stopped ? '' : ', per-site cookie F1'}).`,

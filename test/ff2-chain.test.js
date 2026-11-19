@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only), F2-3: the URL-ID chain. The outgoing hand-off links carry the master id under a rotating
+// The hidden collector (lab-only), F2-3: the URL-ID chain. The outgoing hand-off links carry the master id under a rotating
 // ordinary-looking parameter name; the next site's server reads whichever name is present and rebuilds the id
 // server-side, so one browser is joined across sites. C23 (the shipped URL-parameter strip) only touches its own
 // listed names, and learn.js NEVER_PARAM shields common names, so a novel rotating name is never stripped.

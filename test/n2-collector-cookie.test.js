@@ -1,6 +1,6 @@
 'use strict';
 // N2 (1.28, C33): the first-party ID cookie that a confirmed collector path set. A site's own reverse-proxy collector
-// (Friendface 2) answers with Set-Cookie under the visited site's own name; C33 confirms and blocks that path (M2, M8),
+// (the hidden collector) answers with Set-Cookie under the visited site's own name; C33 confirms and blocks that path (M2, M8),
 // but the cookie it set stayed. Now the worker notes, in memory only, the NAMES of the cookies a first-party sub-resource
 // answer sets, per endpoint (host + path prefix, as the detector keys it); once that endpoint is in a confirmed entry
 // the sweep deletes exactly those cookies there. Never a sign-in cookie, a kept cookie, a site that is switched off, a

@@ -34,14 +34,14 @@ Measured with version 1.32 in a real Chrome against the test lab in `lab/` (a pr
 | T28 | Page-close beacon | stopped | stopped | stopped |
 | T29 | Outgoing-click ping | stopped | stopped | stopped |
 | T30 | Redirect log | **still follows you** | **still follows you** | **still follows you** |
-| T31 | Like and share on Friendface's own page | **still follows you** | **still follows you** | **still follows you** |
-| T32 | "Sign in with Friendface" | **still follows you** | **still follows you** | **still follows you** |
+| T31 | Like and share on the test network's own page | **still follows you** | **still follows you** | **still follows you** |
+| T32 | "Sign in with Testbook" | **still follows you** | **still follows you** | **still follows you** |
 | T33 | Purchase reported by the shop's server | **still follows you** | **still follows you** | **still follows you** |
 | T34 | Push subscription | not built | not built | not built |
 | T35 | Typing and mouse rhythm | stopped | **still follows you** | stopped |
 | T36 | Probe of programs on your computer | arrives, not tied to you | **still follows you** | stopped |
 
-## The hidden collector (Friendface 2)
+## The hidden collector
 
 All ten work on first contact. "Stopped" means from the moment the cleaner has seen the same code on two sites, at Balanced and Strongest alike.
 

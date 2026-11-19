@@ -1,7 +1,7 @@
 'use strict';
-// Friendface 2 (lab-only): a SECOND pretend platform, on its own loopback port, to test the shipped cleaner (v1.25)
+// The hidden collector (lab-only): a SECOND pretend platform, on its own loopback port, to test the shipped cleaner (v1.25)
 // against first-party evasions. Nothing here is keyed on by the extension; a loophole counts only if the shipped code
-// fails to stop it. 127.0.0.1 only, made-up names, additions only (the frozen Friendface 1 files are never touched).
+// fails to stop it. 127.0.0.1 only, made-up names, additions only (the frozen test-network files are never touched).
 //
 // The spine: the only tracker piece on any page is served from the VISITED site's own /f/ path, which this content
 // server reverse-proxies to the ff2 collector on its own loopback port. The browser never connects to another host,

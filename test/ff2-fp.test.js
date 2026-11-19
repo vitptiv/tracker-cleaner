@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only), F2-5: a fingerprint join key from surfaces the shield never blurs -- installed fonts
+// The hidden collector (lab-only), F2-5: a fingerprint join key from surfaces the shield never blurs -- installed fonts
 // (text metrics), matchMedia/screen, and WebGL MAX_TEXTURE_SIZE. shield.js wraps 2D canvas, GL vendor/renderer
 // (37445/37446) and readPixels; it does NOT touch fonts, matchMedia or screen. So the stable code is built from the
 // unshielded surfaces, and the shielded readPixels hash is captured apart (to show, honestly, where the shield wins).

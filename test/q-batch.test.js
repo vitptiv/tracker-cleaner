@@ -295,7 +295,7 @@ test('F4: a site must have sent the value to its OWN endpoint: a value two sites
   await bg.alarm('sweep');
   assert.deepEqual(bg.state.session.xsid || {}, {}, 'confirmed with only one site sending to its own name');
 });
-test('F4: the Friendface 2 shape still works: two sites each send the same value, not from any address, to their own /f/: confirmed and blocked', async () => {
+test('F4: the hidden collector shape still works: two sites each send the same value, not from any address, to their own /f/: confirmed and blocked', async () => {
   const bg = await balanced({ tabs: [{ id: 1, active: true, url: 'https://ledger.example/' }, { id: 2, url: 'https://sundial.example/' }] });
   await bg.opens('https://ledger.example/budget'); await bg.opens('https://sundial.example/forecast?x=ff2m-18f0aa');
   for (const s of ['ledger.example', 'sundial.example']) { await bg.request({ url: `https://${s}/f/hit?fp=${TOK}`, initiator: `https://${s}`, type: 'xmlhttprequest' }); await bg.settle(); }
@@ -304,7 +304,7 @@ test('F4: the Friendface 2 shape still works: two sites each send the same value
   for (const s of ['ledger.example', 'sundial.example']) assert.ok(xblock(bg, `https://${s}/f/hit`), s);
   assert.equal(xblock(bg, 'https://ledger.example/f/hit').condition.domainType, undefined, 'the block applies to the site\'s own page too (that is how the ff2 collector is cut)');
 });
-test('F4: a value handed on in the address (the Friendface 2 chain) is confirmed by the echo of the site that got it, but only the site that sent it unhanded is acted on', async () => {
+test('F4: a value handed on in the address (the hidden collector chain) is confirmed by the echo of the site that got it, but only the site that sent it unhanded is acted on', async () => {
   const bg = await balanced({ tabs: [{ id: 1, active: true, url: 'https://ledger.example/budget' }] });
   await bg.opens('https://ledger.example/budget');
   await bg.request({ url: `https://ledger.example/f/hit?m=${TOK}`, initiator: 'https://ledger.example', type: 'xmlhttprequest', tabId: 1, frameId: 0 }); await bg.settle();
@@ -314,7 +314,7 @@ test('F4: a value handed on in the address (the Friendface 2 chain) is confirmed
   await bg.alarm('sweep');
   assert.deepEqual(Object.values(bg.state.session.xsid || {}).map((e) => e.eps), [['ledger.example/f/']]);
   assert.ok(xblock(bg, 'https://ledger.example/f/hit')); assert.equal(xblock(bg, 'https://sundial.example/f/hit'), undefined, 'an echo alone made sundial actionable');
-  // sundial's own page then hands the value on to a third site (as Friendface 2 does): sundial takes part, its /f/ is cut too
+  // sundial's own page then hands the value on to a third site (as the hidden collector does): sundial takes part, its /f/ is cut too
   await bg.request({ url: `https://atlas.example/guide?y=${TOK}`, type: 'main_frame', tabId: 1, frameId: 0, initiator: 'https://sundial.example' }); await bg.settle();
   await bg.alarm('sweep');
   assert.deepEqual(Object.values(bg.state.session.xsid || {}).map((e) => e.eps.sort()), [['ledger.example/f/', 'sundial.example/f/']]);

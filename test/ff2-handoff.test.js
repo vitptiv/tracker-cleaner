@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only), F2-4: the scripted hand-off. The browser is passed between sites by a scripted navigation
+// The hidden collector (lab-only), F2-4: the scripted hand-off. The browser is passed between sites by a scripted navigation
 // (location.assign) or a <meta refresh>, never an HTTP 302, and the outgoing click is recorded first-party before the
 // jump. So background.js noteRedirect (which listens on onBeforeRedirect only) never fires, skip.js and the bounce
 // question never engage, and no-ping.js has no ping attribute to strip -- yet the redirect log still fills.

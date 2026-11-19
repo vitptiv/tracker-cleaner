@@ -1,6 +1,6 @@
 'use strict';
-// Friendface 2's own "What I know about you" (lab-only): its parallel trace list and knows page. The frozen Friendface
-// 1 page (know.js) is keyed to traces.json; this is a separate list for the ff2 kinds, so nothing frozen is touched.
+// The hidden collector's own "What I know about you" (lab-only): its parallel trace list and knows page. The frozen test-network
+// page (know.js) is keyed to traces.json; this is a separate list for the ff2 kinds, so nothing frozen is touched.
 const TRACES2 = [
   { id: 'F1', type: 'First-party reverse-proxy ID', how: 'A first-party cookie set under each site’s own name through its /f/ proxy; the structural rules (thirdParty) never match.' },
   { id: 'F2', type: 'Cookie-less first-party ID', how: 'The master id kept only in the site’s own localStorage/IndexedDB/cacheStorage and the address; never a cookie, so the cleaner never even asks.' },
@@ -30,7 +30,7 @@ function know2(store, g) {
     sites: [...new Set(recs.map((r) => r.site).filter(Boolean))] };
 }
 function page2(k, esc) {
-  return `<p id="who">${k.browser ? `This browser is known to Friendface 2 as <b>${esc(k.browser)}</b>, the same across every site it visits.` : 'No id for this browser yet.'}</p>
+  return `<p id="who">${k.browser ? `This browser is known to the hidden collector as <b>${esc(k.browser)}</b>, the same across every site it visits.` : 'No id for this browser yet.'}</p>
 <p id="count">${k.tracked} of ${k.of} ff2 kinds tracked. The same as data: <a href="/what-i-know.json">/what-i-know.json</a></p>
 <table id="marks"><tr><th>Row</th><th>Type</th><th>Mark</th><th>Id / value captured</th><th>Seen on</th></tr>
 ${k.rows.map((r) => `<tr data-row="${r.id}" data-mark="${r.mark}"><td>${r.id}</td><td>${esc(r.type)}<br><small>${esc(r.how)}</small></td>

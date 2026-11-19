@@ -1,16 +1,16 @@
 'use strict';
 // The tracking lab: one program answering as every pretend site, told apart by the name asked for. 127.0.0.1 only.
-// node lab/server.js [port]   then open http://friendface.localhost:8200/
+// node lab/server.js [port]   then open http://testbook.localhost:8200/
 const http = require('node:http'), https = require('node:https'), net = require('node:net'), path = require('node:path'), fs = require('node:fs');
 const { createStore } = require('./store');
-const SITES = { friendface: 'Friendface', hop: 'Hop', gazette: 'Harbour Gazette', parcelpine: 'Parcel & Pine', 'metrics.parcelpine': 'Parcel & Pine metrics',
+const SITES = { testbook: 'Testbook', hop: 'Hop', gazette: 'Harbour Gazette', parcelpine: 'Parcel & Pine', 'metrics.parcelpine': 'Parcel & Pine metrics',
   tidewater: 'Tidewater Notes', loopreel: 'Loopreel', pennant: 'Pennant' };
-const LOOK = { friendface: '#2f6f4f', hop: '#555', gazette: '#7a1f1f', parcelpine: '#5b4a1e', 'metrics.parcelpine': '#5b4a1e', tidewater: '#1f4f7a', loopreel: '#5a2f7a', pennant: '#a05a00' };
+const LOOK = { testbook: '#2f6f4f', hop: '#555', gazette: '#7a1f1f', parcelpine: '#5b4a1e', 'metrics.parcelpine': '#5b4a1e', tidewater: '#1f4f7a', loopreel: '#5a2f7a', pennant: '#a05a00' };
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
 function start({ port = 8200, logFile, tls } = {}) {
-  // with a lab certificate, Friendface also answers as friendface.test on one more loopback port, plain and encrypted
+  // with a lab certificate, the test network also answers as testbook.test on one more loopback port, plain and encrypted
   const lab = { port, tlsPort: tls ? port + 3 : 0, probe: [port + 1, port + 2], store: createStore(logFile), SITES, esc, GIF };
   lab.at = (site, p = '/') => `http://${site}.localhost:${port}${p}`;
   lab.page = (site, title, body, head = '') => `<!doctype html><meta charset="utf-8"><title>${esc(title)} - ${esc(SITES[site])}</title>
@@ -18,10 +18,10 @@ function start({ port = 8200, logFile, tls } = {}) {
 header{background:${LOOK[site]};color:#fff;margin:0 -16px 16px;padding:10px 16px}header a{color:#fff;text-decoration:none;font-weight:bold}
 table{border-collapse:collapse;font-size:14px}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top;text-align:left}</style>
 <header><a href="/">${esc(SITES[site])}</a></header><h1>${esc(title)}</h1>${body}`;
-  const { KEY, ...sites } = require('./sites'), handlers = { friendface: require('./friendface'), ...sites };
+  const { KEY, ...sites } = require('./sites'), handlers = { testbook: require('./testbook'), ...sites };
   const server = http.createServer(async (q, r) => {
     const name = String(q.headers.host || '').split(':')[0].replace(/\.localhost$/, '');
-    if (name === 'friendface.test') return secure(q, r);
+    if (name === 'testbook.test') return secure(q, r);
     const c = { q, r, lab, store: lab.store, site: name, host: name + '.localhost', url: new URL(q.url, `http://${q.headers.host}`), out: {} };
     c.cookies = Object.fromEntries(String(q.headers.cookie || '').split(/;\s*/).filter(Boolean).map((p) => { const i = p.indexOf('='); return [p.slice(0, i), decodeURIComponent(p.slice(i + 1))]; }));
     c.send = (status, type, body, headers = {}) => { r.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', ...c.out, ...headers }); r.end(body); return true; };
@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px}td,th{border:1px solid #ccc;paddin
   const secure = (q, r) => { const u = new URL(q.url, 'http://x'), uid = u.searchParams.get('u'), enc = !!q.socket.encrypted;
     const h = { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' };
     if (u.pathname === '/hsts/set' && enc) Object.assign(h, { 'Strict-Transport-Security': 'max-age=31536000', 'Alt-Svc': `h3=":${port + 5}"; ma=86400` });
-    if (u.pathname === '/hsts/read' && enc && uid) lab.store.record(['ff_uid:' + uid], 'T21', `forced-HTTPS bit set for friendface.test: the plain request http://friendface.test:${lab.tlsPort}/hsts/read arrived as https`, 'friendface.test', 'read back by asking over plain http');
+    if (u.pathname === '/hsts/read' && enc && uid) lab.store.record(['ff_uid:' + uid], 'T21', `forced-HTTPS bit set for testbook.test: the plain request http://testbook.test:${lab.tlsPort}/hsts/read arrived as https`, 'testbook.test', 'read back by asking over plain http');
     r.writeHead(200, h).end(GIF); };
   const both = tls && https.createServer(tls, secure), plain = tls && http.createServer(secure);
   const split = tls && net.createServer((sock) => { sock.on('error', () => {}); sock.once('readable', () => { const d = sock.read(); if (!d) return sock.destroy();
@@ -58,4 +58,4 @@ table{border-collapse:collapse;font-size:14px}td,th{border:1px solid #ccc;paddin
 }
 module.exports = { start, SITES };
 if (require.main === module) { const dir = path.join(__dirname, 'data'); fs.mkdirSync(dir, { recursive: true });
-  start({ port: Number(process.argv[2]) || 8200, logFile: path.join(dir, 'friendface-log.jsonl') }).then((l) => console.log(`lab on ${l.at('friendface')}`)); }
+  start({ port: Number(process.argv[2]) || 8200, logFile: path.join(dir, 'testbook-log.jsonl') }).then((l) => console.log(`lab on ${l.at('testbook')}`)); }

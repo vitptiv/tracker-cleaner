@@ -1,5 +1,5 @@
 'use strict';
-// Friendface's log. Every identifier seen together ends up in one group (one browser, later one person).
+// The test network's log. Every identifier seen together ends up in one group (one browser, later one person).
 const fs = require('node:fs'), crypto = require('node:crypto');
 const rid = (p, n = 5) => `${p}-${crypto.randomBytes(n).toString('hex')}`;
 const sha = (s) => crypto.createHash('sha256').update(String(s).trim().toLowerCase()).digest('hex');

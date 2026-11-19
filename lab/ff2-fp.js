@@ -1,4 +1,4 @@
-// Friendface 2 (lab-only), F2-5: a fingerprint join key from surfaces the shipped shield (shield.js) never blurs.
+// The hidden collector (lab-only), F2-5: a fingerprint join key from surfaces the shipped shield (shield.js) never blurs.
 // The shield wraps 2D-canvas readback, WebGL vendor/renderer strings (37445/37446) and WebGL readPixels, plus audio.
 // It does NOT touch installed-font metrics, matchMedia, screen, or WebGL MAX_TEXTURE_SIZE. So the stable `code` is
 // built from those unshielded surfaces; the shielded readPixels hash is captured separately as `readpx`, to show

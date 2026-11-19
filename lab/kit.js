@@ -1,4 +1,4 @@
-// Friendface's script kit, as a site owner pastes it into every page. It runs with the site's own rights.
+// The test network's script kit, as a site owner pastes it into every page. It runs with the site's own rights.
 (() => {
   const FF = '__FF__', PROBE = __PROBE__, d = document.currentScript.dataset, site = location.hostname, t0 = Date.now(), ids = {};
   const body = (kind, data) => JSON.stringify({ kind, site, pl: d.pl, url: location.href, ffp: ids.ffp, ffc: ids.ffc, ...data });
@@ -32,7 +32,7 @@
   async function fingerprint() {
     const cv = document.createElement('canvas'); cv.width = 240; cv.height = 60; const g = cv.getContext('2d');
     g.textBaseline = 'top'; g.font = '16px Arial'; g.fillStyle = '#f60'; g.fillRect(100, 1, 62, 20);
-    g.fillStyle = '#069'; g.fillText('Friendface lab, 0123 ~', 2, 15); g.fillStyle = 'rgba(102,204,0,.7)'; g.fillText('Friendface lab, 0123 ~', 4, 17);
+    g.fillStyle = '#069'; g.fillText('Testbook lab, 0123 ~', 2, 15); g.fillStyle = 'rgba(102,204,0,.7)'; g.fillText('Testbook lab, 0123 ~', 4, 17);
     const canvas = fnv(cv.toDataURL());
     let graphics = 'none'; try { const gl = document.createElement('canvas').getContext('webgl'), x = gl.getExtension('WEBGL_debug_renderer_info');
       graphics = gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER) + '|' + gl.getParameter(gl.MAX_TEXTURE_SIZE); } catch {}

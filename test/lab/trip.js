@@ -32,7 +32,7 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
 
     await step(1);
     let k = await know(); same(k.who, null, 'no name before sign-in'); same(k.history.length, 2);
-    same((await cookie('ff_uid', 'friendface')).value, row(k, 'T1').value.split('=')[1], 'T1 is the cookie Chrome holds');
+    same((await cookie('ff_uid', 'testbook')).value, row(k, 'T1').value.split('=')[1], 'T1 is the cookie Chrome holds');
     same((await cookie('_ffp', 'gazette')).value, row(k, 'T3').value.split('=')[1], 'T3 is the cookie Chrome holds');
     same(await t.ev(`localStorage.getItem('ff_copy')`), row(k, 'T9').value.split(' = ')[1], 'T9 is what local storage holds');
     same((await cookie('pn_uid', 'pennant')).value, row(k, 'T6').value.match(/pn_uid=(\S+)/)[1], 'T6 is Pennant\'s cookie'); same(lab.store.pennant.size, 1, 'Pennant\'s table has the pair');
@@ -45,14 +45,14 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
     k = await step(3);
     const landing = new URL(await t.url()); ok(landing.host === `tidewater.localhost:${PORT}` && landing.searchParams.get('ffclid'), 'arrived at Tidewater with a click ID');
     same(row(k, 'T4').value.split('.').pop(), landing.searchParams.get('ffclid'), 'T4 is the click ID of the address opened');
-    same((await cookie('_ffc', 'tidewater')).value, row(k, 'T4').value.split('=')[1]); same((await cookie('ff_session', 'friendface')).value, row(k, 'T2').value.split(/[= ]/)[1]);
+    same((await cookie('_ffc', 'tidewater')).value, row(k, 'T4').value.split('=')[1]); same((await cookie('ff_session', 'testbook')).value, row(k, 'T2').value.split(/[= ]/)[1]);
 
     k = await step(4);
     same(await t.ev(`document.querySelector('.comment').textContent`), 'Mara Lindqvist: Nice post');
     const frameCookie = (await b.cookies()).find((c) => c.name === 'ff_frame'); same(frameCookie.value, row(k, 'T8').value.split('=')[1]);
     same(frameCookie.partitionKey.topLevelSite, 'http://tidewater.localhost', 'T8 is tied to the surrounding site');
-    ok(row(k, 'T9').captures.some((c) => c.via.startsWith('Friendface frame') && c.site === 'tidewater.localhost'), 'the frame reported its own storage ID');
-    const fsid = row(k, 'T9').captures.find((c) => c.via.startsWith('Friendface frame')).value;
+    ok(row(k, 'T9').captures.some((c) => c.via.startsWith('Testbook frame') && c.site === 'tidewater.localhost'), 'the frame reported its own storage ID');
+    const fsid = row(k, 'T9').captures.find((c) => c.via.startsWith('Testbook frame')).value;
 
     await step(5);
     k = await until(async () => { const x = await know(); return row(x, 'T28').captures.some((c) => c.site === 'loopreel.localhost') && x; });
@@ -71,7 +71,7 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
     const pp = await cookie('pp_sid', 'metrics.parcelpine'); same(pp.value, row(k, 'T7').value.split('=')[1]); same(pp.httpOnly, true, 'T7 is hidden from scripts');
     ok(!(await t.ev('document.cookie')).includes('pp_sid'), 'the page cannot see pp_sid');
     const fp = row(k, 'T25'); same(new Set(fp.captures.map((c) => c.value)).size, 1, 'one fingerprint code everywhere'); same(fp.sites.sort(), ['gazette.localhost', 'parcelpine.localhost', 'tidewater.localhost']);
-    const uid = (await cookie('ff_uid', 'friendface')).value, tab1 = row(k, 'T10').captures.map((c) => c.value.split(',')[0]);
+    const uid = (await cookie('ff_uid', 'testbook')).value, tab1 = row(k, 'T10').captures.map((c) => c.value.split(',')[0]);
 
     await step(8);
     same((await know()).who.name, MARA.name, 'still signed in after the restart');
@@ -86,7 +86,7 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
 
     await step(11);
     k = await until(async () => { const x = await know(); return row(x, 'T9').captures.find((c) => c.value === fsid).times >= 2 && x; }); ok(k, 'the frame reported the same storage ID after the restart');
-    same(row(k, 'T9').captures.filter((c) => c.via.startsWith('Friendface frame') && c.site === 'tidewater.localhost').length, 1);
+    same(row(k, 'T9').captures.filter((c) => c.via.startsWith('Testbook frame') && c.site === 'tidewater.localhost').length, 1);
 
     // the whole checklist, before the last step deletes the cookies it is compared with
     k = await know();
@@ -100,13 +100,13 @@ const same = (a, b, what) => { assert.deepStrictEqual(a, b, what); passed++; };
     same(k.history.map((h) => h.url), visited, 'the reconstructed history is the trip');
 
     await step(12); same(W.E.notes.cookiesLeft, 0, 'every cookie deleted');
-    k = await know(); same(k.who.name, MARA.name, 'every cookie deleted, and Friendface still knows who this is'); same(k.history.map((h) => h.url), visited);
-    ok((await cookie('ff_uid', 'friendface')).value !== uid, 'under a new browser cookie');
+    k = await know(); same(k.who.name, MARA.name, 'every cookie deleted, and the test network still knows who this is'); same(k.history.map((h) => h.url), visited);
+    ok((await cookie('ff_uid', 'testbook')).value !== uid, 'under a new browser cookie');
 
     // a second person in a second profile stays apart, although the machine and so the fingerprint are the same
-    b2 = await launch(); const j = await b2.tab(at('friendface'));
+    b2 = await launch(); const j = await b2.tab(at('testbook'));
     await j.type('#join [name=name]', 'Jonas Weller', 5); await j.type('#join [name=email]', 'jonas.weller@example.test', 5); await j.type('#join [name=password]', 'lab-only-2', 5); await j.clickAndLoad('#join button');
-    await j.go(at('gazette')); const kj = await until(async () => { await j.go(at('friendface', '/what-i-know')); const x = await j.ev(`fetch('/what-i-know.json').then((r) => r.json())`); return x.history.length && row(x, 'T25').value && x; });
+    await j.go(at('gazette')); const kj = await until(async () => { await j.go(at('testbook', '/what-i-know')); const x = await j.ev(`fetch('/what-i-know.json').then((r) => r.json())`); return x.history.length && row(x, 'T25').value && x; });
     same([kj.who.name, kj.history.map((h) => h.url)], ['Jonas Weller', [at('gazette')]], 'Jonas has his own short history'); same(row(kj, 'T25').value, row(k, 'T25').value, 'same machine, same fingerprint');
     same((await know()).history.map((h) => h.url), visited, 'and Mara\'s is untouched');
 

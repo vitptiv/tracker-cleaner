@@ -87,11 +87,11 @@
     },
     "condition": {
      "requestDomains": [
-      "friendface.localhost",
+      "testbook.localhost",
       "hop.localhost",
       "pennant.localhost",
       "metrics.parcelpine.localhost",
-      "friendface.test"
+      "testbook.test"
      ],
      "domainType": "thirdParty",
      "resourceTypes": [
@@ -132,11 +132,11 @@
   ],
   "alwaysDeleteList": [
    {
-    "site": "friendface.localhost",
+    "site": "testbook.localhost",
     "name": "ff_uid"
    },
    {
-    "site": "friendface.localhost",
+    "site": "testbook.localhost",
     "name": "ff_frame"
    },
    {
@@ -222,17 +222,17 @@
     "master": true,
     "guardHeldAtEnd": false,
     "stopped": [
-     "friendface.localhost"
+     "testbook.localhost"
     ],
     "cutOff": [],
     "removed": 9,
     "byItself": [
      "cookie hop.localhost",
      "bounce hop.localhost",
-     "cookie friendface.localhost",
+     "cookie testbook.localhost",
      "cache *",
-     "tracker friendface.localhost",
-     "used friendface.localhost",
+     "tracker testbook.localhost",
+     "used testbook.localhost",
      "skip hop.localhost"
     ],
     "waiting": {
@@ -269,7 +269,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     },
     "T4": {
      "status": "stopped",
@@ -297,7 +297,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     },
     "T7": {
      "status": "stopped",
@@ -325,12 +325,12 @@
       "tidewater.localhost"
      ],
      "via": [
-      "Friendface frame inside the site"
+      "Testbook frame inside the site"
      ],
      "lastStep": 4,
      "atEnd": false,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 4"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), last arrived tied to her in step 4"
     },
     "T10": {
      "status": "unlinked",
@@ -350,7 +350,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     },
     "T12": {
      "status": "unlinked",
@@ -360,14 +360,14 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     },
     "T13": {
      "status": "tracked",
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
       "the worker reported as it started"
@@ -484,10 +484,10 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
-      "read by a script on Friendface"
+      "read by a script on Testbook"
      ],
      "lastStep": 7,
      "atEnd": true,
@@ -503,7 +503,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     },
     "T24": {
      "status": "tracked",
@@ -518,7 +518,7 @@
      "lastStep": 3,
      "atEnd": false,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3",
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), last arrived tied to her in step 3",
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
@@ -529,7 +529,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     },
     "T26": {
      "status": "stopped",
@@ -603,7 +603,7 @@
      "lastStep": 6,
      "atEnd": true,
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 6; the report says \"Tracker Cleaner cannot stop this\""
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), last arrived tied to her in step 6; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
@@ -656,7 +656,7 @@
      "via": [],
      "atEnd": false,
      "ever": false,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), arrived tied to nobody"
     }
    },
    "counts": {
@@ -820,7 +820,7 @@
      ],
      "via": [
       "read by the kit",
-      "Friendface frame inside the site"
+      "Testbook frame inside the site"
      ],
      "lastStep": 12,
      "atEnd": true,
@@ -883,7 +883,7 @@
      "records": 3,
      "linked": 2,
      "sites": [
-      "friendface.localhost",
+      "testbook.localhost",
       "parcelpine.localhost"
      ],
      "via": [
@@ -1015,10 +1015,10 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
-      "read by a script on Friendface"
+      "read by a script on Testbook"
      ],
      "lastStep": 7,
      "atEnd": true,
@@ -1259,7 +1259,7 @@
     {
      "when": "before step 4",
      "kind": "tracker",
-     "site": "friendface.localhost",
+     "site": "testbook.localhost",
      "name": "followed you on 2 sites",
      "done": 1
     },
@@ -1273,7 +1273,7 @@
     {
      "when": "before step 5",
      "kind": "used",
-     "site": "friendface.localhost",
+     "site": "testbook.localhost",
      "name": "what it keeps to follow you",
      "done": 1
     },
@@ -1308,7 +1308,7 @@
     "master": true,
     "guardHeldAtEnd": false,
     "stopped": [
-     "friendface.localhost"
+     "testbook.localhost"
     ],
     "cutOff": [],
     "removed": 12,
@@ -1426,7 +1426,7 @@
       "tidewater.localhost"
      ],
      "via": [
-      "Friendface frame inside the site",
+      "Testbook frame inside the site",
       "read by the kit"
      ],
      "lastStep": 4,
@@ -1488,7 +1488,7 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
       "the worker reported as it started"
@@ -1616,10 +1616,10 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
-      "read by a script on Friendface"
+      "read by a script on Testbook"
      ],
      "lastStep": 7,
      "atEnd": false,
@@ -1764,7 +1764,7 @@
      "sameIdAfterCleaning": false,
      "note": "not repeated after cleaning: what was sent during the trip stays sent",
      "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 6; the report says \"Tracker Cleaner cannot stop this\""
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (testbook.localhost), last arrived tied to her in step 6; the report says \"Tracker Cleaner cannot stop this\""
     },
     "T32": {
      "status": "tracked",
@@ -1996,7 +1996,7 @@
      ],
      "via": [
       "read by the kit",
-      "Friendface frame inside the site"
+      "Testbook frame inside the site"
      ],
      "lastStep": 12,
      "atEnd": true,
@@ -2059,7 +2059,7 @@
      "records": 3,
      "linked": 2,
      "sites": [
-      "friendface.localhost",
+      "testbook.localhost",
       "parcelpine.localhost"
      ],
      "via": [
@@ -2191,10 +2191,10 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
-      "read by a script on Friendface"
+      "read by a script on Testbook"
      ],
      "lastStep": 7,
      "atEnd": true,
@@ -2569,7 +2569,7 @@
      "records": 1,
      "linked": 1,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
       "the worker reported as it started"
@@ -2670,10 +2670,10 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
-      "read by a script on Friendface"
+      "read by a script on Testbook"
      ],
      "lastStep": 7,
      "atEnd": true,
@@ -2857,7 +2857,7 @@
     {
      "when": "after the trip",
      "kind": "tracker",
-     "site": "friendface.localhost",
+     "site": "testbook.localhost",
      "name": "followed you on 2 sites",
      "done": 1
     },
@@ -2898,12 +2898,12 @@
      "done": 1,
      "of": 1
     },
-    "cookies of friendface.localhost": {
+    "cookies of testbook.localhost": {
      "ok": true,
      "done": 0,
      "of": 0
     },
-    "storage of friendface.localhost": {
+    "storage of testbook.localhost": {
      "ok": true
     },
     "cookies of hop.localhost": {
@@ -2962,12 +2962,12 @@
     "storage of loopreel.localhost": {
      "ok": true
     },
-    "cookies of friendface.test": {
+    "cookies of testbook.test": {
      "ok": true,
      "done": 0,
      "of": 0
     },
-    "storage of friendface.test": {
+    "storage of testbook.test": {
      "ok": true
     },
     "block notifications": {
@@ -2989,7 +2989,7 @@
     "master": true,
     "guardHeldAtEnd": false,
     "stopped": [
-     "friendface.localhost"
+     "testbook.localhost"
     ],
     "cutOff": [],
     "removed": 26,
@@ -3141,7 +3141,7 @@
      "records": 1,
      "linked": 1,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
       "the worker reported as it started"
@@ -3259,10 +3259,10 @@
      "records": 2,
      "linked": 2,
      "sites": [
-      "friendface.localhost"
+      "testbook.localhost"
      ],
      "via": [
-      "read by a script on Friendface"
+      "read by a script on Testbook"
      ],
      "lastStep": 7,
      "atEnd": false,

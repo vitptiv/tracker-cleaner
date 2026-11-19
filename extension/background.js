@@ -791,7 +791,7 @@ async function xidSalt() { let { xsalt } = await chrome.storage.session.get('xsa
 // `fp` (first-party): the endpoint/ETag resource is served under the SENDING site's own name. Only first-party endpoints
 // are ever blocked (M8): a value being cross-site does not entitle the cleaner to block an UNRELATED host it was merely
 // sent to -- that would let a script on two of the user's sites block any endpoint it chooses. A first-party collector
-// (Friendface 2) is exactly the case the structural rules cannot reach, so that is the one C33 acts on.
+// (the hidden collector) is exactly the case the structural rules cannot reach, so that is the one C33 acts on.
 async function xidObserve(page, toks, ep, fp, etagRes, tabId) {
   const salt = await saltNow(), xs = await xidSalt(), siteHash = mark(`${salt} ${page}`), liveUrl = await tabUrl(tabId);
   // an endpoint's mark: true (first-party, the site's own value), 'e' (first-party, but an echo of a value the tab was handed),
@@ -801,10 +801,10 @@ async function xidObserve(page, toks, ep, fp, etagRes, tabId) {
   await serial(async () => { const xseen = (await chrome.storage.session.get('xseen')).xseen || {}, now = Date.now(); let changed = false;
     // Q-batch F4 (a): a value that came into this tab from outside -- in its address (query, path or fragment), the address
     // of the page it came from, the Referer or the form body of the navigation (`xtab`) -- is not this site's own id. Such a
-    // send still counts towards seeing the value on two sites (Friendface 2 hands its id on in the address, and the
+    // send still counts towards seeing the value on two sites (the hidden collector hands its id on in the address, and the
     // receiving site's echo is what reveals it), but it makes that site's endpoint one to act on ('e') only once that site
     // has itself handed the value on to another site in a navigation its own page started (noteForward, `fwd`): a collector
-    // network carries its id along, a site that merely echoes a search box does not. Measured on Friendface 2: dropping such
+    // network carries its id along, a site that merely echoes a search box does not. Measured on the hidden collector: dropping such
     // sends altogether left nothing confirmed; acting on no echo at all left two of its three /f/ collectors open.
     const outside = await outsideToks(tabId, page, xs, liveUrl);
     for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k], own = !fp ? false : outside.has(k, tok) ? 'e' : true;

@@ -647,12 +647,12 @@ Phase A is built in `lab/` from scratch, nothing downloaded: `node lab/server.js
 suite) and the real-Chrome trip `TC_BROWSER_TMP=/mnt/d/tmp node test/lab/trip.js`. Result: 35 of 36 rows tracked;
 T34 push subscription "designed, not built" (would leave the machine, needs a package). T20 remembered servers and
 T21 forced-HTTPS work only over https: the trip makes a self-signed certificate with `openssl` for one run, serves
-`friendface.test` on port 8203, and the throwaway Chrome alone accepts it (by key hash) and resolves `*.test` to
+`testbook.test` on port 8203, and the throwaway Chrome alone accepts it (by key hash) and resolves `*.test` to
 127.0.0.1; by hand they stay open. Simulated, and said so in the rows: the second address (forwarded-for header)
 and the press on "Allow" (control-channel grant). No chunk was used. Step 18 reads Chrome's files
 with its own `lab/outside.js`, not `tools/inspect.js`.
 
-**What it is.** Pretend sites on 127.0.0.1 and a pretend network, Friendface, that follows a made-up signed-in
+**What it is.** Pretend sites on 127.0.0.1 and a pretend network, Testbook, that follows a made-up signed-in
 person; "What I know about you" is a checklist, one row per kind of trace with the captured identifier. Never
 deployed. Proposed home: `lab/`, tests in `test/lab*.test.js` and `test/browser/`.
 
@@ -698,7 +698,7 @@ A row counts as tracked when it arrived once during the trip, also when it was s
 
 - Step 0, measured before any repair: A 35/0, B0 35/0, B 10/25, C 8/27.
 - R1 unknown trackers (C25, `learn.js`, asks first; needs the `webRequest` permission, which adds no install warning
-  beside "all sites"): A 35/0, B0 35/0, B 10/25, C 8/27. Friendface was learned without any lab name in every
+  beside "all sites"): A 35/0, B0 35/0, B 10/25, C 8/27. The test network was learned without any lab name in every
   setting (seen on 3 sites, one question waiting). In A it waits for the answer; in B0 it is held by the sign-in
   guard to the end of the 70-second trip (see R3); in C "approve all" stopped it. Not learned: Parcel & Pine's
   disguised subdomain (same site as the shop) and Hop (never asked for by a page, only passed through, see R5).
@@ -706,17 +706,17 @@ A row counts as tracked when it arrived once during the trip, also when it was s
   and the popup row has "Clean now". A 35/0, B0 35/0, B 10/25, C 8/27. Seen in B0: cleared once when switched on,
   before the trip; the copies saved during the trip then live until the next daily clearing, so the five cache rows
   stay tracked unless "Clean now" is pressed (C does that).
-- R3 sign-in guard. Found: the guard itself was right. It is armed in step 4 ("Sign in with Friendface") and ends
+- R3 sign-in guard. Found: the guard itself was right. It is armed in step 4 ("Sign in with Testbook") and ends
   five minutes later, but the trip is over after 70 seconds, so it "still held at the end". The bug was after it:
   what the guard had held was only done at the next quarter-hour sweep (seen in a real Chrome: the R1 question still
   waited 78 s after the guard ended). Fixed with a wake-up at the guard's end; with the real five minutes the held
   stop was carried out 3 s after. Ending the guard when the sign-in tab closes was not built: the five minutes after
   are what protects a pop-up sign-in. The measurement now cuts the five minutes to two seconds (declared in
-  `misses.json`): A 35/0, B0 31/3 (1 more arrived but was not tied to her), B 10/25, C 8/27. In B0 Friendface is
+  `misses.json`): A 35/0, B0 31/3 (1 more arrived but was not tied to her), B 10/25, C 8/27. In B0 the test network is
   stopped during step 5; after the restart of Chrome nothing arrives any more (before: 18 kinds still arriving).
 - R4 pings (C26, part of blocking, automatic): requests of the kind "ping" to another company are blocked (one
   dynamic rule, never on sign-in hosts), and `no-ping.js` takes a link's own ping address off as the link is pressed,
-  which is what stops the lab's ping (it goes to Friendface from Friendface's own page). A 33/2, B0 29/5, B 9/26,
+  which is what stops the lab's ping (it goes to the test network from the test network's own page). A 33/2, B0 29/5, B 9/26,
   C 7/28: the click ping and the page-close beacon are stopped in every setting, also on a fresh install.
 - R5 redirect bounces (C27, asks first): a page address that answers "go to another site" is noted; two questions,
   "delete what it saved" and "cut off the ID it added" (only what was not in the address it was asked to open, so
@@ -726,7 +726,7 @@ A row counts as tracked when it arrived once during the trip, also when it was s
 - R6 a tracker's own storage (C28, asks first): for each company the user stopped, its service worker and storage
   are emptied and its notifications blocked, after one question and then daily; the built-in list as a whole only
   on Automatic (a standing question about 65 hardly visited sites would be noise). Never while its site is open in
-  a tab. A 33/2, B0 28/6, B 9/26, C 7/28: no change, because the trip keeps Friendface open in a tab from start to
+  a tab. A 33/2, B0 28/6, B 9/26, C 7/28: no change, because the trip keeps the test network open in a tab from start to
   end, and its "Allow" is a grant over the control channel that no extension setting overrides. Checked apart in
   a real Chrome: worker 1 -> 0 after Approve, and a notification right stored as a user's own goes granted -> denied.
 - R7 history and saved icons: not built, on purpose. Single sites can be taken out of the history only with the
@@ -908,11 +908,11 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
   (sitesOff, a pause, a sign-in going on anywhere). Not on the sign-in hosts. Checked in a real Chrome (run.js 10c).
 - After batch 3 (S16, S6, S7): A 4 at the end, 13 ever (was 6 / 27); B0 4 / 13; B 4 / 9; C 4 / 7; apart: T22 (the lab's
   simulated press), T18 and T19 (her own history; in C too, because the second look opens pages again after the
-  press). At the end: T27, T33 (the shop's server), T31, T32 (her own press). Friendface is stopped during step 1 on
+  press). At the end: T27, T33 (the shop's server), T31, T32 (her own press). The test network is stopped during step 1 on
   a fresh install. Of the 13 ever, tied to her across two different sites: T31 (like in a frame on the blog, share
   from the news site: her own presses), T27 and T33 (the shop to her account, by e-mail from the shop's server), T32
   (the blog to her account: "Sign in with"), T30 (her feed to the blog through Hop, once: the tag in the address),
-  T9 and T24 (Friendface's like frame inside the blog: the frame's own storage and its request). On Friendface's own
+  T9 and T24 (the test network's like frame inside the blog: the frame's own storage and its request). On the test network's own
   site only: T13, T22. In Chrome's files only, handed in from outside: T17, T18, T19, T20. Arrived but tied to
   nobody: T3, T6, T10, T11, T12, T14, T15, T16, T23, T25 (the fingerprint), T36. `misses.json` now has `sites` and
   `via` per row (measuring side).
@@ -1000,10 +1000,10 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
 - After H1 to H11: A, of 35: 9 at the end; 14 arrived and tied to her; 25 arrived at all (before: 4; 13; arrived at all:
   not measured). B0 the same; B 6; 9; 9. C 5; 7; 9. At the end in A beyond the four that no browser tool stops (T27,
   T33, T31, T32): T17, T20, T21 (saved copies are no longer cleared at a stop that only blocks, nor at start: H1,
-  H7), T22 (its notifications are blocked only at a clean-out, and Friendface is a site she uses: H1), T30 (Hop is
-  passing only after its second destination, which is the trip's last pass: H4). The question "You use Friendface
+  H7), T22 (its notifications are blocked only at a clean-out, and the test network is a site she uses: H1), T30 (Hop is
+  passing only after its second destination, which is the trip's last pass: H4). The question "You use the test network
   ... Remove what it keeps?" would clean T17, T20, T21, T22 out on Remove; it does not come up within the trip
-  because the five-minute hold after her sign-in on Friendface's own page is still running.
+  because the five-minute hold after her sign-in on the test network's own page is still running.
 
 ### Batch I
 
@@ -1020,9 +1020,9 @@ files, it is still in the files when the trip is over (`test/lab/count.js`). The
 - After batch I: A, of 35: 9 at the end; 17 arrived and tied to her; 28 arrived at all. B0: 9; 14; 25. B: 6; 9; 9.
   C: 5; 7; 9 (C presses Remove: T17, T20, T21, T22 go; left are T27, T30, T31, T32, T33). At the end in A: the four no
   browser tool stops, T22 and T30 as expected, and still T17, T20, T21: the one clearing at the block (I1) comes in
-  step 1 or 3, and the copies found at the end are made afterwards on Friendface's own pages, which she keeps
+  step 1 or 3, and the copies found at the end are made afterwards on the test network's own pages, which she keeps
   using; they go with Remove (the question waits in A). A and B0 differ in "arrived and tied" in this run (T1, T2,
-  T8 in A only): Friendface was blocked in step 3 in A and in step 1 in B0. Why the block came later in A this
+  T8 in A only): the test network was blocked in step 3 in A and in step 1 in B0. Why the block came later in A this
   time: not found; in the run before both were blocked in step 1.
 
 ### Fixes after the third audit (a72e23c): J1 to J8
@@ -1119,7 +1119,7 @@ on the shipped lists; for anything learned it needs the user's press on one plai
 - After batch K, of 35: A 10 at the end; 13 arrived and tied to her; 23 arrived at all. Q 6; 8 tied after the
   answers; 21. B0 10; 13; 15. B 6; 9; 9. C 5; 7; 9. At the end in Q: the four no browser tool stops, T30 (its
   first pass and the pass in step 7: the Skip question comes only after the second destination) and T20 (the
-  remembered server is saved again on Friendface's own pages after the press on Remove).
+  remembered server is saved again on the test network's own pages after the press on Remove).
 
 ### Fixes after the fourth audit (40a7b46): L1 to L12
 
@@ -1199,13 +1199,13 @@ other companies; the local network).
   beacon) and T29 (click ping) never arrive. Everything else arrives and is tied to her until she presses Block:
   the tracker's own script runs inside each visited site and sends its own first-party ID (T3) itself. In Q, at
   the end: the four no browser tool stops, T30 (the pass through Hop in step 7: Skip is offered only after the
-  second destination) and T20 (the remembered server, saved again on Friendface's own pages after Remove, which is
+  second destination) and T20 (the remembered server, saved again on the test network's own pages after Remove, which is
   one-off).
 
-### Friendface 2 (lab-only, additions only): first batch F2-1..F2-7
+### The hidden collector (lab-only, additions only): first batch F2-1..F2-7
 
 A second pretend platform on its own loopback port (`lab/ff2-*.js`, default 8300), to test the shipped cleaner
-(v1.25) against first-party evasions. The frozen Friendface 1 files are never edited; the cleaner-off trip
+(v1.25) against first-party evasions. The frozen test-network files are never edited; the cleaner-off trip
 (`test/lab/trip.js`) still tracks 35 of 36. A loophole counts only if the shipped extension, fully on with every
 question answered, still fails to stop it; where the cleaner wins, that is reported with the exact rule.
 - F2-1 first-party reverse-proxy collector (`lab/ff2-server.js`, `lab/ff2-sites.js`): new sites ledger, sundial,
@@ -1264,7 +1264,7 @@ question answered, still fails to stop it; where the cleaner wins, that is repor
   (built only from those) survives both ways and equals the cleaner-off baseline. With the shield OFF (the default)
   it touches none of them.
 
-### Counter-repairs against Friendface 2 (M1..M7): the cleaner reacts to cross-site VALUES, not host labels
+### Counter-repairs against the hidden collector (M1..M7): the cleaner reacts to cross-site VALUES, not host labels
 
 The owner chose aggressive first-party auto-block and the shield on by default. Nothing in `extension/` is keyed on any
 lab site name; it acts on values and behaviour only. New capability C33 (manifest 1.26).
@@ -1300,7 +1300,7 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   refresh -- on the wire before it commits, with no reload, so M3 adds only the one case DNR cannot see, an in-page
   pushState that fires no request. An earlier version that also rewrote network navigations from the worker
   (onBeforeNavigate/onCommitted) reloaded pages and disturbed the walk, measurably lowering how much the cleaner
-  stopped on the original Friendface, so it was dropped. ff2: no change (4/10) -- ff2 gives each site its OWN master
+  stopped on the original test network, so it was dropped. ff2: no change (4/10) -- ff2 gives each site its OWN master
   value at /f/, so no single master value is seen on two sites and none is confirmed; the real cross-site link there
   is the fingerprint, whose collector send M2 already blocks. Proven by unit tests (confirmed id stripped from a
   pushState; a network nav left to DNR, not reloaded; sign-in page, return-address param, off-site and C33-off all
@@ -1334,7 +1334,7 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   own server)". The cleaner NEVER blocks such a request -- blocking a site's own beacon would break it, and no other
   company is involved -- so it does not fake a win; it tells the user the truth. In ff2, F8 goes to the collector /f/,
   which M2 blocks, so ff2's F8 is a genuine stop, not a "cannot"; the "cannot" path is the general first-party-to-own-
-  server case (e.g. the shop's own purchase beacon in the original Friendface trip, T33). Report-only, so no trip number
+  server case (e.g. the shop's own purchase beacon in the original test network trip, T33). Report-only, so no trip number
   changes. Proven by unit tests (own-address beacon recorded + never blocked + report note; a non-address first-party
   POST not flagged; a confirmed-collector endpoint blocked not flagged; C33 off records nothing).
 - M7 ff2 measurement honesty (lab only, no extension change). (a) F9 is a REAL server-side loopback probe: `probePort`
@@ -1349,7 +1349,7 @@ lab site name; it acts on values and behaviour only. New capability C33 (manifes
   test/lab/ff2-trip.js and lab/ff2-misses.json are edited by the M batch.
 
 ### M8 (1.27): C33 acts on FIRST-PARTY collectors only (fifth adversarial audit fixes)
-The fifth adversarial audit (a highly capable model, read-only, exploit tests in the session scratchpad) found that C33's "block the collector" acted on whatever host carried a confirmed cross-site value, with no required tie to the sites that vouched for it. Confirmed real against the shipped code; fixed here. The design decision (user-chosen): C33 blocks/deletes only where the value is served FIRST-PARTY to a sending site -- exactly the Friendface 2 case the structural rules cannot reach -- and drops the side-effect generalisation to third-party collectors (C29/C30 already strip third-party cookies/ETags).
+The fifth adversarial audit (a highly capable model, read-only, exploit tests in the session scratchpad) found that C33's "block the collector" acted on whatever host carried a confirmed cross-site value, with no required tie to the sites that vouched for it. Confirmed real against the shipped code; fixed here. The design decision (user-chosen): C33 blocks/deletes only where the value is served FIRST-PARTY to a sending site -- exactly the hidden collector case the structural rules cannot reach -- and drops the side-effect generalisation to third-party collectors (C29/C30 already strip third-party cookies/ETags).
 - CRITICAL 1 -- arbitrary-endpoint DoS. A script shared on two visited sites could send an attacker-chosen token to any third party's endpoint and get it blocked for the user. Fix: `xidObserve` records per endpoint whether it was FIRST-PARTY to the sending page (`siteOf(host)===page`), stored as `eps[ep]=fp`; `xidSweep` keeps only first-party endpoints/ETags in `xsid`; a third-party endpoint yields `eps:[]` (still recognised cross-site, nothing to block). Pinned: `test/m8-weaponization.test.js` #1.
 - CRITICAL 2 -- whole-site block via path `/`. `pathPrefix('/')` returned `/`, so a token at the bare root blocked the site. Fix: `xidRules` skips any endpoint whose path prefix is `/`. Pinned #2.
 - HIGH 3 -- benign shared CDN content-hash. Closed by first-party gating (a third-party CDN is never blocked) + the path-segment hash is not a `?param=` the strip matches. Pinned #4.
@@ -1368,12 +1368,12 @@ Measured gap: a server Chrome remembers (Alt-Svc, in "Network Persistent State")
 - Found on the way, not changed: `saltNow()` is not serialised, so on a fresh install two first requests can each make a salt; the site marks then differ and one visited site is counted as two ("followed you on 2 sites" after a single site). Seen in 2 of 4 fresh starts without this change and 5 of 6 with it (step 1 of the trip alone), so it is chance, not this change; it decides whether Q asks its question at all (Q ends at 5-6 kinds or at 23).
 
 ### N2 (1.28): the first-party ID cookie that a confirmed collector path set (F1) is deleted
-Gap: in Friendface 2 each site's own reverse-proxy collector path answers with Set-Cookie under the site's own name. C33 confirms that path as a first-party collector and blocks it (M2, M8), but the cookie stayed and went on being sent to the site with every page.
+Gap: in the hidden collector each site's own reverse-proxy collector path answers with Set-Cookie under the site's own name. C33 confirms that path as a first-party collector and blocks it (M2, M8), but the cookie stayed and went on being sent to the site with every page.
 - (a) Noting. `noteSetCookie` (onHeadersReceived) reads the Set-Cookie headers of an answer with the pure `setCookies` (xsid.js: name, the Domain named, HttpOnly, Secure; the value is never read past the name) and keeps, per endpoint (host + path prefix, the detector's own key), which cookies it set: `chrome.storage.session { xset: { '<host/prefix>': { t, names: [[name, domain]] } } }`. Memory only: never storage.local, the log, the queue or a report, never a value. Not noted: a page address (main_frame); an answer that is not first-party to the page in the tab (the M8 rule, `siteOf(host) === topSite`, so a frame of site V inside a page of site E is another company there); a sign-in address (`isSignIn`) or sign-in company; the bare root; a cookie that looks like a sign-in when it is set (KEEP_RE name, or HttpOnly and Secure); a Domain outside the answering host's own site. Caps: 10 names per endpoint, 5 endpoints per site, 50 endpoints in all, the oldest go (one site's flood cannot push out another site's note); a name over 100 characters is left out.
 - (b) Acting. At the sweep (`xidSetClean`, after `xidClean`), for each endpoint that is in a confirmed entry's first-party `eps` and passes the same host vetting as the block rules (no sign-in host or company, no site that is switched off, never the bare root): exactly the cookies it was seen setting are deleted where they were set (for the answering host alone, or for the Domain named: a same-named cookie of another host or of the whole site is not touched), through `remove()` so each can be put back for 10 minutes, one log line each (C33 / cookie), counted in the sweep report as `collectorCookies`. Spared: a sign-in cookie (`signinLike`), a cookie the user keeps (allow list), a site in `sitesOff`, a partitioned cookie; held while that site's own sign-in page holds deleting (`sguard`) and while paused. The endpoint's note is used up by that one pass, so the same name set later by anything else is left alone; the collector path itself is blocked, and if it is seen setting the cookie again it is noted again.
 - (c) All of it behind `can('C33')`; with the main switch or the row off nothing is even noted.
 - Pinned in test/n2-collector-cookie.test.js (17 tests, the eight asked for and more): deleted and undoable; other path / never seen / other host / whole-site cookie kept; HttpOnly+Secure, KEEP_RE and kept cookies stay; sitesOff, master off, C33 off; ATTACK: a third-party answer names nothing, and a script on two sites that sends a token to victim.example gets no victim.example cookie deleted (extends M8 pin #1), nor does a frame of the victim inside a hostile page; ATTACK: the bare root never qualifies, even with a note forced into memory; the caps; no value and no noted name in storage.local, the log or a report. Each guard was also checked by taking it out and seeing a test fail.
-- Friendface 2 trip (test/lab/ff2-trip.js, measured, not demanded; the frozen lab files are untouched): the join is now read before the counter-repair is restored (the server's "What I know" finds the browser by the fp_id it receives). After it: fp_id is gone from the browser on all three sites, the frozen server finds no browser on any of them when they are opened again, and it records no F1 since: 6/10 stopped going forward (was 5/10). Sundial's and Atlas's cookie go at once; Ledger's goes about five minutes later, when the hold that its sign-in page (step 8) began is over; the trip waits for that.
+- The hidden collector trip (test/lab/ff2-trip.js, measured, not demanded; the frozen lab files are untouched): the join is now read before the counter-repair is restored (the server's "What I know" finds the browser by the fp_id it receives). After it: fp_id is gone from the browser on all three sites, the frozen server finds no browser on any of them when they are opened again, and it records no F1 since: 6/10 stopped going forward (was 5/10). Sundial's and Atlas's cookie go at once; Ledger's goes about five minutes later, when the hold that its sign-in page (step 8) began is over; the trip waits for that.
 - Known risk, accepted: a real site whose same directory both sets a cookie that does not look like a sign-in (not HttpOnly+Secure, no sign-in name) and receives a value that two visited sites send could lose that cookie once -- for instance a session or basket cookie set without HttpOnly by `/api/`, when `/api/` also receives a cross-site code. Bounded by: the sign-in skips at noting and at deleting, the one pass per note, 10 minutes of Undo (which also puts the cookie on the keep list), and "Don't clean on this site". The lever is the one M8 left open for the block: whoever can make a site's OWN page send a chosen value to its own directory (a script the site includes, or the site's own analytics echoing its address) and has a second visited site send the same value, gets that directory treated as a collector; with N2 the non-sign-in cookies that directory set go once as well. A script running in the site's page could already delete those cookies itself.
 - Not covered: a cookie the collector sets with the Partitioned attribute, or as HttpOnly+Secure (indistinguishable from a sign-in here), stays; the id kept in the site's own storage stays (M2: cutting one key would wipe the site), the block stops it being sent to the collector path.
 - Found while measuring N1/N2, not changed (the same at 1.27): `applyOnce` takes the ten session rules (C29/C30/C31 header rules) out and puts them back one by one on nearly every call -- 7 times during five page loads, counted in the worker at 1.27 and at 1.28 alike -- because what Chrome returns never compares equal to what is wanted. A request to another company that falls into such a gap keeps its cookies: this is the single T1/T2/T8 record that turns up in run A in some runs (step 7 in a 1.27 run; steps 9 or 11 in 1.28 runs) and not in others. Together with the salt race above it is why A and Q differ from run to run.
@@ -1431,10 +1431,10 @@ finding below got a test of the SAFE behaviour first (test/q-batch.test.js), the
   on its current site (request, redirects, fragment/pushState via tabs.onUpdated, onCompleted), the page the
   navigation came from, its Referer (onBeforeSendHeaders, extraHeaders) and its form body; the tab's live address is
   checked too. (b') a site counts towards a confirmation only when it sent the value to an endpoint under its OWN name.
-  (b) as asked was NOT done: the Friendface 2 collector is the site's own page calling its own /f/, so exempting the
+  (b) as asked was NOT done: the hidden collector is the site's own page calling its own /f/, so exempting the
   own site as initiator would reopen it. MEASURED: (a) as first written (such a send not counted at all) left
-  Friendface 2 with nothing confirmed (ff2-trip FAIL "xsid entries: 0"): its id travels in the address and the
-  receiving sites' echoes are what reveal it, i.e. Friendface 2's sundial/atlas look exactly like the reflecting
+  the hidden collector with nothing confirmed (ff2-trip FAIL "xsid entries: 0"): its id travels in the address and the
+  receiving sites' echoes are what reveal it, i.e. the hidden collector's sundial/atlas look exactly like the reflecting
   bank. Then (an echo counts towards two sites but its endpoint is never acted on) only ledger's /f/ was blocked
   (FAIL, sundial and atlas reachable). Shipped: an echo marks the endpoint 'e'; it becomes actionable only once a page
   of that same site starts a navigation to another site carrying the value (`noteForward`, xseen `fwd`) -- a collector

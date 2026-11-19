@@ -65,8 +65,8 @@ async function launch(dir = newProfile(), extra = []) {
 }
 // a self-signed certificate for the lab's names, made in a throwaway folder and trusted by nothing but the Chrome started with `flag`
 function labCert(dir) { const { execFileSync } = require('node:child_process'), crypto = require('node:crypto'), key = path.join(dir, 'lab-key.pem'), crt = path.join(dir, 'lab-cert.pem');
-  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', crt, '-days', '2', '-subj', '/CN=friendface.localhost',
-    '-addext', 'subjectAltName=DNS:friendface.localhost,DNS:*.friendface.localhost,DNS:localhost,DNS:friendface.test,DNS:*.friendface.test'], { stdio: 'ignore' });
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', crt, '-days', '2', '-subj', '/CN=testbook.localhost',
+    '-addext', 'subjectAltName=DNS:testbook.localhost,DNS:*.testbook.localhost,DNS:localhost,DNS:testbook.test,DNS:*.testbook.test'], { stdio: 'ignore' });
   const cert = fs.readFileSync(crt), spki = crypto.createHash('sha256').update(new crypto.X509Certificate(cert).publicKey.export({ type: 'spki', format: 'der' })).digest('base64');
   return { key: fs.readFileSync(key), cert, flag: `--ignore-certificate-errors-spki-list=${spki}` }; }
 module.exports = { launch, sleep, until, newProfile, labCert };

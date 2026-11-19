@@ -1,6 +1,6 @@
 'use strict';
 // M8: C33 acts only on a FIRST-PARTY collector (an endpoint served under a sending site's own name), never on an
-// unrelated host a value was merely sent to. These pins close the fifth audit's findings and prove the Friendface 2
+// unrelated host a value was merely sent to. These pins close the fifth audit's findings and prove the hidden collector
 // counter is unchanged (a genuine first-party collector is still blocked).
 const test = require('node:test'), assert = require('node:assert');
 const load = require('./load-background.js');
@@ -35,8 +35,8 @@ test('M8: a value sent to a bare-root first-party path never blocks the whole si
   assert.equal(bg.blocks('https://a.example/login'), false);
 });
 
-// Counter intact: a genuine FIRST-PARTY collector (Friendface 2 shape) is still blocked going forward.
-test('M8: a first-party collector path IS still blocked (Friendface 2 counter unchanged)', async () => {
+// Counter intact: a genuine FIRST-PARTY collector (the hidden collector shape) is still blocked going forward.
+test('M8: a first-party collector path IS still blocked (the hidden collector counter unchanged)', async () => {
   const bg = await load(on());
   await bg.opens('https://ledger.example/'); await bg.opens('https://sundial.example/');
   await img(bg, 'ledger.example', `https://ledger.example/f/hit?c=${ID}`);    // same id, each site to its OWN /f/

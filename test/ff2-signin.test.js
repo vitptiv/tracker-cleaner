@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only), F2-6: the sign-in-window cookie. An arbitrary site's /login?client_id=&redirect_uri= page
+// The hidden collector (lab-only), F2-6: the sign-in-window cookie. An arbitrary site's /login?client_id=&redirect_uri= page
 // is treated by the shipped guard (guard.js isSignIn) as a sign-in, which arms the 5-minute per-site hold and spares
 // KEEP_RE-named cookies. ff2 sets its ID cookie there under a KEEP_RE name, so the cleaner keeps it. This file checks
 // the server route and documents, against the shipped guard.js (read-only), that any site's URL shape arms the hold.

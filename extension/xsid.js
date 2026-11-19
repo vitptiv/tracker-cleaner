@@ -1,7 +1,7 @@
 'use strict';
 // Cross-site identifier detection (1.26, M1). Orthogonal to first/third party: a high-entropy VALUE that the cleaner
 // sees SENT by two or more different registrable sites the user actually visited is a cross-site tracking id, whoever
-// serves it. This catches a first-party reverse-proxy collector (Friendface 2) that carries one id across sites, with
+// serves it. This catches a first-party reverse-proxy collector (the hidden collector) that carries one id across sites, with
 // no third-party signal. Pure helpers; the worker keeps the state in chrome.storage.session (in-memory, cleared on
 // restart) and never writes a raw value to disk, the log, the queue or a report. An observed value is kept there in the
 // clear -- the raw bytes are needed to strip and block the id later, and a one-way hash could not be reversed for that

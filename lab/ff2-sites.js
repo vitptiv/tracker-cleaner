@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only): the new made-up content sites. Each is first-party to itself; the only tracker piece on the
+// The hidden collector (lab-only): the new made-up content sites. Each is first-party to itself; the only tracker piece on the
 // page is served from the site's OWN /f/ path, which the server reverse-proxies to the ff2 collector (ff2-server.js).
 // So to the cleaner there is never "another company": the structural rules (C29/C30/C31) are all thirdParty and never
 // match, and the collector never gets a cookie of its own that other sites can use. Made-up names, no real brand.
@@ -19,7 +19,7 @@ const filler = (n) => Array.from({ length: n }, (_, i) => `<p>Paragraph ${i + 1}
 // one row of content per site; `c` carries { site, url, lab }. Returns html, or false for 404. `c.lab.at2` builds links.
 function pages(c) {
   const { site, url, lab } = c, p = url.pathname;
-  // Friendface 2's own parallel "What I know about you", first-party on every site: the group is found from this
+  // The hidden collector's own parallel "What I know about you", first-party on every site: the group is found from this
   // site's own fp_id cookie (joined across sites by the master id and the fingerprint), or from any carried id.
   if (p === '/what-i-know' || p === '/what-i-know.json') {
     const g = c.store.lookup([c.cookies.fp_id ? 'ff2:' + c.host + ':' + c.cookies.fp_id : '', url.searchParams.get('m') ? 'ff2m:' + url.searchParams.get('m') : ''].filter(Boolean));

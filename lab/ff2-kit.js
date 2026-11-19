@@ -1,4 +1,4 @@
-// Friendface 2's first-party kit (lab-only). A site owner pastes it; it runs with the site's own rights and talks only
+// The hidden collector's first-party kit (lab-only). A site owner pastes it; it runs with the site's own rights and talks only
 // to the site's own /f/ path (reverse-proxied to the collector). The per-visitor master id is kept COOKIE-LESS: in the
 // site's own localStorage, IndexedDB and cacheStorage, and carried in the address between sites (the URL chain, F2-3).
 // It is never a cookie, so the shipped cleaner's learning (background.js followSweep) never gets the one thing it asks

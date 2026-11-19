@@ -9,19 +9,19 @@ const { start } = require('../../lab/server'), { outside } = require('../../lab/
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
 const PORT = Number(process.env.LAB_PORT) || 8200, EXT = path.join(__dirname, '..', '..', 'extension');
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
-const HOSTS = ['friendface', 'hop', 'pennant', 'gazette', 'parcelpine', 'metrics.parcelpine', 'tidewater', 'loopreel'].map((h) => h + '.localhost');
+const HOSTS = ['testbook', 'hop', 'pennant', 'gazette', 'parcelpine', 'metrics.parcelpine', 'tidewater', 'loopreel'].map((h) => h + '.localhost');
 const AUTO = ['signin', 'blocking', 'cookies', 'google', 'params', 'unknown', 'bounce', 'own', 'storage', 'permissions', 'cache'];
 
 // ---- the lab's test-only entries. None of them is in a shipped list; they exist only while this script runs.
 // 1. Two session rules, added through the extension's own popup page, shaped like the shipped ones (rules.json rule 1, rules-params.json).
-const TRACKER_NAMES = ['friendface.localhost', 'hop.localhost', 'pennant.localhost', 'metrics.parcelpine.localhost', 'friendface.test'];
+const TRACKER_NAMES = ['testbook.localhost', 'hop.localhost', 'pennant.localhost', 'metrics.parcelpine.localhost', 'testbook.test'];
 const RULES = [
   { id: 9001, priority: 1, action: { type: 'block' }, condition: { requestDomains: TRACKER_NAMES, domainType: 'thirdParty',
     resourceTypes: ['script', 'xmlhttprequest', 'image', 'ping', 'sub_frame', 'media', 'other', 'websocket', 'font', 'stylesheet'] } },
   { id: 9002, priority: 1, action: { type: 'redirect', redirect: { transform: { queryTransform: { removeParams: ['ffclid'] } } } }, condition: { resourceTypes: ['main_frame'] } }];
 // 2. The lab's ID cookies on the user's own always-delete list, entered the way the popup does it (message "always", one per site and name).
 //    The sign-in cookie ff_session is left out on purpose: the cleaner keeps sign-ins.
-const ALWAYS = [['friendface', 'ff_uid'], ['friendface', 'ff_frame'], ['hop', 'hop_id'], ['pennant', 'pn_uid'], ['metrics.parcelpine', 'pp_sid'],
+const ALWAYS = [['testbook', 'ff_uid'], ['testbook', 'ff_frame'], ['hop', 'hop_id'], ['pennant', 'pn_uid'], ['metrics.parcelpine', 'pp_sid'],
   ...['gazette', 'tidewater', 'parcelpine'].flatMap((s) => [[s, '_ffp'], [s, '_ffc']])].map(([s, name]) => ({ site: s + '.localhost', name }));
 const SETTINGS = {
   A: { says: 'fresh install defaults (1.30: Strongest), nothing approved, no lab entries', entries: false, auto: false, manual: false },
@@ -97,14 +97,14 @@ async function run(name, set, cert, flags, chance = {}) {
       await answerAll('after the trip');
       if (set.manual) {
       for (const g of st.groups.filter((x) => x.id !== 'wifi' && x.pending)) did[`approve ${g.id}`] = await E.b.msg({ type: 'approve', group: g.id }).catch((e) => String(e.message));
-      for (const h of [...HOSTS, 'friendface.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));
+      for (const h of [...HOSTS, 'testbook.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));
         did[`storage of ${h}`] = await E.b.msg({ type: 'drop', kind: 'storage', site: h.endsWith('.test') ? `${h}:${lab.tlsPort}` : `${h}:${PORT}` }).catch((e) => String(e.message)); }
-      did['block notifications'] = await E.b.msg({ type: 'drop', kind: 'permission', site: `http://friendface.localhost:${PORT}`, perm: 'notifications' }).catch((e) => String(e.message));
+      did['block notifications'] = await E.b.msg({ type: 'drop', kind: 'permission', site: `http://testbook.localhost:${PORT}`, perm: 'notifications' }).catch((e) => String(e.message));
       did['clear my browsing history'] = await E.b.msg({ type: 'clearBrowsing' }).catch((e) => String(e.message));
       did['clear cache and remembered servers'] = await E.b.msg({ type: 'drop', kind: 'servers' }).catch((e) => String(e.message)); }
       await sleep(500);
-      // the second look: the sites again, then Friendface
-      for (const [site, p] of [['gazette', '/article/harbour-bridge'], ['gazette', '/'], ['tidewater', '/post/mending-a-kite'], ['parcelpine', '/product/kite-line'], ['parcelpine', '/'], ['friendface', '/'], ['friendface', '/what-i-know']])
+      // the second look: the sites again, then the test network
+      for (const [site, p] of [['gazette', '/article/harbour-bridge'], ['gazette', '/'], ['tidewater', '/post/mending-a-kite'], ['parcelpine', '/product/kite-line'], ['parcelpine', '/'], ['testbook', '/'], ['testbook', '/what-i-know']])
         try { await E.t.go(E.at(site, p)); await sleep(1200); } catch (e) { out.broken.push(`second look ${site}${p}: ${e.message}`); }
       const kc = await E.t.ev(`fetch('/what-i-know.json').then((r) => r.json())`).catch(() => null);
       out.afterManual = { reidentified: !!(kc && kc.who && kc.who.name === MARA.name), historyStillShown: kc ? kc.history.length : 0 }; }
@@ -114,7 +114,7 @@ async function run(name, set, cert, flags, chance = {}) {
     out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], cutOff: ext.params || [], removed: ext.log.filter((l) => l.did === 'removed').length, byItself: [...new Set(ext.log.filter((l) => l.auto).map((l) => `${l.kind} ${l.site}`))],   // 1.30: answered yes by the cleaner itself (Strongest)
       waiting: Object.fromEntries(ext.groups.filter((g) => g.pending).map((g) => [g.id, g.pending])), blockRuleMatches: matched.filter((m) => m.endsWith(':9001')).length, tagRuleMatches: matched.filter((m) => m.endsWith(':9002') || m.startsWith('url-params')).length };
     // S15: what Chrome's real notification setting for the network's site is, read from the extension's side (declared in `simulated`)
-    const setting = await E.b.popup.ev(`chrome.contentSettings.notifications.get({ primaryUrl: ${JSON.stringify(E.at('friendface'))} }).then((d) => d.setting)`).catch(() => null);
+    const setting = await E.b.popup.ev(`chrome.contentSettings.notifications.get({ primaryUrl: ${JSON.stringify(E.at('testbook'))} }).then((d) => d.setting)`).catch(() => null);
     out.extension.notificationSetting = setting;
     const dir = E.b.dir; await E.b.close(true); E.b = null; const files = outside(dir, PORT); fs.rmSync(dir, { recursive: true, force: true });
 
@@ -146,7 +146,7 @@ async function run(name, set, cert, flags, chance = {}) {
       const blockSeen = caps.includes('C01') && out.extension.blockRuleMatches > 0;
       const vias = all.filter((r) => linked.has(r)).map((r) => r.via);
       if (vias.length && vias.every((v) => /shop's server/.test(v))) row.cause = 'no capability covers it (sent by the shop\'s server, not by the browser)';
-      else if (set.entries && caps.length && caps.every((c) => c === 'C06' || c === 'C09') && !fired.length) row.cause = 'capability exists but did not fire (first-party on Friendface itself; permanent storage and permission drops need an entry from the settings program, which is not running)';
+      else if (set.entries && caps.length && caps.every((c) => c === 'C06' || c === 'C09') && !fired.length) row.cause = 'capability exists but did not fire (first-party on the test network itself; permanent storage and permission drops need an entry from the settings program, which is not running)';
       else if (!caps.length) row.cause = `no capability covers it${WHY_NONE[id] ? ` (${WHY_NONE[id]})` : ''}`;
       else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list' + (out.extension.stopped.length ? `; blocked after the press on Block (${out.extension.stopped.join(', ')})` : '; asked about, not blocked (no press)') + (row.lastStep ? `, last arrived tied to her in step ${row.lastStep}` : ', arrived tied to nobody');
       else if (!fired.length && !blockSeen) { const g = ext.groups.find((x) => x.pending && x.items && x.items.some((it) => it.name === COOKIE[id]));

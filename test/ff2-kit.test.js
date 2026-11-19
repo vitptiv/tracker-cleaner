@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only), F2-2: the cookie-less first-party ID. The per-visitor master id lives only in each site's
+// The hidden collector (lab-only), F2-2: the cookie-less first-party ID. The per-visitor master id lives only in each site's
 // own localStorage/IndexedDB/cacheStorage and is carried in the address; it is never a cookie. So background.js
 // followSweep never gets the one thing it asks for (a cookie of the collector's own that other sites can use), and
 // even answering every question yes blocks nothing. Here: the kit's shape, and the collector joining sites by the id.

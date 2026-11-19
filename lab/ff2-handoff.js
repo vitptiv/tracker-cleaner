@@ -1,4 +1,4 @@
-// Friendface 2 (lab-only), F2-4: the scripted hand-off. Loaded first-party after the kit. When a hand-off link is
+// The hidden collector (lab-only), F2-4: the scripted hand-off. Loaded first-party after the kit. When a hand-off link is
 // clicked it records the click first-party (a fetch to the site's own /f/hop, which stands in for the stripped link
 // ping) and then moves the browser on by a SCRIPTED navigation -- never an HTTP 302. So the shipped noteRedirect
 // (onBeforeRedirect) never sees it, skip.js never engages, and there is no ping attribute for no-ping.js to remove.

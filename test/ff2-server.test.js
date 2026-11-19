@@ -1,5 +1,5 @@
 'use strict';
-// Friendface 2 (lab-only): the first-party reverse-proxy collector and its new sites (F2-1). Server-level checks:
+// The hidden collector (lab-only): the first-party reverse-proxy collector and its new sites (F2-1). Server-level checks:
 // the kit, beacon, image, ETag and loopback probe are all reached through the visited site's OWN name, so to the
 // cleaner nothing is "another company". No Chrome here; the cleaner-on measurement is test/lab/ff2-trip.js.
 const test = require('node:test'), assert = require('node:assert'), http = require('node:http');
