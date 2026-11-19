@@ -120,7 +120,7 @@ test('Clean everything now: every row in one press, the questions answered yes; 
   const native = (name, msg) => msg.type === 'list' ? { ok: true, canDelete: 'yes', candidates: [{ uuid: 'u1', name: 'Cafe', reason: 'unused' }] } : { ok: true, removed: [{ uuid: 'u1' }] };
   const bg = await load(at('ask', { native, storage: { cacheClearedAt: 1 }, cookies: [ID(), { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }, { name: 'NID', domain: '.google.com', value: 'n' }, { name: 'SID', domain: '.google.com', value: 's' }], tabs: ELSEWHERE }));
   await two(bg); await bg.alarm('sweep'); assert.equal(queued(bg, 'wifi').length, 1);
-  const r = await bg.send({ type: 'cleanAll' }); await bg.settle();
+  const r = await bg.send({ type: 'cleanAll', answer: (await bg.send({ type: 'state' })).cleanAllAsks }); await bg.settle();   // F5 (1.32): the confirm named them
   assert.equal(r.ok, true); assert.deepEqual(await bg.names(), ['SID']); assert.deepEqual(bg.blockedHosts(), ['trk.example']);
   assert.ok(bg.called('browsingData.remove').some((c) => c.args[1].cache && c.args[0].since === 0), 'the saved copies were not cleared');
   assert.equal(bg.called('runtime.sendNativeMessage').some((c) => c.args[1].type === 'remove'), false, 'Wi-Fi removed without its confirm');
@@ -160,6 +160,6 @@ test('1.31: the removal never deletes an allowed cookie, nor a cookie of a site 
   const bg = await load(at('balanced', { cookies: [ID(), ID('.trk.example', 'pref'), { name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }, { name: 'keep', domain: 'hop.example', value: 'h-99aa88bb77' }],
     tabs: ELSEWHERE, storage: { allow: [{ site: 'trk.example', name: 'pref' }, { site: 'hop.example', name: 'keep' }] } }));
   await two(bg); await hops(bg);
-  await bg.send({ type: 'cleanAll' }); await bg.settle();
+  await bg.send({ type: 'cleanAll', answer: (await bg.send({ type: 'state' })).cleanAllAsks }); await bg.settle();   // F5 (1.32): the confirm named them
   assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => c.name).sort(), ['keep', 'pref']);
 });

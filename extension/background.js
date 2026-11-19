@@ -203,7 +203,9 @@ let cleaning = false;
 const QUESTION_KINDS = ['tracker', 'used', 'bounce', 'skip'];
 const noteCleaned = async (done) => { const { cleanedNow = {} } = await chrome.storage.local.get('cleanedNow'), t = Date.now();
   await chrome.storage.local.set({ cleanedNow: { ...cleanedNow, ...Object.fromEntries(Object.entries(done).map(([g, n]) => [g, { t, n }])) } }); };
-async function cleanPress(rows) {
+// answer (F5, 1.32): which question hosts this press answers: null = all of them (a row's own "Clean now", beside its
+// questions); a list = only those ("Clean everything now" after its confirm named them; [] = "Clean the rest only")
+async function cleanPress(rows, answer = null) {
   if (cleaning) return { ok: false, why: 'busy' };
   cleaning = true;
   try {
@@ -215,8 +217,8 @@ async function cleanPress(rows) {
     if (!want.length) return { ok: false, why: 'rowOff' };
     const before = Object.fromEntries(want.map((g) => [g, tally[g] || 0]));
     await sweep('clean now'); cx = await context();
-    let r = await carryNow(want, cx), own = r.own;
-    if (r.trackers) { await sweep('clean now'); cx = await context(); const r2 = await carryNow(want, cx); r = { ...r2, cache: r.cache || r2.cache }; own = [...own, ...r2.own]; }
+    let r = await carryNow(want, cx, answer), own = r.own;
+    if (r.trackers) { await sweep('clean now'); cx = await context(); const r2 = await carryNow(want, cx, answer); r = { ...r2, cache: r.cache || r2.cache }; own = [...own, ...r2.own]; }
     if (want.includes('cache') && !r.cache) try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {}
     if (want.includes('own')) await ownNow(cx, own);
     if (want.includes('crossid')) { const forced = { ...cx, set: { ...cx.set, modes: { ...cx.set.modes, C33: 'auto' } } }, all = await allCookies(); await xidClean(forced, all); await xidSetClean(forced, all); }
@@ -227,9 +229,9 @@ async function cleanPress(rows) {
   } finally { cleaning = false; }
 }
 // what waits in these rows, carried out now; a question only where mayYes allows it, nothing of a site whose sign-in holds it
-async function carryNow(rows, cx) {
+async function carryNow(rows, cx, answer = null) {
   const all = await allCookies(), items = []; let left = 0;
-  const take = (it) => it.kind !== 'wifi' && (it.kind === 'cache' || !guarded(cx, siteOf(bare(String(it.site))))) && (!QUESTION_KINDS.includes(it.kind) || mayYes(cx, it.site, true));
+  const take = (it) => it.kind !== 'wifi' && (it.kind === 'cache' || !guarded(cx, siteOf(bare(String(it.site))))) && (!QUESTION_KINDS.includes(it.kind) || (pressable(cx, it) && (!answer || answer.includes(it.site))));
   await withQueue((p) => { let changed = false;
     for (const g of rows) { const q = p[g]; if (!q) continue;
       const mine = q.items.filter(take); left += q.items.filter((it) => QUESTION_KINDS.includes(it.kind) && !take(it)).length;
@@ -241,6 +243,10 @@ async function carryNow(rows, cx) {
   await logged(done, 'removed');
   return { left, trackers: done.some((it) => it.kind === 'tracker'), cache: done.some((it) => it.kind === 'cache'), own: done.filter((it) => it.kind === 'own').map((it) => it.site) };
 }
+// a waiting question a press may answer (the absolute limits of mayYes)
+const pressable = (cx, it) => QUESTION_KINDS.includes(it.kind) && !guarded(cx, siteOf(bare(String(it.site)))) && mayYes(cx, it.site, true);
+// F5: the hosts "Clean everything now" would block or empty by answering their questions: named in its confirm first
+const cleanAllAsks = (cx) => [...new Set(CLEANABLE.flatMap((g) => ((cx.set.pending || {})[g] || { items: [] }).items).filter((it) => pressable(cx, it)).map((it) => it.site))];
 // "Clean now" on the row of what trackers saved on their own sites: every cleaned-out company and the built-in list, now
 // (not waiting for the day), but never while its own site is open in a tab or its sign-in holds it; `done`: already done in this press
 async function ownNow(cx, done) {
@@ -253,7 +259,7 @@ async function ownNow(cx, done) {
 // ---- The popup: chrome.runtime.sendMessage({ type, ... }) -> reply.
 async function state() {
   await ready;
-  const { set, hold, signing } = await context(), modes = set.modes || {}, pending = set.pending || {};
+  const cx = await context(), { set, hold, signing } = cx, modes = set.modes || {}, pending = set.pending || {};
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
   const { wifi, cleanedNow = {}, autoDone = {} } = await chrome.storage.local.get(['wifi', 'cleanedNow', 'autoDone']);   // wifi: what the helper last said: { helper: 'ok' | 'missing', canDelete }
   return { now: Date.now(), master: set.master, modes, level: levelNow(set), hold: { ...hold, guard: signing, pauseUntil: set.pauseUntil || 0, guardUntil: 0 },   // guard: a tab is on a sign-in host right now (for the popup's line)
@@ -263,6 +269,7 @@ async function state() {
     server: SERVER,   // did the 8088 server answer the last time: the popup asks it only then
     tor: await torNow({ set, hold }),
     // F3: the hosts answered by itself that can still be let through, newest first
+    cleanAllAsks: cleanAllAsks(cx),
     autoDone: Object.entries(autoDone).filter(([h]) => isHost(h) && !unautoHas({ set }, siteOf(h))).map(([site, a]) => ({ site, row: a.row, t: a.t })).sort((a, b) => b.t - a.t),
     undo: (await undoBuffer()).map(({ t, c }) => ({ t, site: bare(c.domain), name: c.name })),   // never the value
     // one row per group that has an action capability; it shows the mode of its first one (its own, or the level's),
@@ -403,7 +410,7 @@ async function lineSeen(m) {
 }
 const MESSAGES = { state, stored, seen: lineSeen, cookies: (m) => cookiesOf(m.host), cookieValue: (m) => cookieValue(m.site, m.name), dropSite, always: (m) => always(m.site, m.name, m.on !== false), pause: (m) => pause(m.minutes), resume, approve: (m) => approve(m.group, m.site, m.name), notNow, unstop: (m) => unstop(m.site), letThrough: (m) => letThrough(m.site), unskip: (m) => unskip(m.site), keepRemoving: (m) => keepRemoving(m.site, m.on), histOn: (m) => histOn(m.on), clearBrowsing, postpone: (m) => postpone(m.group, m.minutes),
   setMode: (m) => setMode(m.group, m.mode), setLevel: (m) => setLevel(m.level), cleanNow: (m) => CLEANABLE.includes(m.group) ? cleanPress([m.group]) : Promise.resolve({ ok: false }),
-  cleanAll: () => cleanPress(CLEANABLE), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
+  cleanAll: (m) => cleanPress(CLEANABLE, Array.isArray(m.answer) ? m.answer.filter(isHost) : []), setMaster: (m) => setMaster(m.on), allow: (m) => allow(m.site, m.name, true),
   revertAllow: (m) => allow(m.site, m.name, false), siteOff: (m) => siteOff(m.host, m.on),
   restore: (m) => isHost(m.site) && typeof m.name === 'string' ? restore((c) => bare(c.domain) === m.site && c.name === m.name) : Promise.resolve({ ok: false }),
   restoreAll: () => restore(() => true), drop,

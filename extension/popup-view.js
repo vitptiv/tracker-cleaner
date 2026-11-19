@@ -46,7 +46,12 @@ const renderPopup = (state, tab) => {
   const level = s.level || 'balanced';
   const dial = () => `<div class="c" data-level="${esc(level)}"><div class="lv">`
     + LEVELS.map(([v, t]) => `<button data-level-pick="${v}" aria-pressed="${v === level}" ${msg({ type: 'setLevel', level: v })}>${t}</button>`).join('') + '</div>'
-    + `<p class="m">${LEVEL_SAYS[level] || LEVEL_SAYS.balanced}</p><p class="m">${OWN_LINE}</p>${btn('Clean everything now', { type: 'cleanAll' }, 'all', noClean)}</div>`;
+    + `<p class="m">${LEVEL_SAYS[level] || LEVEL_SAYS.balanced}</p><p class="m">${OWN_LINE}</p>${cleanAll()}</div>`;
+  // F5 (1.32): with questions waiting the top button first names the hosts it would block or empty, and offers the rest only
+  const asks = (s.cleanAllAsks || []).map(String);
+  const cleanAll = () => !asks.length || noClean ? btn('Clean everything now', { type: 'cleanAll' }, 'all', noClean)
+    : `<button data-reveal="confirm-all" class="all">Clean everything now</button><span id="confirm-all" hidden><span class="m">This also blocks or empties ${asks.length === 1 ? 'this site' : `these ${asks.length} sites`}, and what is emptied cannot be put back: ${esc(asks.join(', '))}.</span> `
+      + `${btn('Clean these too', { type: 'cleanAll', answer: asks }, 'all')} ${btn('Clean the rest only', { type: 'cleanAll' })}</span>`;
   const undone = () => !undo.length ? '' : `<p>Removed in the last 10 minutes: ${undo.length >= UNDO_FULL ? UNDO_FULL + '+' : undo.length} ${btn('Restore all', { type: 'restoreAll' })}</p>`;
 
   // This site (C21). An action belongs here when its site is this host, a parent domain (where most cookies are

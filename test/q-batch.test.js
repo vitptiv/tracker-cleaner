@@ -220,3 +220,38 @@ test("USED_SITE_AUTO 'block' and 'ask': a site you do NOT use is still answered 
     await bg.send({ type: 'cleanNow', group: 'bounce' }); await bg.settle(); assert.equal(emptied(bg, 'www.bank.example').length, 1, how);
   }
 });
+
+// ---- F5: "Clean everything now" names the hosts it would block or empty before it answers any waiting question
+const ID2 = (d) => ({ name: 'uid', domain: d, value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' });
+const balWith = (cookies) => load({ cookies, tabs: [{ id: 1, active: true, url: 'https://elsewhere.example/' }], storage: { master: true, cacheClearedAt: 1.8e12, level: 'balanced' } });
+test('F5: with questions waiting, the state names the hosts; a plain cleanAll ("Clean the rest only") answers none of them', async () => {
+  const bg = await balWith([ID2('.trk.example'), { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }]);
+  await req2(bg, 'trk.example', 'news.example'); await req2(bg, 'trk.example', 'shop.example');
+  const s = await bg.send({ type: 'state' }); assert.deepEqual(s.cleanAllAsks, ['trk.example']);
+  const r = await bg.send({ type: 'cleanAll' }); await bg.settle();
+  assert.equal(r.ok, true); assert.equal(r.left, 1); assert.deepEqual(bg.blockedHosts(), []);
+  assert.deepEqual(await bg.names(), ['uid'], 'the rest was cleaned, the question was not answered');
+  assert.deepEqual(pend(bg, 'unknown').map((i) => i.site), ['trk.example']);
+});
+test('F5: the confirmed press answers exactly the hosts it named (and their follow-up question), nothing it did not name', async () => {
+  const bg = await balWith([ID2('.trk.example'), ID2('.other.example')]);
+  for (const h of ['trk.example', 'other.example']) { await req2(bg, h, 'news.example'); await req2(bg, h, 'shop.example'); }
+  assert.deepEqual((await bg.send({ type: 'state' })).cleanAllAsks.sort(), ['other.example', 'trk.example']);
+  const r = await bg.send({ type: 'cleanAll', answer: ['trk.example'] }); await bg.settle();
+  assert.deepEqual(bg.blockedHosts(), ['trk.example']); assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => c.domain), ['.other.example'], 'the named host is cleaned out too (its follow-up question), the unnamed one is not touched');
+  assert.equal(r.left, 1); assert.deepEqual(pend(bg, 'unknown').map((i) => i.site), ['other.example']);
+});
+test('F5: the popup: without questions the top button acts at once; with questions it opens a confirm naming them, with "Clean the rest only"', async () => {
+  const bg = await balWith([ID2('.trk.example')]);
+  let html = renderPopup(await bg.send({ type: 'state' }), null);
+  assert.deepEqual(msgs(html).filter((m) => m.type === 'cleanAll'), [{ type: 'cleanAll' }]);
+  await req2(bg, 'trk.example', 'news.example'); await req2(bg, 'trk.example', 'shop.example');
+  html = renderPopup(await bg.send({ type: 'state' }), null);
+  const box = html.split('id="confirm-all"')[1].split('</span></div>')[0];
+  assert.match(html, /<button data-reveal="confirm-all"[^>]*>Clean everything now<\/button>/);
+  assert.match(box, /trk\.example/);
+  assert.deepEqual(msgs(box).filter((m) => m.type === 'cleanAll'), [{ type: 'cleanAll', answer: ['trk.example'] }, { type: 'cleanAll' }]);
+  assert.match(box, />Clean the rest only</);
+  // the row buttons beside the question list stay
+  assert.ok(msgs(html).some((m) => m.type === 'cleanNow' && m.group === 'unknown'));
+});
