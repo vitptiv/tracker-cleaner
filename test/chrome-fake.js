@@ -106,7 +106,7 @@ module.exports = function makeChrome(init = {}) {
       // fake.refuse(rule) true = Chrome refuses that rule, and with it the whole change (as it does)
       updateDynamicRules: rec('declarativeNetRequest.updateDynamicRules', (o) => { if (fake.refuse && (o.addRules || []).some(fake.refuse)) throw new Error('Rule was skipped');
         state.dynamic = [...state.dynamic.filter((r) => !(o.removeRuleIds || []).includes(r.id)), ...JSON.parse(JSON.stringify(o.addRules || []))]; fake.ruleLog.push({ kind: 'dynamic', ids: state.dynamic.map((r) => r.id) }); }) },
-    webRequest: { onBeforeRequest: event(), onBeforeRedirect: event(), onCompleted: event(), onHeadersReceived: event() },
+    webRequest: { onBeforeRequest: event(), onBeforeSendHeaders: event(), onBeforeRedirect: event(), onCompleted: event(), onHeadersReceived: event() },
     // any permission name works: chrome.contentSettings.camera.set(...)
     contentSettings: new Proxy({}, { get: (_, perm) => ({ set: rec('contentSettings.set', () => {}), clear: rec('contentSettings.clear', () => {}), perm }) }),
     browsingData: { remove: rec('browsingData.remove', () => {}) },

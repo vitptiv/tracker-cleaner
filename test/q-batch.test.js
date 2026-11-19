@@ -255,3 +255,51 @@ test('F5: the popup: without questions the top button acts at once; with questio
   // the row buttons beside the question list stay
   assert.ok(msgs(html).some((m) => m.type === 'cleanNow' && m.group === 'unknown'));
 });
+
+// ---- F4 (Balanced default): a value that arrived from outside in the address is not that site's own identifier
+const TOK = 'Qz7Lp2Xv9Rk4Tm8W';
+const xblock = (bg, url) => bg.state.dynamic.find((r) => r.id >= 102000 && r.id < 102400 && r.condition.regexFilter && new RegExp(r.condition.regexFilter).test(url));
+const balanced = (o = {}) => load({ tabs: [{ id: 1, active: true, url: 'https://evil.example/' }], ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
+// the victim's own page sends `tok` to its own /api/, and that API sets a readable cookie
+const bankEcho = async (bg, tok, tabId) => {
+  await bg.request({ url: 'https://bank.example/api/search?q=' + tok, initiator: 'https://bank.example', type: 'xmlhttprequest', ...(tabId ? { tabId, frameId: 0 } : {}) }); await bg.settle();
+  await bg.answer({ url: 'https://bank.example/api/search?q=' + tok, initiator: 'https://bank.example', type: 'xmlhttprequest', ...(tabId ? { tabId, frameId: 0 } : {}), responseHeaders: [{ name: 'Set-Cookie', value: 'XSRF-TOKEN=x-77aa66bb55cc; Path=/' }] }); await bg.settle(); };
+const evilSends = async (bg, tok) => { await bg.request({ url: 'https://evil.example/c/x?t=' + tok, initiator: 'https://evil.example', type: 'image' }); await bg.settle(); };
+test('F4 (exploit 5): a reflected search parameter does not get the victim\'s own /api/ blocked, nor its cookie deleted', async () => {
+  const bg = await balanced({ cookies: [{ name: 'XSRF-TOKEN', domain: 'bank.example', value: 'x-77aa66bb55cc' }] });
+  await bg.opens('https://evil.example/'); await bg.opens('https://bank.example/search?q=' + TOK);
+  await bankEcho(bg, TOK); await evilSends(bg, TOK); await bg.alarm('sweep');
+  assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined, 'bank.example/api/ is blocked');
+  assert.deepEqual(await bg.names(), ['XSRF-TOKEN']);
+  assert.deepEqual(bg.state.session.xsid || {}, {});
+});
+test('F4: also when the value came in the fragment, in the page the user came from, or in the Referer of the navigation', async () => {
+  for (const how of ['fragment', 'opener', 'referer']) {
+    const bg = await balanced({ cookies: [{ name: 'XSRF-TOKEN', domain: 'bank.example', value: 'x-77aa66bb55cc' }] });
+    await bg.opens('https://evil.example/'); await bg.opens('https://bank.example/');
+    const tab = 7; await bg.openTab({ id: tab, url: how === 'opener' ? 'https://evil.example/go?t=' + TOK : 'https://evil.example/' });
+    const target = how === 'fragment' ? 'https://bank.example/#q=' + TOK : 'https://bank.example/search';
+    await bg.request({ url: target.split('#')[0], type: 'main_frame', tabId: tab, frameId: 0, initiator: 'https://evil.example' });
+    if (how === 'referer') await bg.chrome.webRequest.onBeforeSendHeaders.fire({ url: target, type: 'main_frame', tabId: tab, frameId: 0, requestHeaders: [{ name: 'Referer', value: 'https://evil.example/p?t=' + TOK }] });
+    await bg.navigate(tab, target); await bg.settle();
+    await bankEcho(bg, TOK, tab); await evilSends(bg, TOK); await bg.alarm('sweep');
+    assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined, how); assert.deepEqual(await bg.names(), ['XSRF-TOKEN'], how);
+  }
+});
+test('F4: a site must have sent the value to its OWN endpoint: a value two sites only send to a third party is not confirmed', async () => {
+  const bg = await balanced();
+  await bg.opens('https://a.example/'); await bg.opens('https://b.example/');
+  for (const p of ['a.example', 'b.example']) { await bg.request({ url: `https://cdn.other.example/x/y?v=${TOK}`, initiator: `https://${p}`, type: 'image' }); await bg.settle(); }
+  await bg.request({ url: `https://a.example/f/hit?v=${TOK}`, initiator: 'https://a.example', type: 'xmlhttprequest' }); await bg.settle();
+  await bg.alarm('sweep');
+  assert.deepEqual(bg.state.session.xsid || {}, {}, 'confirmed with only one site sending to its own name');
+});
+test('F4: the Friendface 2 shape still works: two sites each send the same value, not from any address, to their own /f/: confirmed and blocked', async () => {
+  const bg = await balanced({ tabs: [{ id: 1, active: true, url: 'https://ledger.example/' }, { id: 2, url: 'https://sundial.example/' }] });
+  await bg.opens('https://ledger.example/budget'); await bg.opens('https://sundial.example/forecast?x=ff2m-18f0aa');
+  for (const s of ['ledger.example', 'sundial.example']) { await bg.request({ url: `https://${s}/f/hit?fp=${TOK}`, initiator: `https://${s}`, type: 'xmlhttprequest' }); await bg.settle(); }
+  await bg.alarm('sweep');
+  assert.equal(Object.keys(bg.state.session.xsid || {}).length, 1);
+  for (const s of ['ledger.example', 'sundial.example']) assert.ok(xblock(bg, `https://${s}/f/hit`), s);
+  assert.equal(xblock(bg, 'https://ledger.example/f/hit').condition.domainType, undefined, 'the block applies to the site\'s own page too (that is how the ff2 collector is cut)');
+});

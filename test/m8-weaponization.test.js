@@ -19,7 +19,7 @@ test('M8: a cross-site value sent to a THIRD-PARTY endpoint does not block it (n
   assert.equal(bg.blocks('https://victim.example/api/other'), false);
   // the value is still recognised as cross-site (it is), it just yields no first-party endpoint to act on
   const vals = Object.values(bg.state.session.xsid || {});
-  assert.ok(vals.length >= 1, 'the value is confirmed cross-site'); assert.deepEqual(vals[0].eps, [], 'no first-party endpoint');
+  assert.deepEqual(vals, [], 'Q-batch F4 (1.32): a value no site sent to its own name is not even confirmed');
 });
 
 // FINDING 2 (critical): path '/' must never block the whole site.

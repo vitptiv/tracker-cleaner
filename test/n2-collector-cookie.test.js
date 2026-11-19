@@ -164,7 +164,7 @@ test('N2 #5 ATTACK: an answer from another company that sets a cookie name never
   for (const s of [A, B]) { await send(bg, s, `https://${V}/f/hit?u=${ID}`); await sets(bg, s, `https://${V}/f/hit?u=${ID}`, ['vis=x; Path=/', 'cart=x; Path=/']); }
   assert.deepEqual(xset(bg), {}, 'a third-party answer was noted');
   await bg.alarm('sweep');
-  assert.ok(Object.values(bg.state.session.xsid || {}).length >= 1, 'the value is confirmed cross-site (it is)');
+  assert.deepEqual(Object.values(bg.state.session.xsid || {}), [], 'Q-batch F4 (1.32): sent to another company only, so not confirmed');
   assert.deepEqual(bg.called('cookies.remove'), [], 'a cookie was deleted');
   assert.deepEqual(await jar(bg), [`${A} vis`, `${B} vis`, `${V} cart`, `${V} vis`]);
 });
