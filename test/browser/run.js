@@ -407,13 +407,9 @@ async function main() {
       see(`scripts registered: ${scripts.join(', ')}; ended on ${url.slice(0, 70)} ("${title}"), yt-adfree.js ${patched ? 'ran' : 'did not run'} in the page, ${thrown.length} uncaught page errors, ${ours.length} from the extension`);
     }, offline);
 
-    await check(13, 'Wi-Fi row without the helper, and nothing else broke', async (ok, see) => {
+    await check(13, 'a sweep, and nothing broke', async (ok, see) => {
       await sw(`await sweep('browser-test');`);
       await P.reopen();
-      const row = await P.row('wifi'), opts = await x.popup.ev(`[...document.querySelectorAll('[data-group="wifi"] option')].map((o) => o.textContent)`);
-      ok(row.includes('Helper not installed (see wifi-helper/README.md)'), `Wi-Fi row: ${row.replace(/\n+/g, ' / ')}`);
-      ok(opts.join(',') === 'Off,Ask first', `Wi-Fi choices: ${opts.join(', ')}`);
-      ok(row.includes('Nothing waiting'), 'the Wi-Fi row has something waiting');
       const st = await P.state(), [red, audit] = swRed(), [pred] = redLines(x.popup);
       ok(st && st.groups.length === GROUP_ROWS, `the state message did not answer with ${GROUP_ROWS} groups`);
       ok(!red.length, `service worker errors during the run: ${brief(red)}`);

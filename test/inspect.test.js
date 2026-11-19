@@ -1,5 +1,5 @@
 // The inspector command (tools/inspect.js) on the fixture profile of test/fixtures/build.js. No test reads the
-// user's real profile: every call names --profile and --cache, and nmcli and curl are fakes.
+// user's real profile: every call names --profile and --cache, and curl is a fake.
 const test = require('node:test'), assert = require('node:assert'), fs = require('node:fs'), path = require('node:path');
 const { spawnSync, execSync } = require('node:child_process');
 const fx = require('./fixtures/build.js'), { main } = require('../tools/inspect.js');
@@ -9,7 +9,7 @@ test.before(() => fx.build());
 const cli = (...args) => { const r = spawnSync('node', [TOOL, ...args, '--profile', fx.DIR, '--cache', fx.CACHE], { encoding: 'utf8' }); return [r.status, r.stdout, r.stderr]; };
 // the same in this process, for the blocks that need a fake runner
 const call = (args, deps = {}) => { const out = []; const code = main([...args, '--profile', fx.DIR, '--cache', fx.CACHE], { print: (s) => out.push(s), ...deps }); return [code, out.join('\n')]; };
-// a printed command, run as the user would paste it; nmcli and curl resolve to the fakes in the fixture
+// a printed command, run as the user would paste it; curl, resolvectl and ip resolve to the fakes in the fixture
 const paste = (cmd) => execSync(cmd, { encoding: 'utf8', env: { ...process.env, PATH: fx.BIN + ':' + process.env.PATH } });
 
 test('cookies: each cookie lands in the right line with the right reason, and the totals add up', () => {
@@ -145,32 +145,6 @@ test('storage: sites and kinds match; trackers and "prove you are human" checks 
     'https_app.example_0.indexeddb.leveldb', 'https_hcaptcha.com_0.indexeddb.leveldb']);
 });
 
-// Wi-Fi: the wifi-helper parser, with a fake runner that answers the one read-only command and records every call
-const S = 1.8e9, DAY = 86400;
-const NETWORKS = [`Home:${fx.U(1)}:802-11-wireless:${S - 60}:yes`, `Cafe:${fx.U(2)}:802-11-wireless:${S - 31 * DAY}:no`, `Office:${fx.U(3)}:802-11-wireless:${S - 29 * DAY}:no`,
-  `Hotel:${fx.U(4)}:802-11-wireless:0:no`, `Wired:${fx.U(5)}:802-3-ethernet:0:no`, `Broken:${fx.U(6)}:802-11-wireless::no`, ''].join('\n');
-test('wifi: the helper\'s parser on a fake runner; only the read-only listing is ever run', () => {
-  const calls = [], run = (cmd, args) => { calls.push([cmd, ...args].join(' ')); return NETWORKS; };
-  const [code, out] = call(['wifi', '--list'], { run, now: S * 1000 });
-  assert.equal(code, 0);
-  assert.equal(out, [
-    'Remembered Wi-Fi networks',
-    '  There now:         5 remembered networks',
-    '  Kept:              3 (1 in use now, 1 used in the last 30 days, 1 whose last use cannot be read)',
-    '  Would be removed:  2 (1 not used for 30 days or more, 1 never used); you are always asked first',
-    '  What happens if you clean this: This computer forgets those networks and their passwords. To use one again you type its password again.',
-    '  Would be removed (2)', '    Cafe  not used for 31 days', '    Hotel  never used',
-    '  Kept (3)', '    Broken  last use cannot be read', '    Home  in use now', '    Office  used in the last 30 days'].join('\n'));
-  assert.deepEqual(calls, ['nmcli -t -f NAME,UUID,TYPE,TIMESTAMP,ACTIVE connection show']);
-  const raw = call(['wifi', '--raw'], { run })[1];
-  assert.equal(raw, 'nmcli -t -f NAME,UUID,TYPE,TIMESTAMP,ACTIVE connection show');
-  assert.equal(paste(raw).split('\n').length, 6);   // the fake nmcli of the fixture
-});
-test('wifi: none saved, and no answer from the computer, each say so plainly', () => {
-  assert.ok(call(['wifi'], { run: () => '', now: S * 1000 })[1].includes('  There now:         no remembered networks\n  Kept:              none\n  Would be removed:  none\n'));
-  assert.deepEqual(call(['wifi'], { run: () => { throw new Error('spawn nmcli ENOENT'); } }), [1, 'This computer did not answer the question about its Wi-Fi networks (the program nmcli is missing or not running).']);
-});
-
 // Tor: a fake runner. direct / tor = what check.torproject.org answers on each path, null = no answer; dns and ip =
 // what `resolvectl status` and `ip -br addr` print, null = the program is missing
 const TITLE = 'Hiding your address from websites (Tor)', COST = '  What happens if you clean this: Nothing is cleaned here. With Tor switched on, pages load slower and you are asked to prove you are human more often.';
@@ -223,8 +197,8 @@ test('tor: your own address and the resolver\'s are masked unless --full; --raw 
 });
 test('every block has --raw, and no block prints a code from the plan', () => {
   const { BLOCKS } = require('../tools/inspect.js');
-  assert.deepEqual(Object.keys(BLOCKS), ['cookies', 'cache', 'code-cache', 'storage', 'servers', 'permissions', 'tor', 'wifi']);
-  for (const name of Object.keys(BLOCKS)) { const deps = ['tor', 'wifi'].includes(name) ? { run: (cmd) => cmd === 'curl' ? '{}' : cmd === 'nmcli' ? NETWORKS : '', now: S * 1000 } : {};
+  assert.deepEqual(Object.keys(BLOCKS), ['cookies', 'cache', 'code-cache', 'storage', 'servers', 'permissions', 'tor']);
+  for (const name of Object.keys(BLOCKS)) { const deps = name === 'tor' ? { run: (cmd) => cmd === 'curl' ? '{}' : '', now: 1.8e12 } : {};
     const [code, raw] = call([name, '--raw'], deps), [, out] = call([name, '--list'], deps);
     assert.equal(code, 0, name); assert.ok(raw.length > 10, name); assert.equal(/\b[BCT]\d\d?\b/.test(out), false, name);
     assert.ok(out.includes('\n  What happens if you clean this: '), name); }

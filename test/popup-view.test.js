@@ -201,9 +201,9 @@ test('"Copy command" on the rows the inspector command covers, carrying exactly 
   const html = renderPopup(state(), null), { BLOCKS } = require('../tools/inspect.js');
   const got = Object.fromEntries([...html.matchAll(/data-group="([a-z]+)">(?:(?!data-group).)*?<button class="small" data-copy="([^"]*)">Copy command<\/button>/gs)].map((m) => [m[1], m[2]]));
   assert.deepEqual(got, { cookies: 'node tools/inspect.js cookies', google: 'node tools/inspect.js cookies', allowlist: 'node tools/inspect.js cookies', storage: 'node tools/inspect.js storage',
-    wifi: 'node tools/inspect.js wifi', permissions: 'node tools/inspect.js permissions', cache: 'node tools/inspect.js cache', tor: 'node tools/inspect.js tor' });
+    permissions: 'node tools/inspect.js permissions', cache: 'node tools/inspect.js cache', tor: 'node tools/inspect.js tor' });
   for (const cmd of Object.values(got)) assert.ok(Object.hasOwn(BLOCKS, cmd.split(' ')[2]), cmd);
-  assert.equal(count(html, 'Copy command'), 8);
+  assert.equal(count(html, 'Copy command'), 7);
 });
 test('popup.html: one button at the top opens the report beside the page, one link opens the history page in a tab', () => {
   const html = fs.readFileSync(path.join(__dirname, '../extension/popup.html'), 'utf8');

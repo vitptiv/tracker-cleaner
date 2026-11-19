@@ -16,7 +16,7 @@ To use the extension, load the folder unpacked:
   2. Remove or switch off any other copy of Tracker Cleaner: two copies would fight.
   3. Press "Load unpacked" and choose $HERE
 After a change to the files, press the reload arrow on its card.
-What to try next: $(dirname "$HERE")/TESTING.md
+What to try next: $(dirname "$HERE")/README.md
 TXT
   exit 0
 fi

@@ -251,7 +251,7 @@ test('lab step 16: helpers move only the server\'s calendar, delete one cookie, 
 
 test('lab step 18: the outside check reads a profile\'s own files', async () => {
   const fs = require('node:fs'), path = require('node:path'), { execFileSync } = require('node:child_process'), { outside } = require('../lab/outside');
-  const base = fs.existsSync('/mnt/d/tmp') ? '/mnt/d/tmp' : require('node:os').tmpdir(), dir = fs.mkdtempSync(path.join(process.env.TC_BROWSER_TMP || base, 'tc-lab-profile-'));
+  const dir = fs.mkdtempSync(path.join(process.env.TC_BROWSER_TMP || require('node:os').tmpdir(), 'tc-lab-profile-'));
   try { assert.deepEqual(outside(dir, PORT), {});
     fs.mkdirSync(path.join(dir, 'Default', 'Code Cache', 'js'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'Default', 'Code Cache', 'js', 'abc_0'), `\0\0_key http://testbook.localhost:${PORT}/kit.js \0`); fs.writeFileSync(path.join(dir, 'Default', 'Code Cache', 'js', 'other_0'), 'elsewhere');
@@ -290,12 +290,6 @@ test('lab step 19: completeness, every row has a technique and its checks or a m
   assert.deepEqual(gaps(traces.map((t) => t.id === 'T34' ? { ...t, reason: '' } : t), trip, expect, src), ['T34 is neither built nor marked with a reason']);
   assert.deepEqual(gaps(traces.map((t) => t.id === 'T35' ? { ...t, technique: '' } : t), trip, expect, src), ['T35 has no technique']);
   assert.equal(gaps(traces, trip, expect, src.replace('EXPECT[tr.id].test(r.value)', 'true')).length, 1);
-});
-
-test('lab step 20: the hand-trip sheet in TESTING.md has the same steps as the coded trip', () => {
-  const sheet = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'TESTING.md'), 'utf8'), trip = require('../lab/trip.json');
-  for (const s of trip) assert.ok(sheet.includes(`- [ ] ${s.n}. **${s.title}.** ${s.hand}${s.traces.length ? ` Ticks: ${s.traces.join(' ')}.` : ''}\n`), `step ${s.n}`);
-  assert.equal((sheet.split('## The tracking lab by hand')[1].match(/^- \[ \] \d+\./gm) || []).length, trip.length);
 });
 
 test('lab review: with a lab certificate the forced-HTTPS bit is set over https and read back only when the plain request arrives encrypted', async (t) => {

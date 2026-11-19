@@ -33,7 +33,7 @@ const SETTINGS = {
 // not a setting: the same trip with the main switch off, to learn in which step the trip makes each kind for the last time
 const OFF = { says: 'the main switch off (reference)', off: true, entries: false, auto: false, manual: false };
 const NOT_SET = { tor: 'would send requests off this computer', tabs: 'would close the trip\'s own tabs', allowlist: 'needs a list from the settings program; would delete every cookie',
-  server: 'only reports and self-update', wifi: 'never automatic; touches this computer\'s saved networks, so it is not approved either' };
+  server: 'only reports and self-update' };
 
 // ---- which capability is aimed at each kind (journal page, chapter 4), and the thing it would have to remove
 const COVER = { T1: ['C01', 'C07'], T2: [], T3: ['C07'], T4: ['C23', 'C07', 'C27'], T5: ['C07', 'C27'], T6: ['C01', 'C07'], T7: ['C07'], T8: ['C01', 'C07'], T9: ['C06'], T10: [], T11: ['C06'], T12: ['C06'], T13: ['C06', 'C28'],
@@ -96,7 +96,7 @@ async function run(name, set, cert, flags, chance = {}) {
       // what still waits after the last step is answered too (Q: the rest; C: all of them here)
       await answerAll('after the trip');
       if (set.manual) {
-      for (const g of st.groups.filter((x) => x.id !== 'wifi' && x.pending)) did[`approve ${g.id}`] = await E.b.msg({ type: 'approve', group: g.id }).catch((e) => String(e.message));
+      for (const g of st.groups.filter((x) => x.pending)) did[`approve ${g.id}`] = await E.b.msg({ type: 'approve', group: g.id }).catch((e) => String(e.message));
       for (const h of [...HOSTS, 'testbook.test']) { did[`cookies of ${h}`] = await E.b.msg({ type: 'dropSite', host: h, kept: true }).catch((e) => String(e.message));
         did[`storage of ${h}`] = await E.b.msg({ type: 'drop', kind: 'storage', site: h.endsWith('.test') ? `${h}:${lab.tlsPort}` : `${h}:${PORT}` }).catch((e) => String(e.message)); }
       did['block notifications'] = await E.b.msg({ type: 'drop', kind: 'permission', site: `http://testbook.localhost:${PORT}`, perm: 'notifications' }).catch((e) => String(e.message));

@@ -26,7 +26,7 @@ const { buildReport, renderReport } = (() => {
   // The state in a word, as the gate (registry.js) would answer for the group right now.
   const word = (g, s) => {
     // 1.30: 'yes' (a question row that answers yes by itself, Strongest) is on, as Automatic is
-    const hold = s.hold || {}, m = g.mode === 'yes' ? 'auto' : g.mode, mode = g.ask === false && m !== 'auto' ? 'off' : g.noAuto && m === 'auto' ? 'ask' : m;
+    const hold = s.hold || {}, m = g.mode === 'yes' ? 'auto' : g.mode, mode = g.ask === false && m !== 'auto' ? 'off' : m;
     if (s.master === false || (mode !== 'auto' && mode !== 'ask')) return 'off';
     if (hold.paused) return 'paused';
     if (mode === 'ask' || (g.ask && s.master !== true)) return 'asks first';   // nothing is deleted before the user turned cleaning on
@@ -36,7 +36,7 @@ const { buildReport, renderReport } = (() => {
   const torSays = (t) => t.routed ? (t.running === false ? 'Tor has stopped, so pages will not load' : 'On: sites see a Tor address, not yours')
     : t.wanted && t.running === false ? 'Tor is not running, so nothing is routed' : 'Not routed over Tor';
   // what a group's removal is called: "4 deleted today"
-  const DID = { unknown: 'stopped', bounce: 'cleaned', own: 'emptied', cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
+  const DID = { unknown: 'stopped', bounce: 'cleaned', own: 'emptied', cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
   // Blocked and cleaned links are those of this tab (Chrome counts them per tab). Deleted today and waiting are those
   // of the whole group, on all sites. For the groups that delete cookies and nothing else, the history's per-cookie
   // counters also give this site's share of today (history.js: d and g), for the site and the sites above and below it.
@@ -100,7 +100,7 @@ const { buildReport, renderReport } = (() => {
       says: typeof s.master !== 'boolean' ? 'Cleaning is off until you turn it on.' : !s.master ? 'Cleaning is off'
         : hold.paused ? 'Cleaning is paused' + (hold.pauseUntil ? ` until ${hhmm(hold.pauseUntil)}` : '') : hold.guard ? 'Cleaning is on, but held while you sign in' : 'Cleaning is on' }; };
   // what the button of a group does, and to what: "Remove 12 cookies"
-  const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
+  const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], unknown: ['Stop', 'tracker'] };
   // things asked one by one, in one sentence each, with Approve and Not now
   const ASKS = { tracker: (it) => (Number(it.why) > 1 ? `${it.site} follows you on ${Number(it.why)} sites.` : `${it.site} was handed the ID a site keeps for you.`) + ' Block it on other sites?',
     skip: (it) => `${it.site} only passes you along and adds a tag. Skip it next time?`,
@@ -110,12 +110,10 @@ const { buildReport, renderReport } = (() => {
       : `${it.site} is stopped. Empty what it saved on its own site and block its notifications, now and daily?`,
  };
   const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
-    : it.kind === 'wifi' ? `${it.site}, ${it.why}` : String(it.site)) + (it.why === LOOPING ? ' · keeps coming back, so it waits an hour' : '');
+    : String(it.site)) + (it.why === LOOPING ? ' · keeps coming back, so it waits an hour' : '');
   const waiting = (s) => (s.groups || []).filter((g) => Number(g.pending) > 0).map((g) => { const n = Number(g.pending), [verb, thing] = DOES[g.id] || ['Remove', 'item'], until = g.postponedUntil;
-    const barred = g.id === 'wifi' && g.canDelete !== 'yes';   // the Wi-Fi helper says this user may not remove networks
     return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome restarts' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
-      button: barred ? '' : g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
-      note: barred ? 'This user may not remove networks without a password.' : g.id === 'wifi' ? 'Removing a network cannot be undone.' : '',
+      button: g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
       asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it), ...(it.kind === 'used' || it.kind === 'bounce' ? { yes: 'Remove', no: 'Keep' } : it.kind === 'skip' ? { yes: 'Skip', no: 'Keep' } : it.kind === 'tracker' ? { yes: 'Block' } : {}) })),
       items: (g.items || []).filter((it) => !ASKS[it.kind]).map(waitItem) }; });
 
@@ -200,7 +198,7 @@ const { buildReport, renderReport } = (() => {
       + r.skipped.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unskip', site: x })}</div>`).join('') + '</details>');
     const waits = () => '<h2>Waiting for your answer</h2>' + (!(r.waiting || []).length ? '<p class="m">Nothing is waiting for your answer.</p>' : r.waiting.map((w) => (w.asks || []).map((a) => ask(w, a)).join('') + (!w.items.length && (w.asks || []).length ? '' :
       `<div class="c" data-wait="${esc(w.id)}"><div>${esc(w.line)}</div><div class="b">${w.button ? btn(esc(w.button), { type: 'approve', group: w.id }, ' class="go"' + off) : ''}`
-      + `${btn('Postpone 1 hour', { type: 'postpone', group: w.id, minutes: 60 })}</div>` + (w.note ? `<div class="m">${w.note}</div>` : '')
+      + `${btn('Postpone 1 hour', { type: 'postpone', group: w.id, minutes: 60 })}</div>`
       + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? `, newest ${w.items.length} of ${w.n}` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`)).join('')) + stoppedList();
     const cannot = () => !(r.cannot || []).length ? '' : `<h2>What Tracker Cleaner cannot do</h2><details id="cannot"><summary>Show the ${r.cannot.length} things</summary>`
       + r.cannot.map((x) => `<div class="c"><b>${esc(x.what)}</b><div class="m">${esc(x.why)}</div></div>`).join('') + '</details>';

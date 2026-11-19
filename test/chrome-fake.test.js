@@ -1,8 +1,5 @@
 const test = require('node:test'), assert = require('node:assert');
 const makeChrome = require('./chrome-fake.js');
-const makeCore = require('../extension/core.js');
-// 1.20's lists (no export line there): the last test pins what 1.20 did
-const L = new Function(require('fs').readFileSync(require('path').join(__dirname, '../extension-1.20/lists.js'), 'utf8') + '; return { DOMAINS, COOKIE_RE, KEEP_RE };')();
 
 test('cookies: set fires onChanged, remove deletes and is recorded', async () => {
   const f = makeChrome(), seen = [];
@@ -47,29 +44,4 @@ test('storage, alarms, badge, rulesets, scripting and runtime keep simple state'
   assert.deepEqual(await c.scripting.getRegisteredContentScripts(), []);
   assert.equal(c.runtime.getManifest().version, '1.20');
   let started = 0; c.runtime.onStartup.addListener(() => started++); await c.runtime.onStartup.fire(); assert.equal(started, 1);
-});
-
-// The same three lines as 1.20's live listener (background.js is not run in Node), to pin the
-// end-to-end effect through the fake: NID and li_at vanish as they are set, SID stays.
-test('1.20 live cleaning through the fake: NID, li_at and a tracker-host cookie go, SID stays', async () => {
-  const f = makeChrome(), { shouldGo } = makeCore(L);
-  f.chrome.cookies.onChanged.addListener(async ({ removed, cookie: c }) => {
-    if (removed || !shouldGo(c)) return;
-    await f.chrome.cookies.remove({ url: (c.secure ? 'https://' : 'http://') + c.domain.replace(/^\./, '') + c.path, name: c.name, storeId: c.storeId });
-  });
-  await f.chrome.cookies.set({ url: 'https://accounts.google.com/', name: 'NID', domain: '.google.com' });
-  await f.chrome.cookies.set({ url: 'https://accounts.google.com/', name: 'SID', domain: '.google.com' });
-  await f.chrome.cookies.set({ url: 'https://www.linkedin.com/', name: 'li_at', domain: '.www.linkedin.com' });
-  await f.chrome.cookies.set({ url: 'https://ad.doubleclick.net/', name: 'anything' });
-  assert.deepEqual((await f.chrome.cookies.getAll({})).map((c) => c.name), ['SID']);
-  assert.deepEqual(f.destructive().map((c) => c.args[0].name), ['NID', 'li_at', 'anything']);
-});
-test('native messaging: no host installed rejects as Chrome does; a fake host answers with a copy and is recorded', async () => {
-  const f = makeChrome();
-  await assert.rejects(f.chrome.runtime.sendNativeMessage('com.x', { type: 'list' }), /host not found/);
-  const answer = { ok: true, list: [1] };
-  f.native = (name, msg) => ({ ...answer, name, got: msg.type });
-  const r = await f.chrome.runtime.sendNativeMessage('com.x', { type: 'list' });
-  assert.deepEqual(r, { ok: true, list: [1], name: 'com.x', got: 'list' }); assert.notEqual(r.list, answer.list);
-  assert.equal(f.called('runtime.sendNativeMessage').length, 2); assert.deepEqual(f.destructive(), []);
 });

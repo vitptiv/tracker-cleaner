@@ -1,4 +1,0 @@
-#!/bin/sh
-echo 'Global'
-echo '  Protocols: -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported'
-echo 'Current DNS Server: 192.0.2.53'

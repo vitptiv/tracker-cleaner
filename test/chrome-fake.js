@@ -128,14 +128,11 @@ module.exports = function makeChrome(init = {}) {
       registerContentScripts: rec('scripting.registerContentScripts', (list) => { state.scripts.push(...list); }),
       unregisterContentScripts: rec('scripting.unregisterContentScripts', (f) => { state.scripts = f && f.ids ? state.scripts.filter((s) => !f.ids.includes(s.id)) : []; }) },
     runtime: { sendMessage: (m) => fake.send(m), id: ID, getURL: (p) => `chrome-extension://${ID}/${p}`, getManifest: () => ({ version: '0', ...init.manifest }), onInstalled: event(), onStartup: event(), onUpdateAvailable: event(), onMessage: event(),
-      // the native messaging host: init.native(hostName, message) -> answer; none given = no host installed
-      sendNativeMessage: rec('runtime.sendNativeMessage', (name, msg) => { if (!fake.native) throw new Error('Specified native messaging host not found.');
-        return JSON.parse(JSON.stringify(fake.native(name, msg))); }),
       requestUpdateCheck: (cb) => { calls.push({ api: 'runtime.requestUpdateCheck', args: [] }); if (cb) cb('no_update'); },
       reload: () => { calls.push({ api: 'runtime.reload', args: [] }); } },
   };
 
-  const fake = { chrome, calls, state, badge, native: init.native, ruleLog: [],
+  const fake = { chrome, calls, state, badge, ruleLog: [],
     called: (api) => calls.filter((c) => c.api === api),
     destructive: () => calls.filter((c) => DESTRUCTIVE.includes(c.api)),
     fireAlarm: (name) => onAlarm.fire({ name }),

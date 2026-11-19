@@ -5,7 +5,7 @@ const fs = require('node:fs'), path = require('node:path'), { execFileSync } = r
 // rows of a query on a copy of one of Chrome's SQLite files (Chrome may hold the original)
 function rows(file, query, like) {
   if (!fs.existsSync(file)) return [];
-  const copy = path.join(process.env.TC_BROWSER_TMP || '/mnt/d/tmp', `tc-lab-copy-${process.pid}-${path.basename(file)}`);
+  const copy = path.join(process.env.TC_BROWSER_TMP || require('node:os').tmpdir(), `tc-lab-copy-${process.pid}-${path.basename(file)}`);
   try { fs.copyFileSync(file, copy);
     return JSON.parse(execFileSync('python3', ['-c', 'import sqlite3,sys,json; print(json.dumps(sqlite3.connect(sys.argv[1]).execute(sys.argv[2], (sys.argv[3],)).fetchall()))', copy, query, like], { encoding: 'utf8' })).map((r) => r[0]);
   } catch { return []; } finally { fs.rmSync(copy, { force: true }); }

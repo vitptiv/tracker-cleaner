@@ -1,4 +1,4 @@
-// 1.21 end to end: background.js acts only where the registry gate says 'run'. Compare baseline-1.20.test.js.
+// 1.21 end to end: background.js acts only where the registry gate says 'run'.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const tabs = () => [1, 2, 3].map((id) => ({ id, url: `https://site${id}.test/`, lastAccessed: id }));
 // a server that asks for everything 1.20 would do

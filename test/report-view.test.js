@@ -3,7 +3,7 @@
 const test = require('node:test'), assert = require('node:assert');
 const { buildReport, renderReport } = require('../extension/report-view.js'), { GROUPS } = require('../extension/registry.js');
 const NOW = new Date(2026, 10, 15, 14, 5).getTime();   // 15 Nov 2026, 14:05 local
-const MODE = { shield: 'auto', crossid: 'auto', local: 'auto', othertags: 'auto', othercookies: 'auto', signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', wifi: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
+const MODE = { shield: 'auto', crossid: 'auto', local: 'auto', othertags: 'auto', othercookies: 'auto', signin: 'auto', blocking: 'auto', cookies: 'auto', google: 'ask', params: 'auto', unknown: 'ask', bounce: 'ask', own: 'ask', storage: 'ask', permissions: 'ask', cache: 'ask', allowlist: 'off', tabs: 'off', tor: 'off', server: 'off' };
 const NO_ASK = ['signin', 'blocking', 'othercookies', 'othertags', 'local', 'shield', 'params', 'server'];
 const groups = (over = {}) => GROUPS.map((g) => ({ id: g.id, title: g.title, says: g.says, ask: !NO_ASK.includes(g.id), mode: MODE[g.id], pending: 0, items: [], ...over[g.id] }));
 const state = (o = {}, over = {}) => ({ now: NOW, master: true, hold: {}, groups: groups(over), allow: [], always: [], sitesOff: [], history: { days: {}, cookies: {} }, ...o });
@@ -27,7 +27,6 @@ const SAYS = {
   bounce: 'Asks before cleaning a site that only passes you on. At Strongest it cleans by itself, sites you use included.',
   own: 'What listed trackers left on their own sites is emptied once a day.',
   storage: 'Saved data of the sites you chose is emptied.',
-  wifi: 'Networks unused for 30 days are forgotten.',
   permissions: 'The sites you chose lose rights such as notifications.',
   cache: 'Cleared daily and when Chrome starts, at Strongest every 10 minutes. Pages then load slower.',
   allowlist: 'Every cookie is deleted except the ones on your list.',
@@ -67,8 +66,8 @@ test('Chrome did not say what it blocked (it limits how often it may be asked): 
   assert.equal(row(r, 'blocking').count, 'this tab is not a web page'); assert.equal(row(r, 'params').count, 'this tab is not a web page');
 });
 test('deleted today on all sites comes from the history, waiting from the queue, each with the word that fits the group', () => {
-  const history = { days: { '2026-11-15': { cookies: 4, google: 1, tabs: 2, cache: 1, permissions: 3, wifi: 1 }, '2026-11-14': { cookies: 9, storage: 5 } }, cookies: {} };
-  const r = buildReport(state({ history }, { google: { pending: 1 }, cookies: { pending: 12 }, wifi: { pending: 2 } }), null);   // no web page in front: no site to count for
+  const history = { days: { '2026-11-15': { cookies: 4, google: 1, tabs: 2, cache: 1, permissions: 3 }, '2026-11-14': { cookies: 9, storage: 5 } }, cookies: {} };
+  const r = buildReport(state({ history }, { google: { pending: 1 }, cookies: { pending: 12 } }), null);   // no web page in front: no site to count for
   assert.equal(row(r, 'cookies').count, '4 deleted today on all sites, 12 waiting');
   assert.equal(row(r, 'google').count, '1 deleted today on all sites, 1 waiting');
   assert.equal(row(r, 'storage').count, '0 emptied today, 0 waiting');
@@ -76,7 +75,6 @@ test('deleted today on all sites comes from the history, waiting from the queue,
   assert.equal(row(r, 'tabs').count, '2 closed today, 0 waiting');
   assert.equal(row(r, 'cache').count, '1 cleared today, 0 waiting');
   assert.equal(row(r, 'permissions').count, '3 blocked today, 0 waiting');
-  assert.equal(row(r, 'wifi').count, '1 forgotten today, 2 waiting');
   for (const id of ['signin', 'tor', 'server']) assert.equal(row(r, id).count, '', id);   // nothing to count
 });
 test('deleted on this site today: from the per-cookie counters, for this site and the sites above and below it, per group', () => {
@@ -108,9 +106,9 @@ test('state words: on, asks first, off, paused, held while you sign in', () => {
   // nothing chosen yet (a fresh install): nothing is deleted without asking
   w = words(state({ master: undefined }));
   assert.deepEqual([w.blocking, w.cookies, w.google], ['on', 'asks first', 'asks first']);
-  // stored modes the group cannot have: a group with nothing to ask about is off, Wi-Fi never runs by itself
-  w = words(state({}, { blocking: { mode: 'ask' }, wifi: { mode: 'auto', noAuto: true } }));
-  assert.deepEqual([w.blocking, w.wifi], ['off', 'asks first']);
+  // a stored mode the group cannot have: a group with nothing to ask about is off
+  w = words(state({}, { blocking: { mode: 'ask' } }));
+  assert.equal(w.blocking, 'off');
 });
 test('rendered: a heading, then per row the title, the state word, the count and the sentence; no capability code; hostile text escaped', () => {
   const html = renderReport(buildReport(state({}, { cookies: { title: '<img src=x>', says: '"><script>' } }), tab({ host: '<b>x' })));
@@ -368,19 +366,17 @@ test('what waits for an answer: per group the number, a button that says what it
   const many = Array.from({ length: 20 }, (_, i) => it('cookie', 'example.com', '_ga' + i, 'name'));
   const r = buildReport(state({}, { google: { pending: 1, items: [it('cookie', 'google.com', 'NID', 'google')] }, cookies: { pending: 31, items: many },
     cache: { pending: 1, items: [it('cache', '*', 'http-cache', 'daily')] }, tabs: { pending: 2, items: [it('tabs', 'news.example', '7'), it('tabs', 'shop.example', '9')] },
-    storage: { pending: 1, items: [it('storage', 'bad.test', 'storage')] }, permissions: { pending: 1, items: [it('permission', 'https://bad.test', 'camera')] },
-    wifi: { pending: 1, helper: 'ok', canDelete: 'yes', items: [it('wifi', 'Cafe', 'uuid-1', 'not used for 30 days or more')] } }), tab());
+    storage: { pending: 1, items: [it('storage', 'bad.test', 'storage')] }, permissions: { pending: 1, items: [it('permission', 'https://bad.test', 'camera')] }}), tab());
   assert.deepEqual(r.waiting.map((w) => [w.id, w.line, w.button]), [
     ['cookies', "Trackers' cookies: 31 waiting", 'Remove 31 cookies'], ['google', 'Google\'s tracking cookies: 1 waiting', 'Remove 1 cookie'],
-    ['storage', 'Site data you chose: 1 waiting', 'Empty what 1 site has saved'], ['wifi', 'Old Wi-Fi networks: 1 waiting', 'Remove 1 saved network'],
+    ['storage', 'Site data you chose: 1 waiting', 'Empty what 1 site has saved'],
     ['permissions', 'Site rights you chose: 1 waiting', 'Block 1 permission'], ['cache', 'Saved copies of pages: 1 waiting', 'Clear the saved copies of pages'],
     ['tabs', 'Limit open tabs: 2 waiting', 'Close 2 tabs']]);
-  assert.deepEqual(r.waiting.slice(1).map((w) => w.items), [['NID on google.com'], ['what bad.test has saved'], ['Cafe, not used for 30 days or more'], ['camera on https://bad.test'], ['the saved copies of pages'], ['news.example', 'shop.example']]);
+  assert.deepEqual(r.waiting.slice(1).map((w) => w.items), [['NID on google.com'], ['what bad.test has saved'], ['camera on https://bad.test'], ['the saved copies of pages'], ['news.example', 'shop.example']]);
   const html = renderReport(r), g = buttons(html).filter((b) => b.msg && b.msg.group === 'google');
   assert.deepEqual(g.map((b) => [b.label, b.msg]), [['Remove 1 cookie', { type: 'approve', group: 'google' }], ['Postpone 1 hour', { type: 'postpone', group: 'google', minutes: 60 }]]);
   assert.match(html, /<details id="wait-google"><summary>Show what is waiting<\/summary><div class="c">NID on google.com<\/div><\/details>/);
   assert.match(html, /<details id="wait-cookies"><summary>Show what is waiting, newest 20 of 31<\/summary>/);
-  assert.ok(text(html).includes('Removing a network cannot be undone.'));
   assert.doesNotMatch(html.slice(0, html.indexOf('<h2>What Tracker Cleaner')), /\bC\d\d\b|pending/);
 });
 test('what waits: nothing says so; put off says until when; paused or off greys the button out; a cookie that keeps coming back is marked; hostile text escaped', () => {
@@ -393,9 +389,6 @@ test('what waits: nothing says so; put off says until when; paused or off greys 
   assert.deepEqual(r.waiting[0].items, ['<b>NID on <i>x · keeps coming back, so it waits an hour']);
   assert.doesNotMatch(renderReport(r), /<b>NID|<i>x/);
   for (const o of [{ hold: { paused: true } }, { master: false }]) { const b = buttons(renderReport(buildReport(state(o, g()), tab()))).find((x) => x.label === 'Remove 1 cookie'); assert.equal(b.disabled, true); }
-  // Wi-Fi: this user may not remove saved networks: no button, one sentence
-  r = buildReport(state({}, { wifi: { pending: 1, helper: 'ok', canDelete: 'no', items: [{ kind: 'wifi', site: 'Cafe', name: 'u', why: 'never used' }] } }), tab());
-  assert.equal(r.waiting[0].button, ''); assert.ok(text(renderReport(r)).includes('This user may not remove networks without a password.'));
 });
 
 // ---- 1.24, R1: a tracker on no list is asked about in one sentence, with Approve and Not now

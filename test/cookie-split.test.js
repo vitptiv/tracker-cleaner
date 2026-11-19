@@ -1,5 +1,5 @@
 // Chunk 5: Google's and YouTube's own identity cookies are their own group (C04, asks by default), the
-// LinkedIn and Mixpanel prefixes no longer catch login cookies. Compare characterization.test.js (1.20).
+// LinkedIn and Mixpanel prefixes no longer catch login cookies.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
 const L = require('../extension/lists.js'), core = require('../extension/core.js')(L);
 const ck = (name, domain = '.example.com') => ({ name, domain, path: '/', secure: true, storeId: '0' });

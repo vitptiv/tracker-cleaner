@@ -149,20 +149,6 @@ function tor({ run, full }) {
     raw: `curl ${CURL.join(' ')} ${TOR_CHECK}; echo; curl ${[...CURL, ...VIA_TOR].join(' ')} ${TOR_CHECK}; echo; resolvectl status; ip -br addr` };
 }
 
-// ---- Wi-Fi: the helper's own reading of nmcli (wifi-helper/wifi.js), listing only.
-const wifiHelper = require('../wifi-helper/wifi.js');
-function wifi({ run, now }) {
-  let all; try { all = wifiHelper.list(run); } catch { throw plain('This computer did not answer the question about its Wi-Fi networks (the program nmcli is missing or not running).'); }
-  const go = wifiHelper.candidates(all, now), stale = go.filter((c) => c.lastUsed !== 0).length, kept = all.filter((c) => !go.some((x) => x.uuid === c.uuid));
-  const why = (c) => c.active ? 'in use now' : c.lastUsed === null ? 'last use cannot be read' : 'used in the last 30 days', n = (w) => kept.filter((c) => why(c) === w).length;
-  const rows = (list, text) => list.map((c) => `${c.name}  ${text(c)}`).sort();
-  return { now: all.length ? count(all.length, 'remembered network') : 'no remembered networks',
-    kept: sum([[n('in use now'), 'in use now', 'in use now'], [n('used in the last 30 days'), 'used in the last 30 days', 'used in the last 30 days'], [n('last use cannot be read'), 'whose last use cannot be read', 'whose last use cannot be read']]),
-    remove: sum([[stale, 'not used for 30 days or more', 'not used for 30 days or more'], [go.length - stale, 'never used', 'never used']]) + (go.length ? '; you are always asked first' : ''),
-    after: 'This computer forgets those networks and their passwords. To use one again you type its password again.',
-    lists: [['Would be removed', rows(go, (c) => c.reason)], ['Kept', rows(kept, why)]], raw: `nmcli -t -f ${wifiHelper.FIELDS} connection show` };
-}
-
 // ---- One site (1.23): the same rows in the same words as the report beside the page. The words come from the
 // report's own code (extension/report-view.js), given the switches of a new Tracker Cleaner with cleaning turned on:
 // the user's own switches and exceptions live inside Chrome and cannot be read from here.
@@ -211,7 +197,6 @@ const BLOCKS = {
   servers: ['Servers Chrome remembers how to reach (remembered servers)', servers],
   permissions: ['What sites may do, such as send notifications or use the camera (site permissions)', permissions],
   tor: ['Hiding your address from websites (Tor)', tor],
-  wifi: ['Remembered Wi-Fi networks', wifi],
 };
 const usage = () => ['Usage: node tools/inspect.js <what> [--list] [--raw] [--json] [--full] [--site <site>] [--values] [--profile <folder>] [--cache <folder>]',
   'Shows what Chrome has stored right now, read from its own files. Nothing is changed.', '',

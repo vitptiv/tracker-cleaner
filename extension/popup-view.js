@@ -14,12 +14,12 @@ const LEVEL_SAYS = { ask: 'Nothing is deleted or newly blocked until you press. 
   balanced: 'Known trackers are cleaned. Codes seen on two sites are cut and their collector blocked without asking. The rest waits for you.',
   strong: 'Cleans every 10 minutes without asking, also on sites you use. This can sign you out, and wiped site data cannot be put back.',
   custom: 'Custom: you changed some rows. Pick a level to reset them.' };
-const OWN_LINE = 'Tor, Wi-Fi and a few other rows keep their own switch.';
+const OWN_LINE = 'Tor and a few other rows keep their own switch.';
 const DAY_OF = typeof module !== 'undefined' ? require('./history.js').historyDay : historyDay;
 // The inspector command (tools/inspect.js) that shows the same things from Chrome's own files, per group
-const COMMAND = { cookies: 'cookies', google: 'cookies', allowlist: 'cookies', storage: 'storage', wifi: 'wifi', permissions: 'permissions', cache: 'cache', tor: 'tor' };
+const COMMAND = { cookies: 'cookies', google: 'cookies', allowlist: 'cookies', storage: 'storage', permissions: 'permissions', cache: 'cache', tor: 'tor' };
 // What the button of a group does, and to what: "Remove 12 cookies"
-const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
+const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], unknown: ['Stop', 'tracker'] };
 // The Tor row, from background.js's { wanted, running, routed } (as torSays in report-view.js)
 const TOR_SAYS = (t) => t.routed ? (t.running === false ? 'Tor has stopped, so pages will not load' : 'On: sites see a Tor address, not yours')
   : t.wanted && t.running === false ? 'Tor is not running, so nothing is routed' : 'Not routed over Tor';
@@ -61,7 +61,7 @@ const renderPopup = (state, tab) => {
     if (!tab || !tab.host) return '';
     const h = String(tab.host), off = sitesOff.find((x) => under(h, x)), seen = new Set(), n = tab.blocked;
     const here = (x) => !!x && (under(h, String(x)) || under(String(x), h));
-    const rows = (s.log || []).filter((l) => l.kind !== 'wifi' && (here(l.site) || here(l.page))).reverse()
+    const rows = (s.log || []).filter((l) => here(l.site) || here(l.page)).reverse()
       .filter((l) => { const k = [l.kind, l.site, l.name, l.did].join(' '); return !seen.has(k) && seen.add(k); }).slice(0, SITE_SHOWN);
     const allowed = (l) => allow.some((a) => a.site === l.site && a.name === l.name);
     return `<h2>This site: ${esc(h)}</h2>` + (Number.isInteger(n) ? `<p>${n} request${n === 1 ? '' : 's'} blocked on this tab</p>` : '')
@@ -79,23 +79,20 @@ const renderPopup = (state, tab) => {
   const autoLines = (list) => list.map((a) => `<div class="c h"><span>${esc(a.site)} <span class="m">${a.row === 'bounce' ? 'cleaned' : 'blocked and cleaned'} by itself</span></span>${btn('Let it through', { type: 'letThrough', site: a.site })}</div>`).join('');
   const group = (g) => {
     const n = Number(g.pending) || 0, items = g.items || [], until = g.postponedUntil;
-    const mode = g.ask === false && g.mode !== 'auto' ? 'off' : g.noAuto && g.mode === 'auto' ? 'ask' : g.mode;   // nothing to ask about: 'ask' acts as off
-    // Wi-Fi (the only noAuto group): what the local helper last said. With a hint there is nothing to approve.
-    const wifi = g.id === 'wifi', hint = !wifi || mode === 'off' ? '' : g.helper === 'missing' ? 'The Wi-Fi helper is not installed'
-      : g.helper === 'ok' && g.canDelete !== 'yes' ? 'This user may not remove networks without a password.' : '';
+    const mode = g.ask === false && g.mode !== 'auto' ? 'off' : g.mode;   // nothing to ask about: 'ask' acts as off
     const post = until === 'restart' ? 'Postponed until restart' : until > s.now ? `Postponed until ${hhmm(until)}` : '';
     // the cache row, while nothing waits: how much there is (when the state says) and when it is next due
     const idle = g.id !== 'cache' ? '' : [Number.isFinite(g.size) ? `${bytes(g.size)} of saved pages` : '',
       mode === 'auto' && g.every10 ? 'cleared every 10 minutes' : mode !== 'off' && g.nextAt > s.now ? `${mode === 'auto' ? 'cleared' : 'offered'} again ${dayAt(g.nextAt, s.now)}` : ''].filter(Boolean).join(', ');
     const [verb, thing] = DOES[g.id] || ['Remove', 'item'];
-    const approve = hint ? '' : btn(g.id === 'cache' ? 'Clear the saved copies of pages' : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`, { type: 'approve', group: g.id }, 'go', stopped);
+    const approve = btn(g.id === 'cache' ? 'Clear the saved copies of pages' : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`, { type: 'approve', group: g.id }, 'go', stopped);
     const today = Number((((s.history || {}).days || {})[DAY_OF(s.now)] || {})[g.id]) || 0, cmd = COMMAND[g.id];
     const asksOnly = g.id === 'unknown' || g.id === 'bounce';   // these two rows only ask, each question by itself: no button here answers them (L9)
     const line = `${g.id === 'tor' && s.tor ? TOR_SAYS(s.tor) : n && asksOnly ? `${n} question${n === 1 ? '' : 's'} waiting in the report` : n ? `${n} pending` : idle ? idle[0].toUpperCase() + idle.slice(1) : 'Nothing waiting'}${today ? ` · ${today} removed today` : ''}${post ? ` · ${post}` : ''}`;
     const k = Number(g.looping) || 0;
     return `<div class="c" data-group="${esc(g.id)}"><div class="h"><b title="${esc(g.says || '')}">${esc(g.title)}</b><select ${msg({ type: 'setMode', group: g.id })}>`
-      + (g.ask === false ? ON_OFF : g.noAuto ? MODES.slice(0, 2) : g.answers ? [...MODES, ['yes', 'Automatic, says yes']] : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'
-      + (cmd ? `<div class="m h"><span>${line}</span><button class="small" data-copy="node tools/inspect.js ${cmd}">Copy command</button></div>` : `<div class="m">${line}</div>`) + (hint ? `<div class="m">${hint}</div>` : '')
+      + (g.ask === false ? ON_OFF : g.answers ? [...MODES, ['yes', 'Automatic, says yes']] : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'
+      + (cmd ? `<div class="m h"><span>${line}</span><button class="small" data-copy="node tools/inspect.js ${cmd}">Copy command</button></div>` : `<div class="m">${line}</div>`)
       + (!k ? '' : `<div class="m">${k} keep${k === 1 ? 's' : ''} coming back, so ${k === 1 ? 'it waits' : 'they wait'} an hour.</div>`)
       + (g.id === 'cache' && mode !== 'off' && !n ? `<div class="b">${btn('Clean now', { type: 'drop', kind: 'servers' }, '', stopped)}</div>` : '')
       // 1.30: Clean now on every other row with something to clean (the cache row's is the one above), and what the last press did
@@ -104,9 +101,8 @@ const renderPopup = (state, tab) => {
       + (g.cleanedNow && g.cleanedNow.t > s.now - CLEANED_SHOWN_MS ? `<div class="m">Cleaned at ${hhmm(g.cleanedNow.t)}: ${g.cleanedNow.n ? `${Number(g.cleanedNow.n)} removed` : 'nothing to remove'}</div>` : '')
       + (!n || asksOnly ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
         + `${btn('Until restart', { type: 'postpone', group: g.id, minutes: 'restart' }, 'small')}</div>`
-        + (wifi && approve ? '<div class="m">This cannot be undone</div>' : '')   // the undo buffer holds cookies only
         + `<details id="pending-${esc(g.id)}"><summary class="m">What is waiting${items.length < n ? ` (the newest ${items.length} of ${n})` : ''}</summary>`
-        + items.map((it) => `<div class="c">${esc(it.site)} · ${esc(it.kind === 'wifi' ? it.why : it.name)}${it.why === LOOPING ? ' <span class="m">keeps coming back</span>' : ''}</div>`).join('') + '</details>') + '</div>';
+        + items.map((it) => `<div class="c">${esc(it.site)} · ${esc(it.name)}${it.why === LOOPING ? ' <span class="m">keeps coming back</span>' : ''}</div>`).join('') + '</details>') + '</div>';
   };
 
   // the way back from Allow and from "Don't clean on this site", also when that site is not the open tab

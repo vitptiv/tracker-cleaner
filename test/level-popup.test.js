@@ -15,7 +15,7 @@ test('the dial comes first: three positions, the chosen one pressed, one true se
     assert.deepEqual([...html.matchAll(/data-level-pick="(\w+)"[^>]*aria-pressed="(\w+)"/g)].map((m) => [m[1], m[2]]), [['ask', String(level === 'ask')], ['balanced', String(level === 'balanced')], ['strong', String(level === 'strong')]]);
     assert.match(top(html), says, level);
     if (level === 'strong') assert.match(top(html), /sites you use.*cannot be put back/, 'Strongest names its two costs (1.32: the hourly cap is in the README)');
-    assert.match(top(html), /Tor, Wi-Fi and a few other rows keep their own switch/); }
+    assert.match(top(html), /Tor and a few other rows keep their own switch/); }
   const custom = renderPopup(state({ level: 'custom' }), null);
   assert.match(top(custom), /Custom: you changed some rows/); assert.equal(/aria-pressed="true"/.test(custom), false);
   for (const l of ['Ask first', 'Balanced', 'Strongest']) assert.ok(top(custom).includes(`>${l}</button>`), l);
@@ -33,7 +33,7 @@ test('one "Clean everything now" at the top; off while paused or switched off, a
 test('a Clean now on each row that has something to clean, none on the rows that are only rules, none on a row that is off; the cache row keeps its own', () => {
   const html = renderPopup(state(), null), now = msgs(html).filter((m) => m.type === 'cleanNow').map((m) => m.group);
   assert.deepEqual(now, CLEANABLE.filter((g) => g !== 'cache'));
-  for (const g of ['signin', 'blocking', 'othercookies', 'othertags', 'local', 'shield', 'params', 'wifi', 'allowlist', 'tabs', 'tor', 'server']) assert.equal(row(html, g).includes('cleanNow'), false, g);
+  for (const g of ['signin', 'blocking', 'othercookies', 'othertags', 'local', 'shield', 'params', 'allowlist', 'tabs', 'tor', 'server']) assert.equal(row(html, g).includes('cleanNow'), false, g);
   assert.ok(row(html, 'cache').includes('&quot;kind&quot;:&quot;servers&quot;}">Clean now</button>'));
   assert.equal(row(renderPopup(state({}, { cookies: { mode: 'off' } }), null), 'cookies').includes('Clean now'), false);
   assert.equal(/class="go"/.test(row(html, 'cookies')), false, 'Clean now is not an approve button');

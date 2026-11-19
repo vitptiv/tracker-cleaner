@@ -13,7 +13,7 @@ const emptied = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1]
 
 test('the groups that only touch what follows you run by themselves; Google identity cookies and your own lists still ask', () => {
   for (const id of ['C03', 'C11', 'C25', 'C27', 'C28']) assert.equal(cap(id).mode, 'auto', id);
-  for (const id of ['C04', 'C06', 'C07', 'C09', 'C24']) assert.equal(cap(id).mode, 'ask', id);
+  for (const id of ['C04', 'C06', 'C07', 'C09']) assert.equal(cap(id).mode, 'ask', id);
   assert.equal(mayRun('C25', {}), 'ask', 'nothing stored: still nothing destructive');
 });
 test('a fresh install is switched on and says so once; an update changes nothing', async () => {

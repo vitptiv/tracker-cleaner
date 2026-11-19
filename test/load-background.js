@@ -3,7 +3,7 @@
 // const bg = await load({ limits: { chromeTabs: 1 }, storage: { master: true }, cookies: [...], tabs: [...] });
 // limits undefined = the 8088 server is unreachable. bg.limits can be changed later.
 // tor: what answers on Tor's port 9050: true = Tor, 'other' = some other program, nothing = no one. bg.tor can be changed later.
-// dir 'extension-1.20' loads the untouched baseline, to pin what 1.20 did.
+// dir: the extension folder to load (default 'extension').
 const vm = require('node:vm'), fs = require('fs'), path = require('path');
 const makeChrome = require('./chrome-fake.js');
 

@@ -6,13 +6,13 @@ const table = fs.readFileSync(path.join(__dirname, '../PLAN.md'), 'utf8').split(
   .map((m) => ({ id: m[1], mode: m[2] === 'n/a' ? null : m[2] }));
 
 test('every capability of PLAN.md is registered once, with the planned default mode', () => {
-  assert.equal(table.length, 31);
+  assert.equal(table.length, 30);   // C24 (Wi-Fi) was removed in 1.32.1
   assert.deepEqual(CAPS.map((c) => c.id), table.map((t) => t.id));
   for (const t of table) assert.equal(cap(t.id).mode, t.mode, t.id);
 });
 test('each entry has a name, a group and a destructive flag', () => {
   for (const c of CAPS) { assert.ok(c.name && c.group, c.id); assert.equal(typeof c.destructive, 'boolean', c.id); }
-  for (const id of ['C03', 'C04', 'C06', 'C07', 'C09', 'C11', 'C12', 'C13', 'C14', 'C24', 'C25', 'C27', 'C28']) assert.equal(cap(id).destructive, true, id);
+  for (const id of ['C03', 'C04', 'C06', 'C07', 'C09', 'C11', 'C12', 'C13', 'C14', 'C25', 'C27', 'C28']) assert.equal(cap(id).destructive, true, id);
   for (const id of ['C01', 'C02', 'C05', 'C23', 'C26']) assert.equal(cap(id).destructive, false, id);
 });
 test('no stored setting means no destructive action', () => {
@@ -41,6 +41,6 @@ test('an unknown ID never runs', () => assert.equal(mayRun('C99', { master: true
 // PLAN.md "Wording rules": everyday words first, the technical name second in brackets and only if useful.
 // Where the history page and tools/inspect.js name the same thing, the popup row uses their words.
 test('each popup row is titled in everyday words, short enough for the popup', () => {
-  assert.deepEqual(GROUPS.map((g) => [g.id, g.title]), [['signin', 'Pause while you sign in'], ['blocking', 'Block ads and trackers'], ['cookies', "Trackers' cookies"], ['google', "Google's tracking cookies"], ['othercookies', 'No cookies for others'], ['othertags', 'No page address for others'], ['local', 'Protect this computer'], ['shield', 'Experimental fingerprint blur'], ['crossid', 'Codes shared across sites'], ['params', 'Clean tags from links'], ['unknown', 'Trackers on no list'], ['bounce', 'Sites that pass you on'], ['own', "Trackers' own sites"], ['storage', 'Site data you chose'], ['wifi', 'Old Wi-Fi networks'], ['permissions', 'Site rights you chose'], ['cache', 'Saved copies of pages'], ['allowlist', 'Keep only listed cookies'], ['tabs', 'Limit open tabs'], ['tor', 'Hide your address with Tor'], ['server', 'Reports to this computer']]);
+  assert.deepEqual(GROUPS.map((g) => [g.id, g.title]), [['signin', 'Pause while you sign in'], ['blocking', 'Block ads and trackers'], ['cookies', "Trackers' cookies"], ['google', "Google's tracking cookies"], ['othercookies', 'No cookies for others'], ['othertags', 'No page address for others'], ['local', 'Protect this computer'], ['shield', 'Experimental fingerprint blur'], ['crossid', 'Codes shared across sites'], ['params', 'Clean tags from links'], ['unknown', 'Trackers on no list'], ['bounce', 'Sites that pass you on'], ['own', "Trackers' own sites"], ['storage', 'Site data you chose'], ['permissions', 'Site rights you chose'], ['cache', 'Saved copies of pages'], ['allowlist', 'Keep only listed cookies'], ['tabs', 'Limit open tabs'], ['tor', 'Hide your address with Tor'], ['server', 'Reports to this computer']]);
   for (const g of GROUPS) assert.ok(g.title.length < 45, g.title);
 });

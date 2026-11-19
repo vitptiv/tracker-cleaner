@@ -1,4 +1,4 @@
-// security/trackers.js was rebuilt from 1.20's generated files; this proves build.js gives them back.
+// build.js turns security/trackers.js into the rule files and lists.js; this proves the working copy is what it generates.
 // Since 1.21 the rules are split: rules.json (tracker domains, C01) and rules-google.json (ad paths, C02).
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), os = require('os'), path = require('path');
 const { execFileSync } = require('child_process');
@@ -23,24 +23,21 @@ test('trackers.js exports the lists', () => {
   assert.ok(Array.isArray(T.AD_PATHS) && T.AD_PATHS.length === 14);
   assert.ok(T.COOKIE_RE instanceof RegExp && T.KEEP_RE instanceof RegExp && T.GOOGLE_RE instanceof RegExp);
 });
-test('the two rule files together hold exactly the rules of 1.20, apart from the sign-in exclusions and the split of the domain rule (first-party.test.js)', () => {
-  const b = build(), old = JSON.parse(read('extension-1.20/rules.json')), [one, two] = JSON.parse(b.rules);
+test('the two rule files are written as formatted JSON: the domain rule in two parts (first-party.test.js) and the Google paths', () => {
+  const b = build(), [one, two] = JSON.parse(b.rules);
   assert.equal(b.rules, JSON.stringify([one, two], null, 1) + '\n');
-  assert.deepEqual([...one.condition.requestDomains, ...two.condition.requestDomains].sort(), [...old[0].condition.requestDomains].sort());
-  assert.deepEqual(two.condition.resourceTypes, old[0].condition.resourceTypes);
   const google = JSON.parse(b.google);
   assert.equal(b.google, JSON.stringify(google, null, 1) + '\n');
-  assert.deepEqual(google.map(({ condition: { excludedInitiatorDomains, excludedRequestDomains, ...condition }, ...r }) => ({ ...r, condition })), old.slice(1));
 });
 test('every Google/YouTube path rule leaves the sign-in hosts alone, as page and as request', () => {
   const google = JSON.parse(build().google);
   assert.equal(google.length, 14);
   for (const r of google) { assert.deepEqual(r.condition.excludedInitiatorDomains, SIGNIN, r.id); assert.deepEqual(r.condition.excludedRequestDomains, SIGNIN, r.id); }
 });
-test('build.js regenerates lists.js: domains and keep list as in 1.20, the cookie names split (chunk 5), an export line for Node', () => {
-  const now = build().lists.split('\n'), old = read('extension-1.20/lists.js').split('\n');
+test('build.js regenerates lists.js: domains and keep list, the cookie names split (chunk 5), an export line for Node', () => {
+  const now = build().lists.split('\n');
   const line = (ls, start) => ls.filter((l) => l.startsWith(start));
-  for (const k of ['const DOMAINS', 'const KEEP_RE']) { assert.equal(line(now, k).length, 1); assert.deepEqual(line(now, k), line(old, k), k); }
+  for (const k of ['const DOMAINS', 'const KEEP_RE']) assert.equal(line(now, k).length, 1, k);
   assert.equal(line(now, 'const COOKIE_RE').length, 1); assert.equal(line(now, 'const GOOGLE_RE').length, 1);
   assert.equal(now.slice(-2).join('\n'), EXPORT);
 });
@@ -52,9 +49,6 @@ test('the manifest declares the three rulesets, enabled, and pack.sh ships every
   assert.deepEqual(require('../extension/manifest.json').declarative_net_request.rule_resources,
     [{ id: 'trackers', enabled: true, path: 'rules.json' }, { id: 'google-paths', enabled: true, path: 'rules-google.json' }, { id: 'url-params', enabled: true, path: 'rules-params.json' }]);
   for (const f of ['core.js', 'registry.js', 'guard.js', 'rules-google.json', 'rules-params.json', 'undo.js', 'popup-view.js', 'popup-audit.js']) assert.ok(read('extension/pack.sh').includes(f), f);
-});
-test('files no chunk had a reason to touch are still 1.20', () => {
-  for (const f of ['yt-adfree.js', 'yt-adfree.css']) assert.equal(read('extension', f), read('extension-1.20', f), f);
 });
 test('rules-params.json (C23): one redirect rule that removes exactly URL_PARAMS, top-level navigations only, never on the sign-in hosts of guard.js', () => {
   const T = require('../security/trackers.js'), { SIGNIN_HOSTS } = require('../extension/guard.js'), rules = JSON.parse(build().params);

@@ -179,8 +179,7 @@ async function approve(group, site, name) {
   for (const it of items) if (mayRun(it.cap, cx.set) !== 'no' && await carry(it, cookies, tabs, cx).catch(() => false)) done.push(it);
   await logged(done, 'removed');
   if (done.some((it) => it.kind === 'tracker')) await sweep('settings');   // so that the next question about that host is there at once
-  const nets = mayRun('C24', cx.set) !== 'no' ? items.filter((it) => it.kind === 'wifi') : [];
-  return { ok: true, done: done.length + (nets.length ? await wifiRemove(nets) : 0), of: items.length };
+  return { ok: true, done: done.length, of: items.length };
 }
 async function postpone(group, minutes) {
   if (!GROUPS.some((g) => g.id === group)) return { ok: false };
@@ -196,8 +195,7 @@ chrome.runtime.onStartup.addListener(() => withQueue(queueRestart));
 // one runs is refused (busy). The pass: a sweep (on Automatic it cleans; on Ask first it queues), then what waits in those
 // rows is carried out, as Approve does, and the two question rows' questions are answered yes (a block's next question,
 // remove what it saved, in a second round) -- all of them but what mayYes holds absolutely (sign-in companies, sites turned off, sign-in holds).
-// Wi-Fi is never part of it: it keeps its own Remove button and the line that it cannot be undone. Then what a row has
-// beyond its queue: the saved copies (cache), what trackers saved on their own sites (own), cookies with a cross-site
+// Then what a row has beyond its queue: the saved copies (cache), what trackers saved on their own sites (own), cookies with a cross-site
 // code (crossid). The answer: how many were removed per row, from the log lines (tally); each row keeps { t, n }.
 let cleaning = false;
 const QUESTION_KINDS = ['tracker', 'used', 'bounce', 'skip'];
@@ -231,7 +229,7 @@ async function cleanPress(rows, answer = null) {
 // what waits in these rows, carried out now; a question only where mayYes allows it, nothing of a site whose sign-in holds it
 async function carryNow(rows, cx, answer = null) {
   const all = await allCookies(), items = []; let left = 0;
-  const take = (it) => it.kind !== 'wifi' && (it.kind === 'cache' || !guarded(cx, siteOf(bare(String(it.site))))) && (!QUESTION_KINDS.includes(it.kind) || (pressable(cx, it) && (!answer || answer.includes(it.site))));
+  const take = (it) => (it.kind === 'cache' || !guarded(cx, siteOf(bare(String(it.site))))) && (!QUESTION_KINDS.includes(it.kind) || (pressable(cx, it) && (!answer || answer.includes(it.site))));
   await withQueue((p) => { let changed = false;
     for (const g of rows) { const q = p[g]; if (!q) continue;
       const mine = q.items.filter(take); left += q.items.filter((it) => QUESTION_KINDS.includes(it.kind) && !take(it)).length;
@@ -261,7 +259,7 @@ async function state() {
   await ready;
   const cx = await context(), { set, hold, signing } = cx, modes = set.modes || {}, pending = set.pending || {};
   const looping = (g) => g ? g.items.filter((it) => it.why === LOOP_WHY).length : 0;
-  const { wifi, cleanedNow = {}, autoDone = {} } = await chrome.storage.local.get(['wifi', 'cleanedNow', 'autoDone']);   // wifi: what the helper last said: { helper: 'ok' | 'missing', canDelete }
+  const { cleanedNow = {}, autoDone = {} } = await chrome.storage.local.get(['cleanedNow', 'autoDone']);
   return { now: Date.now(), master: set.master, modes, level: levelNow(set), hold: { ...hold, guard: signing, pauseUntil: set.pauseUntil || 0, guardUntil: 0 },   // guard: a tab is on a sign-in host right now (for the popup's line)
     log: (await chrome.storage.local.get('log')).log || [], allow: set.allow || [], always: set.always || [], sitesOff: set.sitesOff || [], stopped: set.stopped || [], hard: set.hard || [], stoppedUsed: (set.stopped || []).filter((s) => visited({ set }, siteOf(s))), skipped: ((await chrome.storage.local.get('skip')).skip || { sites: [] }).sites,
     ...(((f) => f === true || f === 'update' ? { firstRun: f } : {})((await chrome.storage.local.get('firstRun')).firstRun)),
@@ -279,7 +277,7 @@ async function state() {
     groups: GROUPS.filter((g) => g.caps.length).map((g) => ({ id: g.id, title: g.title, says: g.says, ask: g.caps.some((id) => cap(id).destructive), mode: modeOf(g.caps[0], set), ...queueView(pending[g.id]), looping: looping(pending[g.id]),
       ...(g.caps.some((id) => cap(id).answers) ? { answers: true } : {}), ...(CLEANABLE.includes(g.id) ? { cleanable: true } : {}), ...(cleanedNow[g.id] ? { cleanedNow: cleanedNow[g.id] } : {}),
       // the cache: when it is next offered or cleared. Its size is not here: no Chrome API tells an extension (tools/inspect.js does)
-      ...(g.id === 'cache' ? { nextAt: (set.cacheClearedAt || 0) + cleanEvery(set).cacheMs, ...(cleanEvery(set).cacheMs < CACHE_MS ? { every10: true } : {}) } : {}), ...(g.id === 'wifi' ? { noAuto: true, ...wifi } : {}) })) };
+      ...(g.id === 'cache' ? { nextAt: (set.cacheClearedAt || 0) + cleanEvery(set).cacheMs, ...(cleanEvery(set).cacheMs < CACHE_MS ? { every10: true } : {}) } : {}) })) };
 }
 async function setMode(group, mode) {
   const g = GROUPS.find((x) => x.id === group);
@@ -581,7 +579,7 @@ async function sweepOnce(cause) {
   const kept = all.filter((c) => KEEP_RE.test(c.name)).map((c) => `${realHost(c.domain)} ${c.name}`);
   if (can('C15', cx)) selfUpdate();
   const rest = { ...(await enforceTabs(cx, wait)), ...(await forgetServers(cx, wait)), ...(await applyPermanentDrops(cx, wait)) };
-  await wifiSweep(cx, wait); await followSweep(cx, all, wait); await bounceSweep(cx, wait, all); await ownSweep(cx, wait); await historySweep(cx);
+  await followSweep(cx, all, wait); await bounceSweep(cx, wait, all); await ownSweep(cx, wait); await historySweep(cx);
   const xid = await xidSweep(cx);
   if (xid.changed) await applyFeatures();   // a newly confirmed cross-site id: install (or lift) its block and strip rules now (M2)
   const xidC = await xidClean(cx, all);     // delete a cookie whose value carries a confirmed cross-site id (M2)
@@ -1348,31 +1346,6 @@ async function clearBrowsing() {
   return { ok: true };
 }
 const histOn = async (on) => { if (typeof on !== 'boolean') return { ok: false }; await chrome.storage.local.set({ histOn: on }); if (on) await sweep('settings'); return { ok: true }; };
-
-// ---- Saved Wi-Fi networks (C24). Chrome cannot see them: a local program (wifi-helper/, started by Chrome through
-// native messaging) lists the stale ones and removes those it is sent. Never automatic (noAuto in registry.js), so
-// the gate only ever answers 'ask' or 'no' here. No helper, or an error from it, is null: C24 then simply has nothing.
-const WIFI_HOST = 'com.tracker_cleaner.wifi';
-const wifiHelper = async (msg) => { try { const r = await chrome.runtime.sendNativeMessage(WIFI_HOST, msg); return r && r.ok === true ? r : null; } catch { return null; } };
-async function wifiSweep(cx, wait) {
-  if (verdict('C24', cx) === 'no') return chrome.storage.local.remove('wifi');
-  // paused: the helper is not asked; what is queued stays queued
-  if (cx.hold.paused) return wait.push(...((cx.set.pending || {}).wifi || { items: [] }).items);
-  const r = await wifiHelper({ type: 'list' }), found = r && Array.isArray(r.candidates) ? r.candidates : [];
-  await chrome.storage.local.set({ wifi: r ? { helper: 'ok', canDelete: String(r.canDelete) } : { helper: 'missing' } });
-  // site = the network's name, name = its UUID (what the helper deletes by), why = the helper's reason
-  wait.push(...found.filter((c) => c && typeof c.uuid === 'string' && c.uuid).map((c) => ({ cap: 'C24', kind: 'wifi', site: String(c.name), name: c.uuid, why: String(c.reason), did: 'queued' })));
-}
-// Approve: the queued UUIDs and nothing else go to the helper, which reads the list again and refuses what is in use
-// or recently used by now. Every network is logged with what happened to it. Not kept for Undo: only cookies are.
-async function wifiRemove(items) {
-  const r = await wifiHelper({ type: 'remove', uuids: items.map((it) => it.name) }) || {};
-  const of = (list, it) => (Array.isArray(list) ? list : []).find((x) => x && x.uuid === it.name);
-  const did = (it) => of(r.removed, it) ? 'removed' : 'kept: ' + ((of(r.refused, it) || {}).reason || (of(r.failed, it) || {}).error || 'the helper did not answer');
-  const results = items.map((it) => ({ ...it, did: did(it) }));
-  await logged(results);
-  return results.filter((x) => x.did === 'removed').length;
-}
 
 // ---- Self-update: Chrome's own check runs only every few hours; ask at every sweep, reload when a new version is ready.
 function selfUpdate() { try { chrome.runtime.requestUpdateCheck(() => {}); } catch {} }

@@ -97,15 +97,6 @@ const renderHistoryPage = (() => {
           : `${n ? count(n, 'request') : 'no requests'} stopped in open and recently closed tabs. Chrome keeps no daily count.`,
         after: 'These requests never leave your computer. If a page breaks, &quot;Don&#39;t clean on this site&quot; in the popup lets them through.',
         lists: [['By site', (list || []).map((b) => `${esc(b.site) || 'a tab closed since'}: ${num(Number(b.n) || 0)}`)]] }); };
-    const wifi = () => { const g = group('wifi'), n = Number(g.pending) || 0;
-      return block('wifi', 'Remembered Wi-Fi networks', {
-        now: g.mode === 'off' ? 'This is off, so nothing was checked. The command below lists them.'
-          : g.helper === 'missing' ? 'The Wi-Fi helper program is not installed. The command below lists them.'
-          : g.helper !== 'ok' ? 'The helper program has not been asked yet. The command below lists them.'
-          : `${n ? count(n, 'network') : 'no networks'} unused for 30 days or more, or never used`,
-        kept: 'every network used in the last 30 days', removed: when(removed(['wifi'])) + waits('wifi'),
-        after: 'This computer forgets those networks and their passwords. To use one again you type its password again.', command: 'wifi' }); };
-
     // ---- Tor: asked from inside Chrome, so the answer is about Chrome itself. One request, only at the button.
     const tor = () => { const t = s.tor || {}, set = s.proxy === 'tor';
       const answer = t.checking ? '<p>Asking check.torproject.org…</p>'
@@ -121,7 +112,7 @@ const renderHistoryPage = (() => {
       + '<p class="m">Removals are counted for 30 days, never what a cookie held. '
       + 'This history stays on this computer, and no website can read it.</p>'
       + (kept ? `<p><button data-msg="${esc(JSON.stringify({ type: 'clearHistory' }))}">Clear ${count(kept, 'day')} of history</button></p>` : '<p class="m">Nothing has been removed yet, so there is no history.</p>')
-      + cookies() + cache() + codeCache() + storage() + servers() + permissions() + blocking() + tor() + wifi();
+      + cookies() + cache() + codeCache() + storage() + servers() + permissions() + blocking() + tor();
   };
 })();
 if (typeof module !== 'undefined') module.exports = { renderHistoryPage };

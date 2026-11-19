@@ -29,7 +29,7 @@ test('each of the first four blocks has its title in everyday words, the three l
     const at = ['There now:', 'Kept:', 'Removed:', 'What happens if you clean this:'].map((l) => s.indexOf(`<b>${l}</b>`));
     if (id === 'tor') assert.deepEqual([at[1], at[2]], [-1, -1]);   // nothing is stored, kept or removed there, as in the command
     else assert.deepEqual(at, [...at].sort((a, b) => a - b).filter((i) => i > 0), id); }
-  assert.deepEqual([...html.matchAll(/<section id="([^"]+)">/g)].map((m) => m[1]), ['cookies', 'cache', 'code-cache', 'storage', 'servers', 'permissions', 'blocking', 'tor', 'wifi']);
+  assert.deepEqual([...html.matchAll(/<section id="([^"]+)">/g)].map((m) => m[1]), ['cookies', 'cache', 'code-cache', 'storage', 'servers', 'permissions', 'blocking', 'tor']);
 });
 test('cookies: the same answers in the same words as the command gives for the same cookies', () => {
   const html = renderHistoryPage(state()), t = told('cookies');
@@ -139,12 +139,11 @@ test('history.html: its own scripts only, nothing inline, and the page script as
 });
 
 // ---- the remaining blocks: those the real-Chrome run (test/browser/run.js, V1 to V6) found worth showing
-const REST = ['code-cache', 'servers', 'permissions', 'wifi'];
-const WIFI = (cmd) => cmd === 'nmcli' ? `Home:${fx.U(1)}:802-11-wireless:1799999940:yes\n` : NET(cmd, []);
+const REST = ['code-cache', 'servers', 'permissions'];
 test('the remaining blocks: title and "what happens" as the command says them, three lines, and the command to copy', () => {
   const html = renderHistoryPage(state());
   for (const id of REST) { const s = section(html, id), out = [];
-    inspect.main([id, '--json', '--profile', fx.DIR, '--cache', fx.CACHE], { print: (x) => out.push(x), run: WIFI, now: 1.8e12 }); const t = JSON.parse(out[0]);
+    inspect.main([id, '--json', '--profile', fx.DIR, '--cache', fx.CACHE], { print: (x) => out.push(x), run: (cmd) => NET(cmd, []), now: 1.8e12 }); const t = JSON.parse(out[0]);
     assert.ok(s.includes(`<h2>${t.title}</h2>`), id); assert.equal(line(html, id, 'What happens if you clean this:'), t.after, id);
     for (const l of ['There now:', 'Kept:', 'Removed:', 'What happens if you clean this:']) assert.equal(count(s, `<b>${l}</b>`), 1, `${id} ${l}`);
     assert.ok(s.includes(`<button data-copy="node tools/inspect.js ${id}">Copy command</button> <code>node tools/inspect.js ${id}</code>`), id); }
@@ -152,7 +151,7 @@ test('the remaining blocks: title and "what happens" as the command says them, t
   assert.equal(count(s, '<b>There now:</b>'), 1); assert.equal(count(s, '<b>What happens if you clean this:</b>'), 1);
   assert.equal(s.includes('<b>Kept:</b>') || s.includes('data-copy'), false);
   assert.equal(html.includes('quota'), false, 'what a site is told about room is a fixed 10 GB (V3): nothing to show');
-  assert.equal(count(html, 'Copy command'), 8);
+  assert.equal(count(html, 'Copy command'), 7);
 });
 test('code cache and remembered servers: emptied together with the saved copies of pages, and say when that last happened', () => {
   const html = renderHistoryPage(state({ history }, { cache: { nextAt: NOW + 3600e3 } }));
@@ -164,19 +163,12 @@ test('code cache and remembered servers: emptied together with the saved copies 
   assert.equal(line(html, 'servers', 'There now:'), 'Chrome does not tell extensions which servers it remembers. The command below counts them.');
   assert.equal(line(html, 'servers', 'Kept:'), 'none (both lists are emptied together with the saved copies of pages)');
 });
-test('permissions and Wi-Fi: what waits, what was removed, and what the helper said', () => {
-  const h = { days: { '2026-11-12': { permissions: 1, wifi: 2 } }, cookies: {} }, at = (over, o = {}) => renderHistoryPage(state({ history: h, ...o }, over));
-  let html = at({ permissions: { pending: 1 }, wifi: { pending: 3, helper: 'ok', canDelete: 'yes' } });
+test('permissions: what waits and what was removed', () => {
+  const h = { days: { '2026-11-12': { permissions: 1 } }, cookies: {} }, at = (over, o = {}) => renderHistoryPage(state({ history: h, ...o }, over));
+  const html = at({ permissions: { pending: 1 } });
   assert.equal(line(html, 'permissions', 'There now:'), 'Chrome does not give extensions this list. The command below lists it.');
   assert.equal(line(html, 'permissions', 'Kept:'), 'all of them, unless you put one on your always-block list');
   assert.equal(line(html, 'permissions', 'Removed:'), '1 today, 1 in the last 30 days, 1 waiting in the popup');
-  assert.equal(line(html, 'wifi', 'There now:'), '3 networks unused for 30 days or more, or never used');
-  assert.equal(line(html, 'wifi', 'Kept:'), 'every network used in the last 30 days');
-  assert.equal(line(html, 'wifi', 'Removed:'), '2 today, 2 in the last 30 days, 3 waiting in the popup');
-  assert.equal(line(at({ wifi: { pending: 1, helper: 'ok' } }), 'wifi', 'There now:'), '1 network unused for 30 days or more, or never used');
-  assert.equal(line(at({ wifi: { helper: 'ok' } }), 'wifi', 'There now:'), 'no networks unused for 30 days or more, or never used');
-  assert.equal(line(at({ wifi: { helper: 'missing' } }), 'wifi', 'There now:'), 'The Wi-Fi helper program is not installed. The command below lists them.');
-  assert.equal(line(at({ wifi: { mode: 'off' } }), 'wifi', 'There now:'), 'This is off, so nothing was checked. The command below lists them.');
 });
 test('blocked requests: the count Chrome still remembers, by site in a collapsed list, and why there is no history of it', () => {
   const blocked = [{ site: 'news.example', n: 12 }, { site: '', n: 3 }, { site: '<b>x', n: 1 }], html = renderHistoryPage(state({ blocked })), s = section(html, 'blocking');

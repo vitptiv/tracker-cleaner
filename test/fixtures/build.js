@@ -1,6 +1,6 @@
 // Builds test/fixtures/profile/ (or the folder named with .at(name)): a small fake Chrome profile for the inspector tests (tools/inspect.js).
 // Real SQLite files (made with python3, the same way the inspector reads them), the JSON files Chrome keeps, a cache
-// folder with dated files, and stand-ins for nmcli, curl, resolvectl and ip in bin/ so a printed command can be run without
+// folder with dated files, and stand-ins for curl, resolvectl and ip in bin/ so a printed command can be run without
 // touching the system. Every cookie value is MARK: no output may ever contain it.
 const fs = require('node:fs'), path = require('node:path'), { execFileSync } = require('node:child_process');
 const EXT = path.join(__dirname, '..', '..', 'extension'), MARK = 'SECRET-VALUE-MARKER';
@@ -12,9 +12,6 @@ const COOKIES = [['example.com', '_ga', { plain: '', expires: [2027, 11, 20] }],
 // Chrome counts time in millionths of a second since 1601
 const chromeTime = (ymd) => ymd ? (new Date(ymd[0], ymd[1] - 1, ymd[2], 12).getTime() / 1000 + 11644473600) * 1e6 : 0;
 const BUCKETS = ['https://app.example/', 'https://mixpanel.com/', 'https://hcaptcha.com/', 'https://news.example/^0https://app.example', 'chrome-extension://abcdefgh/'];
-const S = 1.8e9, DAY = 86400, U = (n) => `00000000-0000-4000-8000-00000000000${n}`;   // as test/wifi.test.js
-const NMCLI = [`Home:${U(1)}:802-11-wireless:${S - 60}:yes`, `Cafe:${U(2)}:802-11-wireless:${S - 31 * DAY}:no`, `Office:${U(3)}:802-11-wireless:${S - 29 * DAY}:no`,
-  `Hotel:${U(4)}:802-11-wireless:0:no`, `Wired:${U(5)}:802-3-ethernet:0:no`, ''].join('\n');
 const PY = `
 import sqlite3, sys, json
 spec = json.loads(sys.argv[2])
@@ -32,7 +29,7 @@ const file = (p, content, day) => { fs.mkdirSync(path.dirname(p), { recursive: t
 
 // One fixture per folder name: test files run side by side, and each builds its own.
 const make = (name) => { const DIR = path.join(__dirname, name), HOME = path.join(DIR, 'home'), CACHE = path.join(DIR, 'cache'), BIN = path.join(DIR, 'bin');
- return { DIR, HOME, CACHE, BIN, MARK, PLAIN, COOKIES, U, build() {
+ return { DIR, HOME, CACHE, BIN, MARK, PLAIN, COOKIES, build() {
   fs.rmSync(DIR, { recursive: true, force: true }); fs.mkdirSync(path.join(DIR, 'WebStorage'), { recursive: true });
   sqlite(path.join(DIR, 'Cookies'), { cookies: COOKIES.map(([h, n, o = {}]) => [h, n, o.plain ?? MARK, o.locked === false ? '' : MARK, chromeTime(o.expires)]) });
   sqlite(path.join(DIR, 'WebStorage', 'QuotaManager'), { buckets: BUCKETS });
@@ -50,11 +47,10 @@ const make = (name) => { const DIR = path.join(__dirname, name), HOME = path.joi
   file(path.join(CACHE, 'Cache', 'Cache_Data', 'index'), Buffer.alloc(1024), [11, 10]);
   file(path.join(CACHE, 'Code Cache', 'js', 'x_0'), Buffer.alloc(1536), [11, 2]);
   file(path.join(CACHE, 'Code Cache', 'wasm', 'y_0'), Buffer.alloc(512), [11, 3]);
-  file(path.join(BIN, 'nmcli'), `#!/bin/sh\ncat <<'EOF'\n${NMCLI}EOF\n`);
   file(path.join(BIN, 'curl'), '#!/bin/sh\necho \'{"IsTor":false,"IP":"203.0.113.57"}\'\n');
   file(path.join(BIN, 'resolvectl'), "#!/bin/sh\necho 'Global'\necho '  Protocols: -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported'\necho 'Current DNS Server: 192.0.2.53'\n");
   file(path.join(BIN, 'ip'), "#!/bin/sh\necho 'lo               UNKNOWN        127.0.0.1/8'\necho 'enp4s0           UP             198.51.100.7/24'\n");
-  for (const f of ['nmcli', 'curl', 'resolvectl', 'ip']) fs.chmodSync(path.join(BIN, f), 0o755);
+  for (const f of ['curl', 'resolvectl', 'ip']) fs.chmodSync(path.join(BIN, f), 0o755);
   // a home folder as Chrome lays it out, for finding the profile without --profile: an empty profile first, then ours
   const chrome = path.join(HOME, '.config', 'google-chrome');
   file(path.join(chrome, 'Default', 'Preferences'), JSON.stringify({ extensions: { settings: { other: { path: '/somewhere/else' } } } }));

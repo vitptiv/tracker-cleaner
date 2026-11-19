@@ -1,7 +1,7 @@
 {
  "manifest_version": 3,
  "name": "Tracker Cleaner (local)",
- "version": "1.32",
+ "version": "1.32.1",
  "description": "Blocks trackers and cleans their cookies. Asks before anything new, except at Strongest. Runs a script in every page.",
  "permissions": [
   "cookies",
@@ -14,7 +14,6 @@
   "browsingData",
   "contentSettings",
   "scripting",
-  "nativeMessaging",
   "sidePanel"
  ],
  "optional_permissions": [

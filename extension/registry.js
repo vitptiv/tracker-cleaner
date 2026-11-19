@@ -2,9 +2,8 @@
 // mode: what the group does until the user chooses: 'auto' runs by itself (1.25: every group that only touches what
 // follows you; what was done is in the log, and of it only deleted cookies can be put back), 'ask' waits for Approve,
 // 'off' does nothing, null = not an action group. destructive: it deletes, closes or reroutes something.
-// noAuto: never runs by itself, a stored 'auto' counts as 'ask' (Wi-Fi: a removed network cannot be put back).
 // answers: a row that only asks questions (C25, C27); its fourth mode 'yes' answers them yes by itself (1.30, Strongest).
-const C = (id, name, group, mode, destructive, noAuto) => ({ id, name, group, mode, destructive, ...(noAuto ? { noAuto } : {}), ...(['C25', 'C27'].includes(id) ? { answers: true } : {}) });
+const C = (id, name, group, mode, destructive) => ({ id, name, group, mode, destructive, ...(['C25', 'C27'].includes(id) ? { answers: true } : {}) });
 const CAPS = [
   C('C01', 'Block tracker requests', 'blocking', 'auto', false),
   C('C02', 'Block Google/YouTube ad paths', 'blocking', 'auto', false),
@@ -27,7 +26,6 @@ const CAPS = [
   C('C21', 'Current-site panel', 'control', null, false),
   C('C22', 'Undo', 'control', null, false),
   C('C23', 'Strip tracking URL parameters', 'params', 'auto', false),
-  C('C24', 'Remove unused Wi-Fi networks', 'wifi', 'ask', true, true),
   C('C25', 'Stop unknown trackers', 'unknown', 'auto', true),
   C('C26', 'Block pings that tell which link was followed', 'blocking', 'auto', false),
   C('C27', 'Clean sites that only pass you along', 'bounce', 'auto', true),
@@ -46,7 +44,7 @@ const cap = (id) => CAPS.find((c) => c.id === id);
 //   strong    every group runs by itself, and the two question rows answer their questions yes ('yes')
 // Not on the dial (OWN_SWITCH), because they change how the browser works or cannot be undone: their mode is always the
 // one above or the one the user chose. A row the user sets by hand keeps that choice under every level (`modes`).
-const LEVELS = ['ask', 'balanced', 'strong'], OWN_SWITCH = ['signin', 'allowlist', 'tabs', 'tor', 'server', 'wifi'];
+const LEVELS = ['ask', 'balanced', 'strong'], OWN_SWITCH = ['signin', 'allowlist', 'tabs', 'tor', 'server'];
 const onDial = (c) => !!c && c.mode !== null && !OWN_SWITCH.includes(c.group);
 const levelMode = (id, level) => { const c = cap(id);
   if (!onDial(c)) return c ? c.mode : null;
@@ -73,7 +71,7 @@ const mayRun = (id, settings) => {
   if (c.mode === null) return 'run';
   const mode = modeOf(id, s);
   if (mode === 'off') return 'no';
-  return (mode === 'auto' || mode === 'yes') && !c.noAuto && (!c.destructive || s.master === true) ? 'run' : 'ask';
+  return (mode === 'auto' || mode === 'yes') && (!c.destructive || s.master === true) ? 'run' : 'ask';
 };
 // The gate background.js asks before every action: mayRun plus what holds right now (guard.js holdNow).
 // 'held' = it would run, but the extension is paused, or a sign-in is going on and the capability is destructive.
@@ -102,7 +100,6 @@ const GROUPS = [
   ['bounce', 'Sites that pass you on', 'Asks before cleaning a site that only passes you on. At Strongest it cleans by itself, sites you use included.'],
   ['own', "Trackers' own sites", 'What listed trackers left on their own sites is emptied once a day.'],
   ['storage', 'Site data you chose', 'Saved data of the sites you chose is emptied.'],
-  ['wifi', 'Old Wi-Fi networks', 'Networks unused for 30 days are forgotten.'],
   ['permissions', 'Site rights you chose', 'The sites you chose lose rights such as notifications.'],
   ['cache', 'Saved copies of pages', 'Cleared daily and when Chrome starts, at Strongest every 10 minutes. Pages then load slower.'],
   ['allowlist', 'Keep only listed cookies', 'Every cookie is deleted except the ones on your list.'],
@@ -111,8 +108,7 @@ const GROUPS = [
   ['server', 'Reports to this computer', 'A summary goes to a settings program on this computer only.']]
   .map(([id, title, says]) => ({ id, title, says, caps: CAPS.filter((c) => c.group === id && c.mode !== null).map((c) => c.id) }));
 // The rows that have something to clean, and so a "Clean now" button (1.30). Not: the rules that only block or strip
-// (nothing to clean), Wi-Fi (it keeps its own confirm before anything is removed), allow-list mode (it would delete
-// every cookie but those listed), the tab limit (it closes tabs), Tor and the reports.
+// (nothing to clean), allow-list mode (it would delete every cookie but those listed), the tab limit (it closes tabs), Tor and the reports.
 const CLEANABLE = ['cookies', 'google', 'crossid', 'unknown', 'bounce', 'own', 'storage', 'permissions', 'cache'];
 // The limits file of the settings program on this computer (127.0.0.1:8088), checked before anything in it is used (L10):
 // only the known fields, each of the expected shape and size. Never a wildcard site, and of the things a site may do only

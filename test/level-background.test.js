@@ -25,10 +25,10 @@ test('a new install starts at Strongest and says so; an update keeps what it had
     assert.equal((await old.send({ type: 'state' })).level, was.modes ? 'custom' : 'balanced'); }
 });
 test('setLevel: sets every row on the dial and clears the hand-set ones; the own-switch rows keep theirs; a row set by hand makes it custom', async () => {
-  const bg = await load(on({ storage: { modes: { C03: 'off', C04: 'auto', C14: 'auto', C13: 'ask', C24: 'ask' } } }));
+  const bg = await load(on({ storage: { modes: { C03: 'off', C04: 'auto', C14: 'auto', C13: 'ask' } } }));
   assert.equal((await bg.send({ type: 'state' })).level, 'custom');
   assert.deepEqual(await bg.send({ type: 'setLevel', level: 'ask' }), { ok: true, level: 'ask' }); await bg.settle();
-  assert.deepEqual(bg.state.storage.modes, { C14: 'auto', C13: 'ask', C24: 'ask' }); assert.equal(bg.state.storage.level, 'ask');
+  assert.deepEqual(bg.state.storage.modes, { C14: 'auto', C13: 'ask' }); assert.equal(bg.state.storage.level, 'ask');
   let s = await bg.send({ type: 'state' }); assert.equal(s.level, 'ask'); assert.equal(s.groups.find((g) => g.id === 'cookies').mode, 'ask');
   await bg.send({ type: 'setMode', group: 'cookies', mode: 'auto' }); s = await bg.send({ type: 'state' });
   assert.equal(s.level, 'custom'); assert.equal(s.groups.find((g) => g.id === 'cookies').mode, 'auto');
@@ -40,7 +40,7 @@ test("setMode 'yes' only for the two question rows", async () => {
   const bg = await load(on());
   assert.equal((await bg.send({ type: 'setMode', group: 'unknown', mode: 'yes' })).ok, true); assert.equal(bg.state.storage.modes.C25, 'yes');
   assert.equal((await bg.send({ type: 'setMode', group: 'bounce', mode: 'yes' })).ok, true);
-  for (const group of ['cookies', 'wifi', 'tor', 'google']) assert.deepEqual(await bg.send({ type: 'setMode', group, mode: 'yes' }), { ok: false }, group);
+  for (const group of ['cookies', 'tor', 'google']) assert.deepEqual(await bg.send({ type: 'setMode', group, mode: 'yes' }), { ok: false }, group);
 });
 test('Strongest, no press: a Google identity cookie goes, the sign-in cookies stay', async () => {
   const bg = await fresh({ cookies: [{ name: '_ga', domain: '.example.com', value: 'GA1.2.3' }, { name: 'NID', domain: '.google.com', value: 'n' }, { name: 'SID', domain: '.google.com', value: 's' }] });
@@ -87,7 +87,7 @@ test('Clean now on one row: runs that row once as your press, also on Ask first;
   assert.deepEqual(row.cleanedNow, { t: bg.now, n: 2 }); assert.equal(s.level, 'ask', 'a press is not a change of level');
   assert.match(renderPopup(s, null).split('data-group="cookies"')[1].split('data-group=')[0], /Cleaned at \d\d:\d\d: 2 removed/);
   assert.deepEqual(await bg.send({ type: 'cleanNow', group: 'google' }).then((x) => x.cleaned), 1); assert.deepEqual(await bg.names(), []);
-  for (const group of ['blocking', 'wifi', 'tor', 'tabs', 'allowlist', 'nope', undefined]) assert.deepEqual(await bg.send({ type: 'cleanNow', group }), { ok: false }, String(group));
+  for (const group of ['blocking', 'tor', 'tabs', 'allowlist', 'nope', undefined]) assert.deepEqual(await bg.send({ type: 'cleanNow', group }), { ok: false }, String(group));
 });
 test('Clean now does nothing with the main switch off or never on, while paused, or when the row is off; it is held during a sign-in and says so', async () => {
   const cookies = [{ name: '_ga', domain: '.example.com', value: 'GA1.2.3' }];
@@ -116,15 +116,12 @@ test('Clean now on the question rows answers their waiting questions yes: block,
   assert.deepEqual(await bg.names(), []); assert.ok(bg.state.storage.skipok.includes('hop.example')); assert.deepEqual(queued(bg, 'bounce'), []);
   assert.deepEqual(auto(bg), [], 'a press is not logged as done by itself');
 });
-test('Clean everything now: every row in one press, the questions answered yes; Wi-Fi is not touched (it keeps its own confirm)', async () => {
-  const native = (name, msg) => msg.type === 'list' ? { ok: true, canDelete: 'yes', candidates: [{ uuid: 'u1', name: 'Cafe', reason: 'unused' }] } : { ok: true, removed: [{ uuid: 'u1' }] };
-  const bg = await load(at('ask', { native, storage: { cacheClearedAt: 1 }, cookies: [ID(), { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }, { name: 'NID', domain: '.google.com', value: 'n' }, { name: 'SID', domain: '.google.com', value: 's' }], tabs: ELSEWHERE }));
-  await two(bg); await bg.alarm('sweep'); assert.equal(queued(bg, 'wifi').length, 1);
+test('Clean everything now: every row in one press, the questions answered yes', async () => {
+  const bg = await load(at('ask', { storage: { cacheClearedAt: 1 }, cookies: [ID(), { name: '_ga', domain: '.example.com', value: 'GA1.2.3' }, { name: 'NID', domain: '.google.com', value: 'n' }, { name: 'SID', domain: '.google.com', value: 's' }], tabs: ELSEWHERE }));
+  await two(bg); await bg.alarm('sweep');
   const r = await bg.send({ type: 'cleanAll', answer: (await bg.send({ type: 'state' })).cleanAllAsks }); await bg.settle();   // F5 (1.32): the confirm named them
   assert.equal(r.ok, true); assert.deepEqual(await bg.names(), ['SID']); assert.deepEqual(bg.blockedHosts(), ['trk.example']);
   assert.ok(bg.called('browsingData.remove').some((c) => c.args[1].cache && c.args[0].since === 0), 'the saved copies were not cleared');
-  assert.equal(bg.called('runtime.sendNativeMessage').some((c) => c.args[1].type === 'remove'), false, 'Wi-Fi removed without its confirm');
-  assert.equal(queued(bg, 'wifi').length, 1);
   for (const g of ['cookies', 'google', 'unknown', 'cache']) assert.ok(r.groups[g] > 0, g);
 });
 test('the popup: the dial on top, its sentence, Custom, the top button and a Clean now on each row that has something to clean', async () => {

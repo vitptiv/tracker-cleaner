@@ -77,7 +77,7 @@ test('N1: the note that a start clearing is due is kept in memory only, and no n
   assert.equal(bg.state.session.startClear, true, 'the held start clearing is not noted in session storage');
   assert.equal(JSON.stringify(bg.state.storage).includes('startClear'), false, 'the note went to storage.local');
   const m = require('../extension/manifest.json');
-  assert.deepEqual(m.permissions, ['cookies', 'storage', 'alarms', 'declarativeNetRequest', 'declarativeNetRequestFeedback', 'webRequest', 'proxy', 'browsingData', 'contentSettings', 'scripting', 'nativeMessaging', 'sidePanel']);
+  assert.deepEqual(m.permissions, ['cookies', 'storage', 'alarms', 'declarativeNetRequest', 'declarativeNetRequestFeedback', 'webRequest', 'proxy', 'browsingData', 'contentSettings', 'scripting', 'sidePanel']);
   assert.deepEqual(m.optional_permissions, ['history']);
 });
 test('N1: the row and the first-run line say that the saved copies also go when Chrome starts', () => {

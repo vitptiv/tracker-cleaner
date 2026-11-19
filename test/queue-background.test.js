@@ -111,16 +111,14 @@ test('state message: settings, hold state, and per group its mode, pending count
   assert.equal(s.master, true); assert.deepEqual(s.modes, { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C03: 'ask' });
   assert.deepEqual(s.hold, { paused: true, guard: false, tab: false, pauseUntil: bg.now + 3 * MIN, guardUntil: 0 });
   assert.deepEqual(s.groups.map((g) => g.id), GROUPS.map((g) => g.id));
-  // the Wi-Fi row also says it is never automatic and what its helper answered (none installed here)
   // 1.30: answers (the two question rows can say yes by themselves), cleanable (the row has Clean now)
   const more = (g) => [...(['unknown', 'bounce'].includes(g.id) ? ['answers'] : []), ...(CLEANABLE.includes(g.id) ? ['cleanable'] : [])];
-  for (const g of s.groups) assert.deepEqual(Object.keys(g).sort(), (g.id === 'wifi' ? ['ask', 'helper', 'id', 'items', 'looping', 'mode', 'noAuto', 'pending', 'postponedUntil', 'says', 'title']
-    : ['ask', 'id', 'items', 'looping', 'mode', ...(g.id === 'cache' ? ['nextAt'] : []), 'pending', 'postponedUntil', 'says', 'title', ...more(g)]).sort(), g.id);
+  for (const g of s.groups) assert.deepEqual(Object.keys(g).sort(), ['ask', 'id', 'items', 'looping', 'mode', ...(g.id === 'cache' ? ['nextAt'] : []), 'pending', 'postponedUntil', 'says', 'title', ...more(g)].sort(), g.id);
   const c = s.groups.find((g) => g.id === 'cookies');
   assert.equal(c.mode, 'ask'); assert.equal(c.pending, 25); assert.equal(c.items.length, 20);
   assert.deepEqual(Object.keys(c.items[0]).sort(), ['cap', 'kind', 'name', 'site', 't', 'why']);
   assert.deepEqual(s.groups.filter((g) => g.id !== 'cookies').map((g) => [g.mode, g.pending]),
-    [['auto', 0], ['auto', 0], ['ask', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['off', 0], ['off', 0], ['off', 0], ['off', 0]]);
+    [['auto', 0], ['auto', 0], ['ask', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['auto', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['ask', 0], ['off', 0], ['off', 0], ['off', 0], ['off', 0]]);
 });
 test('setMode sets every capability of the group and takes effect at once; bad input is refused', async () => {
   const bg = await load({ storage: { master: true } });

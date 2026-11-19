@@ -5,3 +5,5 @@ test/fixtures/profile-page/
 *.crx
 *.pem
 lab/data/
+test/fixtures/profile-site/
+git.sh

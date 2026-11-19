@@ -5,10 +5,10 @@ const { CAPS, GROUPS, cap, mayRun, gate, modeOf, levelMode, levelNow, answersYes
 const on = (o = {}) => ({ master: true, ...o });
 const dial = CAPS.filter((c) => c.mode !== null && !OWN_SWITCH.includes(c.group));
 
-test('three levels; the rows that keep their own switch are Tor, tab limit, allow-list mode, Wi-Fi, reports and the sign-in guard', () => {
+test('three levels; the rows that keep their own switch are Tor, tab limit, allow-list mode, reports and the sign-in guard', () => {
   assert.deepEqual(LEVELS, ['ask', 'balanced', 'strong']);
-  assert.deepEqual([...OWN_SWITCH].sort(), ['allowlist', 'server', 'signin', 'tabs', 'tor', 'wifi']);
-  for (const id of ['C12', 'C13', 'C14', 'C15', 'C19', 'C24']) for (const level of LEVELS) assert.equal(modeOf(id, { level }), cap(id).mode, `${id} at ${level}`);
+  assert.deepEqual([...OWN_SWITCH].sort(), ['allowlist', 'server', 'signin', 'tabs', 'tor']);
+  for (const id of ['C12', 'C13', 'C14', 'C15', 'C19']) for (const level of LEVELS) assert.equal(modeOf(id, { level }), cap(id).mode, `${id} at ${level}`);
 });
 test('Balanced (and nothing stored, as on every install before 1.30) is exactly the 1.29 defaults', () => {
   for (const c of CAPS.filter((x) => x.mode !== null)) for (const s of [{}, { level: 'balanced' }, { level: 'nonsense' }]) {
@@ -21,7 +21,7 @@ test('Strongest: every cleaning group runs by itself, including those that ask a
   for (const id of ['C03', 'C04', 'C06', 'C07', 'C09', 'C11', 'C28', 'C33']) { assert.equal(modeOf(id, s), 'auto', id); assert.equal(mayRun(id, s), 'run', id); }
   for (const id of ['C25', 'C27']) { assert.equal(modeOf(id, s), 'yes', id); assert.equal(mayRun(id, s), 'run', id); assert.equal(answersYes(id, s, {}), true, id); }
   for (const id of ['C01', 'C02', 'C05', 'C23', 'C26', 'C29', 'C30', 'C31', 'C32']) assert.equal(mayRun(id, s), 'run', id);
-  assert.equal(mayRun('C24', s), 'ask'); assert.equal(mayRun('C14', s), 'no'); assert.equal(mayRun('C13', s), 'no'); assert.equal(mayRun('C12', s), 'no'); assert.equal(mayRun('C15', s), 'no');
+  assert.equal(mayRun('C14', s), 'no'); assert.equal(mayRun('C13', s), 'no'); assert.equal(mayRun('C12', s), 'no'); assert.equal(mayRun('C15', s), 'no');
   assert.equal(levelNow(s), 'strong');
 });
 test('Ask first: every group that deletes waits for a press; the rules that delete nothing stay on', () => {
@@ -44,13 +44,13 @@ test('a row set by hand keeps its choice under any level, and the dial then says
   assert.equal(mayRun('C04', s), 'ask'); assert.equal(levelNow(s), 'custom');
   assert.equal(levelNow(on({ level: 'strong', modes: { C04: 'auto' } })), 'strong', 'the same as the level is not custom');
   assert.equal(levelNow(on({ level: 'strong', modes: { C25: 'auto' } })), 'custom', 'Automatic that asks is not what Strongest does');
-  assert.equal(levelNow(on({ level: 'ask', modes: { C14: 'auto', C13: 'ask', C24: 'ask', C12: 'auto', C15: 'auto' } })), 'ask', 'own-switch rows never make it custom');
+  assert.equal(levelNow(on({ level: 'ask', modes: { C14: 'auto', C13: 'ask', C12: 'auto', C15: 'auto' } })), 'ask', 'own-switch rows never make it custom');
   assert.equal(levelNow(on({ modes: { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask' } })), 'custom', 'the 1.25 update kept these asking: custom, and nothing changes');
   assert.equal(mayRun('C11', on({ modes: { C11: 'ask' } })), 'ask');
 });
 test("'yes' is a mode only of the two question rows; stored anywhere else it is ignored", () => {
   assert.equal(modeOf('C25', { modes: { C25: 'yes' } }), 'yes'); assert.equal(modeOf('C27', { modes: { C27: 'yes' } }), 'yes');
-  assert.equal(modeOf('C03', { modes: { C03: 'yes' } }), 'auto'); assert.equal(modeOf('C24', { modes: { C24: 'yes' } }), 'ask');
+  assert.equal(modeOf('C03', { modes: { C03: 'yes' } }), 'auto'); assert.equal(modeOf('C04', { modes: { C04: 'yes' } }), 'ask');
   assert.equal(answersYes('C25', on({ modes: { C25: 'yes' } }), {}), true, 'a hand-set yes at Balanced');
   assert.equal(answersYes('C25', on({ level: 'strong', modes: { C25: 'ask' } }), {}), false, 'a hand-set Ask first at Strongest');
   assert.equal(answersYes('C03', on({ level: 'strong' }), {}), false);

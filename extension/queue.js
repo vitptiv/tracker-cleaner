@@ -1,7 +1,6 @@
 // Approval queue (C20): what waits for Approve, per group. Pure: background.js reads and writes
 // chrome.storage.local { pending: { <groupId>: { items: [...], postponedUntil } } } and passes `pending` in.
-// item: { cap, kind, site, name, why, t }, kind: cookie | storage | permission | cache | tabs | wifi (site = the network's
-// name, name = its UUID). Never a cookie value.
+// item: { cap, kind, site, name, why, t }, kind: cookie | storage | permission | cache | tabs. Never a cookie value.
 // postponedUntil: a timestamp, or 'restart' (until Chrome starts again); the group then does not count on the badge.
 // The functions that change `pending` do so in place and return whether anything changed.
 const QUEUE_MAX = 500, QUEUE_SHOWN = 20;   // per group: a busy day must not fill storage; the popup shows the newest few

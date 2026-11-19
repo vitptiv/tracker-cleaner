@@ -1,12 +1,12 @@
 'use strict';
 // A throwaway headless Chrome over the DevTools pipe, without any extension. Profiles live under TC_BROWSER_TMP
-// (default /mnt/d/tmp), never in the user's own Chrome folders. Names other than localhost do not resolve at all.
+// (default: the system temp folder), never in the user's own Chrome folders. Names other than localhost do not resolve at all.
 const { spawn } = require('node:child_process'), fs = require('node:fs'), path = require('node:path');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const until = async (fn, ms = 8000, step = 100) => { const end = Date.now() + ms;
   for (;;) { let v; try { v = await fn(); } catch {} if (v) return v; if (Date.now() > end) return null; await sleep(step); } };
 const within = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`timeout: ${what}`); })]);
-const newProfile = () => { const base = process.env.TC_BROWSER_TMP || '/mnt/d/tmp';
+const newProfile = () => { const base = process.env.TC_BROWSER_TMP || require('node:os').tmpdir();
   if (/google-chrome/.test(base)) throw new Error('refusing a real Chrome folder');
   return fs.mkdtempSync(path.join(base, 'tc-lab-chrome-')); };
 

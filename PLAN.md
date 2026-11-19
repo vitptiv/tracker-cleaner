@@ -53,7 +53,7 @@ Mode: `auto` runs silently, `ask` queues for Approve / Postpone, `off` does noth
 | C21 | Current-site panel: what was blocked or deleted here, with Allow | new | n/a |
 | C22 | Undo: restore cookies deleted in the last 10 min | new | n/a |
 | C23 | Strip tracking parameters from URLs (`gclid`, `fbclid`, `utm_*`) | new | auto |
-| C24 | Remove saved Wi-Fi networks unused for 30+ days (local helper, `nmcli`) | new | ask |
+| C24 | Remove saved Wi-Fi networks unused for 30+ days (local helper, `nmcli`) | removed in 1.32.1 | - |
 | C25 | Stop a company on no list that is seen on 3+ sites with an ID (learned locally) | new in 1.24 | auto |
 | C26 | Block pings that tell someone which link was followed or how long a page was read | new in 1.24 | auto |
 | C27 | Clean a site that only passes you along (redirect): its cookies and storage, and the ID it added to the address | new in 1.24 | auto |
