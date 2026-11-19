@@ -18,7 +18,7 @@ test('at 300 blocked companies learning goes on: the oldest block is dropped for
   await req(bg, 'https://trk.example/p.gif', 'news.example'); await req(bg, 'https://trk.example/p.gif', 'shop.example'); await bg.alarm('sweep');
   const s = bg.state.storage.stopped; assert.equal(s.length, 300); assert.ok(s.includes('trk.example')); assert.equal(s.includes('old0.example'), false); assert.ok(s.includes('old1.example'));
   assert.deepEqual(bg.state.storage.hard, ['old1.example']); assert.equal('old0.example' in bg.state.storage.own, false);
-  assert.ok(renderPopup(await bg.send({ type: 'state' }), null).includes('300 companies are blocked, the most Tracker Cleaner keeps: when a new one is blocked, the one blocked longest ago is let through again.'));
+  assert.ok(renderPopup(await bg.send({ type: 'state' }), null).includes('300 hosts are blocked, the most kept. A new block lets the oldest through.'));
 });
 test('ten blocks in a row clear all saved copies once, not ten times: every clearing a page can cause shares one hour; the daily one and your own presses (Remove, Clean now) do not count (K1)', async () => {
   const hosts = Array.from({ length: 10 }, (_, i) => `trk${i}.example`);

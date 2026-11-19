@@ -32,7 +32,7 @@ test('"Clear my browsing history": the press shows a second, separate button tha
   assert.match(html, /<button data-reveal="confirm-browsing">Clear my browsing history<\/button>/);
   assert.match(html, /<span id="confirm-browsing" hidden>[^<]*<button data-wait="1000" disabled data-msg="[^"]*clearBrowsing[^"]*">Yes, clear all of my browsing history<\/button><\/span>/);
   assert.equal(html.includes('data-twice'), false);
-  assert.ok(html.includes('The list of sites you use, which keeps their cookies safe from cleaning, is not cleared.'));
+  assert.ok(html.includes('Clears all of it. This cannot be put back.'));   // 1.32: short; that the list of sites you use stays is in the README
 });
 test('clearing either history leaves the list of sites the user opens as pages alone', async () => {
   const bg = await load(on()); await bg.opens('https://a.example/');

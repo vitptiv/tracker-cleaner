@@ -33,9 +33,8 @@ const { buildReport, renderReport } = (() => {
     return hold.guard && g.ask ? 'held while you sign in' : 'on';
   };
   // The Tor row, from background.js's { wanted, running, routed } (as TOR_SAYS in popup-view.js)
-  const torSays = (t) => t.routed ? (t.running === false ? 'Routed over Tor: yes, but Tor has stopped answering. Pages will not load until Tor runs again or you switch this off'
-      : 'Routed over Tor: yes, websites see an address of the Tor network, not yours')
-    : t.wanted && t.running === false ? 'Tor is not running on this computer; nothing is routed' : 'Routed over Tor: no';
+  const torSays = (t) => t.routed ? (t.running === false ? 'Tor has stopped, so pages will not load' : 'On: sites see a Tor address, not yours')
+    : t.wanted && t.running === false ? 'Tor is not running, so nothing is routed' : 'Not routed over Tor';
   // what a group's removal is called: "4 deleted today"
   const DID = { unknown: 'stopped', bounce: 'cleaned', own: 'emptied', cookies: 'deleted', google: 'deleted', allowlist: 'deleted', storage: 'emptied', wifi: 'forgotten', permissions: 'blocked', cache: 'cleared', tabs: 'closed' };
   // Blocked and cleaned links are those of this tab (Chrome counts them per tab). Deleted today and waiting are those
@@ -43,7 +42,7 @@ const { buildReport, renderReport } = (() => {
   // counters also give this site's share of today (history.js: d and g), for the site and the sites above and below it.
   const COOKIES_ONLY = ['cookies', 'google', 'allowlist'];
   const counted = (g, s, tab) => {
-    const hits = (ids) => tab && Array.isArray(tab.matched) ? tab.matched.filter((id) => ids.includes(id)).length : null, again = '; press "Read again" to ask it';
+    const hits = (ids) => tab && Array.isArray(tab.matched) ? tab.matched.filter((id) => ids.includes(id)).length : null, again = '. Press "Read again" to ask';
     if ((g.id === 'blocking' || g.id === 'params') && !(tab && tab.host)) return 'this tab is not a web page';
     if (g.id === 'blocking') { const n = hits(['trackers', 'google-paths']); return n === null ? 'Chrome did not say how many it blocked' + again : `${n} blocked on this page`; }
     if (g.id === 'params') { const n = hits(['url-params']); return n === null ? 'Chrome did not say how many links it cleaned' + again : `${n} link${n === 1 ? '' : 's'} cleaned on this page`; }
@@ -53,7 +52,7 @@ const { buildReport, renderReport } = (() => {
     if (!tab || !tab.host || !COOKIES_ONLY.includes(g.id)) return `${today} ${DID[g.id]} today${COOKIES_ONLY.includes(g.id) ? ' on all sites' : ''}, ${waiting}`;
     const here = Object.entries(h.cookies || {}).filter(([k, c]) => { const site = k.split(' ')[0];
       return c && c.g === g.id && dep.day(c.last) === day && (under(tab.host, site) || under(site, tab.host)); }).reduce((n, [, c]) => n + (Number(c.d) || 0), 0);
-    return `${here} ${DID[g.id]} on this site today, ${today} ${DID[g.id]} today on all sites, ${waiting}`;
+    return `${here} ${DID[g.id]} here today, ${today} on all sites, ${waiting}`;
   };
 
   // ---- This site's cookies, judged as background.js would: by the built-in lists and the user's own exceptions
@@ -69,10 +68,10 @@ const { buildReport, renderReport } = (() => {
     const on = (list) => (list || []).some((a) => a.site === site && a.name === c.name), mine = on(s.always) ? 'always' : on(s.allow) ? 'keep' : '';
     const found = (s.groups || []).find((x) => x.id === (mine === 'always' ? 'storage' : r === 'google' ? 'google' : 'cookies')) || {};
     const g = mine === 'always' && found.mode !== 'off' ? { ...found, mode: 'auto' } : found;
-    const what = c.used === true && mine !== 'always' ? 'comes from a company that was stopped, kept because you may be signed in there'
-      : mine !== 'always' && signin ? 'keeps you signed in, kept' + (core.isTrackerHost(real) ? " even though it comes from a tracker's site" : '')
+    const what = c.used === true && mine !== 'always' ? 'from a stopped company, kept in case you are signed in there'
+      : mine !== 'always' && signin ? 'keeps you signed in, kept' + (core.isTrackerHost(real) ? " though from a tracker's site" : '')
       : mine !== 'always' && !r ? 'on no tracker list, kept'
-      : `${mine === 'always' ? 'on your always-delete list' : WHY[r]}, ` + ((s.sitesOff || []).some((x) => under(real, x)) ? 'kept because you told it not to clean this site'
+      : `${mine === 'always' ? 'on your always-delete list' : WHY[r]}, ` + ((s.sitesOff || []).some((x) => under(real, x)) ? 'kept because you turned cleaning off here'
         : mine === 'keep' ? 'kept because you chose Keep'
         : !mine && r === 'host' && core.firstParty({ domain }, [host]) ? 'kept while you are on that site' : FATE[word(g, s)]);
     return { site, name: String(c.name), value: value.slice(0, CUT), long: c.long === true || value.length > CUT,
@@ -80,16 +79,16 @@ const { buildReport, renderReport } = (() => {
   };
 
   // ---- What the page has saved besides cookies: [id, what it is called, what it is, where it lives]
-  const FOLDER = "In Chrome's own folder on this computer, in the part called ";
+  const FOLDER = "In Chrome's folder, under ";
   const KINDS = [
-    ['local', 'Notes a site keeps in your browser (local storage)', 'A site can write things down in your browser and read them again at every visit, such as your settings or a number to recognise you. They stay until someone deletes them.', FOLDER + 'Local Storage.'],
-    ['session', 'Notes a site keeps for one tab (session storage)', 'The same kind of notes, but for one tab only. They are gone when you close the tab.', FOLDER + 'Session Storage, until the tab is closed.'],
-    ['databases', 'Databases a site keeps in your browser (IndexedDB)', 'A bigger store for a site that wants to keep a lot, such as your mail so that it also works without internet.', FOLDER + 'IndexedDB.'],
-    ['caches', 'Copies of its own pages a site put aside (cache storage)', 'A site can put its pages and pictures aside so that it opens faster, or without internet. These are separate from the copies Chrome saves by itself.', FOLDER + 'Service Worker, CacheStorage.'],
-    ['workers', 'Programs a site leaves in Chrome (service workers)', 'A small program a site puts into Chrome that can run when the site is not open, for example to show you notifications.', FOLDER + 'Service Worker.']];
+    ['local', 'Notes a site keeps', 'A site reads these at every visit, such as settings or an ID for you. They stay until deleted.', FOLDER + 'Local Storage.'],
+    ['session', 'Notes for one tab', 'The same notes, for one tab only. They go when you close it.', FOLDER + 'Session Storage, until the tab closes.'],
+    ['databases', 'Databases a site keeps', 'A bigger store, such as your mail kept for use offline.', FOLDER + 'IndexedDB.'],
+    ['caches', 'Pages a site put aside', "Pages and pictures a site keeps to open faster or offline. Not Chrome's own saved copies.", FOLDER + 'Service Worker, CacheStorage.'],
+    ['workers', 'Programs a site leaves', 'A small program that can run while the site is closed, such as for notifications.', FOLDER + 'Service Worker.']];
   const storedOf = (st) => !st ? { asked: false } : !st.ok || !st.counts ? { refused: true }
     : { kinds: KINDS.map(([id, title, what, where]) => { const n = st.counts[id];
-      return { id, title, what, where, n: Number.isInteger(n) ? n : null, count: Number.isInteger(n) ? `${n} on this page` : 'this page is not allowed to use it',
+      return { id, title, what, where, n: Number.isInteger(n) ? n : null, count: Number.isInteger(n) ? `${n} on this page` : 'not allowed on this page',
         ...(st.shown === id && Array.isArray(st.items) ? { items: st.items.map((it) => typeof it.value !== 'string' ? { name: String(it.name) }
           : { name: String(it.name), value: it.value.slice(0, CUT), long: it.long === true || it.value.length > CUT }) } : {}) }; }) };
 
@@ -103,32 +102,32 @@ const { buildReport, renderReport } = (() => {
   // what the button of a group does, and to what: "Remove 12 cookies"
   const DOES = { cookies: ['Remove', 'cookie'], google: ['Remove', 'cookie'], allowlist: ['Remove', 'cookie'], permissions: ['Block', 'permission'], tabs: ['Close', 'tab'], wifi: ['Remove', 'saved network'], unknown: ['Stop', 'tracker'] };
   // things asked one by one, in one sentence each, with Approve and Not now
-  const ASKS = { tracker: (it) => (Number(it.why) > 1 ? `${it.site} follows you on ${Number(it.why)} sites.` : `${it.site} was handed the number a site keeps for you.`) + ' Block it on other sites?',
+  const ASKS = { tracker: (it) => (Number(it.why) > 1 ? `${it.site} follows you on ${Number(it.why)} sites.` : `${it.site} was handed the ID a site keeps for you.`) + ' Block it on other sites?',
     skip: (it) => `${it.site} only passes you along and adds a tag. Skip it next time?`,
-    used: (it) => `${it.site} is blocked on other sites. Also remove what it has saved here? This removes what is there now, once; nothing later.`,
-    bounce: (it) => `${it.site} passed you on to another site without showing you a page. Delete what it saved in your browser?`,
-    own: (it) => it.site === 'the listed trackers' ? 'Trackers on the built-in list may have saved things on their own sites. Empty that and block their notifications, now and once a day?'
-      : `${it.site} is stopped. Also empty what it saved on its own site and block its notifications, now and once a day?`,
+    used: (it) => `${it.site} is blocked on other sites. Remove what it saved here, just this once?`,
+    bounce: (it) => `${it.site} passed you on without showing a page. Delete what it saved?`,
+    own: (it) => it.site === 'the listed trackers' ? 'Listed trackers may have saved things on their own sites. Empty that and block their notifications, now and daily?'
+      : `${it.site} is stopped. Empty what it saved on its own site and block its notifications, now and daily?`,
  };
   const waitItem = (it) => (it.kind === 'cookie' || it.kind === 'permission' ? `${it.name} on ${it.site}` : it.kind === 'storage' ? `what ${it.site} has saved` : it.kind === 'cache' ? 'the saved copies of pages'
-    : it.kind === 'wifi' ? `${it.site} (${it.why})` : String(it.site)) + (it.why === LOOPING ? ' (left alone for an hour: its site keeps putting it back; then removed again)' : '');
+    : it.kind === 'wifi' ? `${it.site}, ${it.why}` : String(it.site)) + (it.why === LOOPING ? ' · keeps coming back, so it waits an hour' : '');
   const waiting = (s) => (s.groups || []).filter((g) => Number(g.pending) > 0).map((g) => { const n = Number(g.pending), [verb, thing] = DOES[g.id] || ['Remove', 'item'], until = g.postponedUntil;
     const barred = g.id === 'wifi' && g.canDelete !== 'yes';   // the Wi-Fi helper says this user may not remove networks
-    return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome starts again' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
+    return { id: g.id, n, line: `${g.title}: ${n} waiting` + (until === 'restart' ? ', put off until Chrome restarts' : until > s.now ? `, put off until ${hhmm(until)}` : ''),
       button: barred ? '' : g.id === 'cache' ? 'Clear the saved copies of pages' : g.id === 'storage' ? `Empty what ${n} site${n === 1 ? ' has' : 's have'} saved` : `${verb} ${n} ${thing}${n === 1 ? '' : 's'}`,
-      note: barred ? 'This user is not allowed to remove saved networks without a password, so nothing can be removed from here.' : g.id === 'wifi' ? 'Removing a saved network cannot be undone here.' : '',
+      note: barred ? 'This user may not remove networks without a password.' : g.id === 'wifi' ? 'Removing a network cannot be undone.' : '',
       asks: (g.items || []).filter((it) => ASKS[it.kind]).map((it) => ({ site: String(it.site), name: String(it.name), line: ASKS[it.kind](it), ...(it.kind === 'used' || it.kind === 'bounce' ? { yes: 'Remove', no: 'Keep' } : it.kind === 'skip' ? { yes: 'Skip', no: 'Keep' } : it.kind === 'tracker' ? { yes: 'Block' } : {}) })),
       items: (g.items || []).filter((it) => !ASKS[it.kind]).map(waitItem) }; });
 
   // ---- What no cleaning reaches: said plainly, one line each, instead of a button that would do nothing
   const CANNOT = [
-    ['An e-mail address you send to a site', 'Tracker Cleaner cannot stop this: once you send it, the site has your address and can hand it to anyone from its own computers.'],
-    ['A shop telling a tracker what you bought', "Tracker Cleaner cannot stop this: the shop's computer tells the tracker directly, and your browser is never asked."],
-    ['"Sign in with" another company', 'Tracker Cleaner cannot stop this: signing in that way tells that company which site you use, and both keep a record of it.'],
-    ["Like, share or comment on a tracker's own page", 'Tracker Cleaner cannot stop this: you are on its own site, and it sees what you press there.'],
-    ['The list of pages you visited (history)', "Tracker Cleaner does not clean this by itself: it is your own record, and no website can read it. In Tracker Cleaner's window, \"Clear my browsing history\" clears all of it at a press, and \"Also remove trackers' pages from my history\" takes out only trackers' own pages, for which Chrome asks you for the right to read your history."],
-    ['A website name that leads to a device in your home', 'Tracker Cleaner cannot stop this: it stops pages from calling this computer and your home network by their numbers and usual home names, but it sees only the name a page asks for, not where that name leads, so an ordinary-looking name that points at your router gets through.'],
-    ['The small pictures of sites that Chrome saved (site icons)', "Tracker Cleaner cannot clean this: Chrome gives extensions no way to delete them. They go when Chrome's own \"Delete browsing data\" deletes the history."]];
+    ['Email you give a site', 'Once you send it, the site can pass it on itself.'],
+    ['Shops reporting what you bought', "The shop's computer tells the tracker, never asking your browser."],
+    ['"Sign in with" buttons', 'That company learns which site you use, and both keep a record.'],
+    ["Pressing on a tracker's site", 'You are on its own site, so it sees what you press.'],
+    ['Your browsing history', 'It is not cleaned by itself, as no website can read it. Use "Clear my browsing history" in the popup.'],
+    ['Disguised home addresses', 'A normal-looking name that points to your router gets through.'],
+    ['Site icons Chrome saved', "Extensions cannot delete them. Chrome's own \"Delete browsing data\" clears them with history."]];
   const buildReport = (state, tab) => {
     const s = state || {}, host = tab && tab.host ? String(tab.host) : null;
     core.S.EXTRA = (s.hard || []).map(String);   // companies that were cleaned out count as trackers; one that is only blocked keeps its cookies
@@ -151,7 +150,7 @@ const { buildReport, renderReport } = (() => {
     const cookie = (c) => { const id = { site: c.site, name: c.name }, value = { type: 'cookieValue', ...id };
       return `<div class="c"><div><b>${esc(c.name)}</b> <span class="m">${esc(c.site)} · ${esc(c.expires)}</span></div>`
         + `<div>${c.value ? `<code>${esc(c.value)}${c.long ? '…' : ''}</code>` : '<span class="m">holds nothing</span>'}</div><div class="m">${esc(c.what)}</div>`
-        + `<div class="b">${btn(c.signin ? 'Delete (may sign you out)' : 'Delete', { type: 'drop', kind: 'cookie', ...id }, off)}`
+        + `<div class="b">${btn(c.signin ? 'Delete, may sign you out' : 'Delete', { type: 'drop', kind: 'cookie', ...id }, off)}`
         + (c.mine === 'always' || (c.tracker && !c.mine) ? btn('Keep', { type: 'allow', ...id }) : '') + (c.mine === 'always' ? '' : btn('Always delete', { type: 'always', ...id }, off))
         + (c.long ? btn('Show all of it', value, ' data-act="full"') : '') + (c.value ? btn('Copy what it holds', value, ' data-act="copy"') : '') + '</div></div>'; };
     // what "Delete all" leaves alone: the cookies that keep the user signed in (a) and those the user pressed Keep on (b),
@@ -160,18 +159,18 @@ const { buildReport, renderReport } = (() => {
       const some = `Delete ${count(c.n - n, 'cookie')} on this site`, both = n ? ` data-some="${some}" data-all="Delete ${count(c.n, 'cookie')} on this site"` : '';
       return `<p>${btn(some, { type: 'dropSite', host: r.site }, ' class="go"' + both + off)}`
         + (!n ? '' : ` <span class="m">${n} stay${n === 1 ? 's' : ''}: ${[a ? `${a} keep${a === 1 ? 's' : ''} you signed in` : '', b ? `${b} you chose to keep` : ''].filter(Boolean).join(', ')}</span>`
-          + ` <label><input type="checkbox" data-also="kept"> also the ${a && b ? 'ones that keep me signed in and the ones I chose to keep' : a ? `${a} that keep${a === 1 ? 's' : ''} me signed in` : `${b} I chose to keep`}</label>`) + '</p>'
-        + (r.stopped ? `<p class="m">Cleaning is ${r.stopped}, so nothing can be deleted from here right now.</p>` : ''); };
+          + ` <label><input type="checkbox" data-also="kept"> also the ${a && b ? 'kept ones' : a ? `${a} that keep${a === 1 ? 's' : ''} me signed in` : `${b} I chose to keep`}</label>`) + '</p>'
+        + (r.stopped ? `<p class="m">Cleaning is ${r.stopped}, so nothing can be deleted now.</p>` : ''); };
     const always = () => !(r.always || []).length ? '' : `<details id="always"><summary>Always deleted on this site (${r.always.length})</summary>`
       + r.always.map((a) => `<div class="c h"><span>${esc(a.site)} · ${esc(a.name)}</span>${btn('Stop always deleting', { type: 'always', site: a.site, name: a.name, on: false })}</div>`).join('') + '</details>';
     const cookies = () => { const c = r.cookies;
       return '<h2>Small files this site has saved to recognise you (cookies)</h2>'
-        + (!r.site ? '<p class="m">This tab is not a web page, so there are no cookies to show.</p>' : !c ? '<p class="m">Chrome did not say which cookies this site has.</p>'
+        + (!r.site ? '<p class="m">This tab is not a web page, so it has no cookies.</p>' : !c ? '<p class="m">Chrome did not say which cookies this site has.</p>'
           : !c.n ? '<p>This site has saved no cookies.</p>'
-          : `<p>${count(c.n, 'cookie')} on ${esc(r.site)}, read from Chrome just now. They are in Chrome&#39;s own cookie file on this computer. `
-            + 'Only the start of what each one holds is shown here, and none of it is saved anywhere.</p>'
-            + (safe ? `<p class="m">See this list in a terminal: <code>${INSPECT}cookies --site ${r.site}</code> <button class="small" data-copy="${INSPECT}cookies --site ${r.site}">Copy command</button></p>` : '')
-            + '<p class="m">Deleting them from a terminal is not offered: Chrome&#39;s cookie file cannot be changed safely while Chrome is running. Use the buttons here.</p>'
+          : `<p>${count(c.n, 'cookie')} on ${esc(r.site)}, read just now. `
+            + 'Only the start of each is shown, and none of it is stored.</p>'
+            + (safe ? `<p class="m">In a terminal: <code>${INSPECT}cookies --site ${r.site}</code> <button class="small" data-copy="${INSPECT}cookies --site ${r.site}">Copy command</button></p>` : '')
+            + '<p class="m">Delete them with these buttons. A terminal cannot do it safely while Chrome runs.</p>'
             + all(c) + `<details id="cookies"><summary>Show the ${count(c.n, 'cookie')}</summary>${c.rows.map(cookie).join('')}</details>`) + always(); };
     const look = (label, show) => r.tabId === null ? '' : btn(label, { type: 'stored', tabId: r.tabId, ...(show ? { show } : {}) });
     const item = (it) => `<div class="c">${esc(it.name)}${it.value === undefined ? '' : it.value ? ` <code>${esc(it.value)}${it.long ? '…' : ''}</code>` : ' <span class="m">holds nothing</span>'}</div>`;
@@ -180,16 +179,16 @@ const { buildReport, renderReport } = (() => {
       + (k.items || []).map(item).join('') + '</div>';
     const stored = () => { const st = r.stored;
       return '<h2>Other things this page has saved in your browser</h2>'
-        + (!st ? '<p class="m">This tab is not a web page, so there is nothing saved by it to show.</p>' : st.refused ? '<p>Chrome does not let extensions look at this page.</p>'
-          : !st.kinds ? `<p>${look('Count what this page has saved')} <span class="m">Nothing on the page is looked at until you press this.</span></p>`
-          : '<p class="m">Read from the page just now. Only names and the start of what is saved are shown here, and none of it is saved anywhere else.</p>' + st.kinds.map(kind).join('')); };
+        + (!st ? '<p class="m">This tab is not a web page, so there is nothing to show.</p>' : st.refused ? '<p>Chrome does not let extensions look at this page.</p>'
+          : !st.kinds ? `<p>${look('Count what this page saved')} <span class="m">Nothing is read until you press it.</span></p>`
+          : '<p class="m">Read just now. Only names and the start of each value are shown, and none is stored.</p>' + st.kinds.map(kind).join('')); };
     const topLine = () => { const t = r.top || {};
       if (typeof t.master !== 'boolean') return `<div class="top"><b>${esc(t.says)}</b> ${btn('Turn on', { type: 'setMaster', on: true })}</div>`;
       return `<div class="top"><label><input type="checkbox" data-msg="${esc(JSON.stringify({ type: 'setMaster' }))}"${t.master ? ' checked' : ''}> ${t.master ? 'On' : 'Off'}</label> <b>${esc(t.says)}</b><div class="b">`
         + (!t.master ? '' : t.paused ? btn('Resume', { type: 'resume' }) : btn('Pause 10 min', { type: 'pause', minutes: 10 }))
         + (t.undo ? btn(`Put back ${t.undo >= r.full ? r.full + '+' : t.undo} deleted cookie${t.undo === 1 ? '' : 's'}`, { type: 'restoreAll' }) : '')
         + btn('Clear the saved copies of pages', { type: 'drop', kind: 'servers' }, off) + '</div>'
-        + (t.undo ? '' : '<div class="m">0 cookies deleted in the last 10 minutes, so there is nothing to put back.</div>') + '</div>'; };
+        + (t.undo ? '' : '<div class="m">0 cookies deleted in the last 10 minutes, so nothing to put back.</div>') + '</div>'; };
     const page = () => `<p class="m">${r.site ? `This page: ${esc(r.site)}` : 'This tab is not a web page'} · Read at ${esc(r.readAt)} <button class="small" data-act="refresh">Read again</button></p>`;
     const ask = (w, a) => `<div class="c" data-ask="${esc(a.site)}"><div>${esc(a.line)}</div><div class="b">${btn(a.yes === 'Remove' ? 'Remove' : a.yes === 'Skip' ? 'Skip it' : a.yes === 'Block' ? 'Block' : 'Approve', { type: 'approve', group: w.id, site: a.site, name: a.name }, ' class="go"' + off)}`
       + `${btn(a.no === 'Keep' ? 'Keep' : 'Not now', { type: 'notNow', group: w.id, site: a.site, name: a.name })}</div></div>`;
@@ -197,15 +196,15 @@ const { buildReport, renderReport } = (() => {
       + r.stoppedTrackers.map((x) => `<div class="c"><div class="h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unstop', site: x })}</div>`
         // never offered for a host whose site the user opens as a page
         + ((r.stoppedUsed || []).includes(x) ? '' : `<label><input type="checkbox" data-msg="${esc(JSON.stringify({ type: 'keepRemoving', site: x }))}"${(r.keeps || []).includes(x) ? ' checked' : ''}> Keep removing what ${esc(x)} saves</label>`) + '</div>').join('') + '</details>')
-      + (!(r.skipped || []).length ? '' : `<details id="skipped"><summary>Sites that are skipped (${r.skipped.length})</summary><div class="m">These sites only passed you along, so their links now take you straight to the page they name.</div>`
+      + (!(r.skipped || []).length ? '' : `<details id="skipped"><summary>Skipped sites (${r.skipped.length})</summary><div class="m">Links through these sites now go straight to the page they name.</div>`
       + r.skipped.map((x) => `<div class="c h"><span>${esc(x)}</span>${btn('Let it through again', { type: 'unskip', site: x })}</div>`).join('') + '</details>');
     const waits = () => '<h2>Waiting for your answer</h2>' + (!(r.waiting || []).length ? '<p class="m">Nothing is waiting for your answer.</p>' : r.waiting.map((w) => (w.asks || []).map((a) => ask(w, a)).join('') + (!w.items.length && (w.asks || []).length ? '' :
       `<div class="c" data-wait="${esc(w.id)}"><div>${esc(w.line)}</div><div class="b">${w.button ? btn(esc(w.button), { type: 'approve', group: w.id }, ' class="go"' + off) : ''}`
       + `${btn('Postpone 1 hour', { type: 'postpone', group: w.id, minutes: 60 })}</div>` + (w.note ? `<div class="m">${w.note}</div>` : '')
-      + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? ` (the newest ${w.items.length} of ${w.n})` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`)).join('')) + stoppedList();
+      + `<details id="wait-${esc(w.id)}"><summary>Show what is waiting${w.items.length < w.n ? `, newest ${w.items.length} of ${w.n}` : ''}</summary>${w.items.map((x) => `<div class="c">${esc(x)}</div>`).join('')}</details></div>`)).join('')) + stoppedList();
     const cannot = () => !(r.cannot || []).length ? '' : `<h2>What Tracker Cleaner cannot do</h2><details id="cannot"><summary>Show the ${r.cannot.length} things</summary>`
       + r.cannot.map((x) => `<div class="c"><b>${esc(x.what)}</b><div class="m">${esc(x.why)}</div></div>`).join('') + '</details>';
-    return topLine() + page() + waits() + '<h2>What Tracker Cleaner does for you</h2>' + (r.features || []).map(feature).join('') + cookies() + stored() + cannot();
+    return topLine() + page() + waits() + '<h2>What Tracker Cleaner does</h2>' + (r.features || []).map(feature).join('') + cookies() + stored() + cannot();
   };
   return { buildReport, renderReport };
 })();

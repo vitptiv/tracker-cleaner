@@ -35,13 +35,13 @@ test('cookies: the same answers in the same words as the command gives for the s
   const html = renderHistoryPage(state()), t = told('cookies');
   assert.equal(line(html, 'cookies', 'There now:'), t.now); assert.equal(t.now, '5 cookies from 3 sites');
   assert.equal(line(html, 'cookies', 'Kept:'), t.kept);
-  assert.equal(line(html, 'cookies', 'Removed:'), `none in the last 30 days. Still there and would be removed: ${t.remove}`);
+  assert.equal(line(html, 'cookies', 'Removed:'), `none in the last 30 days. Would be removed now: ${t.remove}`);
   for (const [heading, rows] of t.lists) assert.ok(text(section(html, 'cookies')).includes(`${heading.replace('Would be removed:', 'Still there:')} (${rows.length})${rows.map((r) => r.replace('  ', ' · ')).join('')}`), heading);
 });
 test('cookies: what you allowed and the sites you switched off are kept, each with its reason', () => {
   const html = renderHistoryPage(state({ allow: [{ site: 'example.com', name: '_ga' }], sitesOff: ['doubleclick.net'] }));
   assert.equal(line(html, 'cookies', 'Kept:'), '4 (1 that keeps you signed in, 1 that is on no tracker list, 1 that you allowed, 1 on a site you told it not to clean)');
-  assert.equal(line(html, 'cookies', 'Removed:'), 'none in the last 30 days. Still there and would be removed: 1 (1 that Google uses to recognise you)');
+  assert.equal(line(html, 'cookies', 'Removed:'), 'none in the last 30 days. Would be removed now: 1 (1 that Google uses to recognise you)');
   const t = text(section(html, 'cookies'));
   assert.ok(t.includes('Kept: you allowed it (1)example.com · _ga')); assert.ok(t.includes('Kept: on a site you told it not to clean (1)doubleclick.net · id'));
   assert.equal(line(renderHistoryPage(state({ cookies: [] })), 'cookies', 'There now:'), 'no cookies');
@@ -49,45 +49,45 @@ test('cookies: what you allowed and the sites you switched off are kept, each wi
 });
 test('what was removed and when: today, the last 30 days, per day, and the cookies removed most often', () => {
   const html = renderHistoryPage(state({ history })), t = text(section(html, 'cookies'));
-  assert.ok(line(html, 'cookies', 'Removed:').startsWith('3 today, 9 in the last 30 days. Still there'));
+  assert.ok(line(html, 'cookies', 'Removed:').startsWith('3 today, 9 in the last 30 days. Would be removed now'));
   assert.ok(t.includes('Removed, day by day (3)12 Nov 2026: 310 Nov 2026: 520 Oct 2026: 1'), t);
   assert.ok(t.includes('Removed most often (2)google.com · NID: 30 times, first on 20 Oct 2026, last on 12 Nov 2026example.com · _ga: 7 times, first on 10 Nov 2026, last on 12 Nov 2026'), t);
   assert.equal(line(html, 'storage', 'Removed:'), 'none today, 2 in the last 30 days');
-  assert.equal(line(html, 'cache', 'Removed:'), 'cleared on 2 days in the last 30 days, the last time on 12 Nov 2026');
+  assert.equal(line(html, 'cache', 'Removed:'), 'cleared on 2 days in the last 30 days, last on 12 Nov 2026');
 });
 test('cookies: the notice for a cookie its site keeps putting back', () => {
   const one = renderHistoryPage(state({}, { google: { pending: 1, looping: 1 } })), two = renderHistoryPage(state({}, { google: { looping: 1 }, cookies: { looping: 2 } }));
-  assert.ok(section(one, 'cookies').includes('<p>1 cookie is left alone for an hour because its site keeps putting it back; after that it is removed again.</p>'));
-  assert.ok(section(two, 'cookies').includes('<p>3 cookies are left alone for an hour because their sites keep putting them back; after that they are removed again.</p>'));
-  assert.equal(renderHistoryPage(state()).includes('putting'), false);
+  assert.ok(section(one, 'cookies').includes('<p>1 cookie keeps coming back, so it waits an hour.</p>'));
+  assert.ok(section(two, 'cookies').includes('<p>3 cookies keep coming back, so they wait an hour.</p>'));
+  assert.equal(renderHistoryPage(state()).includes('coming back'), false);
 });
 test('saved copies of pages: what the extension cannot see it says so, and when the next clearing is due', () => {
   const at = (o) => renderHistoryPage(state({}, { cache: o }));
-  assert.equal(line(at({}), 'cache', 'There now:'), 'Chrome does not tell an extension how much it has saved. The command below shows the size and the number of files.');
+  assert.equal(line(at({}), 'cache', 'There now:'), 'Chrome does not tell extensions its size. The command below shows it.');
   assert.equal(line(at({}), 'cache', 'Kept:'), 'none (the copies are cleared all together, not site by site)');
-  assert.equal(line(at({ nextAt: NOW + 3600e3 }), 'cache', 'Removed:'), 'not cleared in the last 30 days; offered again today at 15:05');
-  assert.equal(line(at({ mode: 'auto', nextAt: NOW + 20 * 3600e3 }), 'cache', 'Removed:'), 'not cleared in the last 30 days; cleared again tomorrow at 10:05');
-  assert.equal(line(at({ pending: 1 }), 'cache', 'Removed:'), 'not cleared in the last 30 days; clearing waits for you in the popup');
-  assert.equal(line(at({ mode: 'off', nextAt: NOW + 3600e3 }), 'cache', 'Removed:'), 'not cleared in the last 30 days; clearing is switched off');
+  assert.equal(line(at({ nextAt: NOW + 3600e3 }), 'cache', 'Removed:'), 'not cleared in the last 30 days. Offered again today at 15:05');
+  assert.equal(line(at({ mode: 'auto', nextAt: NOW + 20 * 3600e3 }), 'cache', 'Removed:'), 'not cleared in the last 30 days. Cleared again tomorrow at 10:05');
+  assert.equal(line(at({ pending: 1 }), 'cache', 'Removed:'), 'not cleared in the last 30 days. Waiting in the popup');
+  assert.equal(line(at({ mode: 'off', nextAt: NOW + 3600e3 }), 'cache', 'Removed:'), 'not cleared in the last 30 days. Clearing is off');
 });
 test('site storage: says what it cannot see, what is kept and how many wait', () => {
   const html = renderHistoryPage(state({ history }, { storage: { pending: 2 } }));
-  assert.equal(line(html, 'storage', 'There now:'), 'Chrome does not tell an extension which sites keep data. The command below lists them.');
-  assert.equal(line(html, 'storage', 'Kept:'), 'everything, unless you drop a site yourself or put it on your always-drop list');
-  assert.equal(line(html, 'storage', 'Removed:'), 'none today, 2 in the last 30 days; 2 wait for you in the popup');
+  assert.equal(line(html, 'storage', 'There now:'), 'Chrome does not tell extensions which sites keep data. The command below lists them.');
+  assert.equal(line(html, 'storage', 'Kept:'), 'everything except sites you drop or put on your always-drop list');
+  assert.equal(line(html, 'storage', 'Removed:'), 'none today, 2 in the last 30 days, 2 waiting in the popup');
 });
 test('Tor: what Chrome is set to, a button for the check that says where the request goes, and each answer in its own sentence', () => {
   const tor = (o) => section(renderHistoryPage(state(o)), 'tor'), now = (o) => line(renderHistoryPage(state(o)), 'tor', 'There now:');
-  const BUTTON = '<p><button data-act="tor">Check how websites see me</button> <span class="m">Pressing it sends one request to check.torproject.org, a site of the Tor Project. Nothing is sent before you press it.</span></p>';
+  const BUTTON = '<p><button data-act="tor">Check how websites see me</button> <span class="m">It sends one request to check.torproject.org, only when pressed.</span></p>';
   assert.equal(now({}), 'Chrome is not set to use Tor.'); assert.equal(now({ proxy: 'tor' }), 'Chrome is set to use Tor.');
-  assert.equal(now({ proxy: 'other' }), 'Chrome is set to use another go-between (proxy), not Tor.'); assert.equal(now({ proxy: undefined }), 'Whether Chrome is set to use Tor could not be read.');
+  assert.equal(now({ proxy: 'other' }), 'Chrome is set to use another go-between, not Tor.'); assert.equal(now({ proxy: undefined }), 'Could not read whether Chrome uses Tor.');
   assert.ok(tor({}).includes(BUTTON)); assert.equal(tor({}).includes('Websites see you'), false);
   assert.ok(tor({ tor: { checking: true } }).includes('<p>Asking check.torproject.org…</p>'));
   assert.ok(tor({ tor: { ip: '185.220.101.4', isTor: true }, proxy: 'tor' }).includes('<p>Websites see you as 185.220.101.4. This is Tor.</p>'));
-  assert.ok(tor({ tor: { ip: '203.0.113.57', isTor: false } }).includes('<p>Websites see you as 203.0.113.57. This is not Tor: it is your own address, or that of your VPN.</p>'));
-  assert.ok(tor({ tor: { ip: '203.0.113.57', isTor: false }, proxy: 'tor' }).includes('This is not Tor: it is your own address, or that of your VPN. Chrome is set to use Tor, so something is wrong.</p>'));
-  assert.ok(tor({ tor: { failed: true }, proxy: 'tor' }).includes('<p class="bad">There was no answer. Chrome is set to use Tor, so Tor is probably not running, and pages will not load until it runs or you switch Tor off.</p>'));
-  assert.ok(tor({ tor: { failed: true } }).includes('<p>There was no answer from check.torproject.org.</p>'));
+  assert.ok(tor({ tor: { ip: '203.0.113.57', isTor: false } }).includes('<p>Websites see you as 203.0.113.57. That is your own or your VPN&#39;s address, not Tor.</p>'));
+  assert.ok(tor({ tor: { ip: '203.0.113.57', isTor: false }, proxy: 'tor' }).includes('<p>Websites see you as 203.0.113.57. That is not Tor, so something is wrong.</p>'));
+  assert.ok(tor({ tor: { failed: true }, proxy: 'tor' }).includes('<p class="bad">No answer. Tor is probably not running, so pages will not load.</p>'));
+  assert.ok(tor({ tor: { failed: true } }).includes('<p>No answer from check.torproject.org.</p>'));
   for (const t of [{ ip: '1.2.3.4', isTor: false }, { failed: true }]) assert.ok(tor({ tor: t }).includes(BUTTON), 'the check can be repeated');
 });
 test('lists are inside collapsed sections; numbers come first', () => {
@@ -118,16 +118,15 @@ test('each copy button carries exactly the command for its block: run as printed
     assert.ok(s.includes(`<button data-copy="${cmd}">Copy command</button> <code>${cmd}</code>`), id);
     const out = []; assert.equal(inspect.main([...cmd.split(' ').slice(2), '--profile', fx.DIR, '--cache', fx.CACHE], { print: (x) => out.push(x), run: id === 'tor' ? NET : undefined }), 0);
     assert.equal(out[0].split('\n')[0], text((/<h2>(.*?)<\/h2>/.exec(s) || [])[1]), id); }
-  assert.ok(text(html).includes('Each command reads Chrome\'s own files without the extension, so you can check what this page says. Paste it into a terminal opened in the Tracker Cleaner folder.'));
+  assert.ok(text(html).includes('Run a command in a terminal in the Tracker Cleaner folder to check this page.'));
 });
 test('"Clear history" says how many days it clears, and what private means is said beside it', () => {
   const html = renderHistoryPage(state({ history }));
-  assert.ok(html.includes('<button data-msg="{&quot;type&quot;:&quot;clearHistory&quot;}">Clear history (3 days)</button>'));
-  assert.ok(renderHistoryPage(state({ history: { days: { '2026-11-12': { cookies: 1 } }, cookies: {} } })).includes('>Clear history (1 day)</button>'));
+  assert.ok(html.includes('<button data-msg="{&quot;type&quot;:&quot;clearHistory&quot;}">Clear 3 days of history</button>'));
+  assert.ok(renderHistoryPage(state({ history: { days: { '2026-11-12': { cookies: 1 } }, cookies: {} } })).includes('>Clear 1 day of history</button>'));
   const empty = renderHistoryPage(state());
   assert.equal(empty.includes('clearHistory'), false); assert.ok(empty.includes('Nothing has been removed yet, so there is no history.'));
-  assert.ok(html.includes('What was removed is counted for 30 days: how many each day, and for each cookie its site, its name and how often. Never what a cookie contained. '
-    + 'The history stays inside the extension on this computer: it is not synced, it is not sent anywhere, and websites cannot read it.'));
+  assert.ok(html.includes('Removals are counted for 30 days, never what a cookie held. This history stays on this computer, and no website can read it.'));
 });
 test('history.html: its own scripts only, nothing inline, and the page script asks Tor Project only inside the button\'s action', () => {
   const html = fs.readFileSync(path.join(EXT, 'history.html'), 'utf8'), js = fs.readFileSync(path.join(EXT, 'history-page.js'), 'utf8');
@@ -159,33 +158,33 @@ test('code cache and remembered servers: emptied together with the saved copies 
   const html = renderHistoryPage(state({ history }, { cache: { nextAt: NOW + 3600e3 } }));
   for (const id of ['code-cache', 'servers']) { assert.equal(line(html, id, 'Removed:'), line(html, 'cache', 'Removed:'), id);
     assert.ok(line(html, id, 'Kept:').startsWith('none ('), id); }
-  assert.equal(line(html, 'cache', 'Removed:'), 'cleared on 2 days in the last 30 days, the last time on 12 Nov 2026; offered again today at 15:05');
-  assert.equal(line(html, 'code-cache', 'There now:'), 'Chrome does not tell an extension how much this is. The command below shows the size and the number of files.');
+  assert.equal(line(html, 'cache', 'Removed:'), 'cleared on 2 days in the last 30 days, last on 12 Nov 2026. Offered again today at 15:05');
+  assert.equal(line(html, 'code-cache', 'There now:'), 'Chrome does not tell extensions its size. The command below shows it.');
   assert.equal(line(html, 'code-cache', 'Kept:'), 'none (it is emptied together with the saved copies of pages)');
-  assert.equal(line(html, 'servers', 'There now:'), 'Chrome does not tell an extension which servers it remembers. The command below counts them.');
+  assert.equal(line(html, 'servers', 'There now:'), 'Chrome does not tell extensions which servers it remembers. The command below counts them.');
   assert.equal(line(html, 'servers', 'Kept:'), 'none (both lists are emptied together with the saved copies of pages)');
 });
 test('permissions and Wi-Fi: what waits, what was removed, and what the helper said', () => {
   const h = { days: { '2026-11-12': { permissions: 1, wifi: 2 } }, cookies: {} }, at = (over, o = {}) => renderHistoryPage(state({ history: h, ...o }, over));
   let html = at({ permissions: { pending: 1 }, wifi: { pending: 3, helper: 'ok', canDelete: 'yes' } });
-  assert.equal(line(html, 'permissions', 'There now:'), 'Chrome does not give an extension the list of what sites may do. The command below lists it.');
+  assert.equal(line(html, 'permissions', 'There now:'), 'Chrome does not give extensions this list. The command below lists it.');
   assert.equal(line(html, 'permissions', 'Kept:'), 'all of them, unless you put one on your always-block list');
-  assert.equal(line(html, 'permissions', 'Removed:'), '1 today, 1 in the last 30 days; 1 waits for you in the popup');
-  assert.equal(line(html, 'wifi', 'There now:'), '3 remembered networks that were not used for 30 days or more, or never');
-  assert.equal(line(html, 'wifi', 'Kept:'), 'every network in use now or used in the last 30 days');
-  assert.equal(line(html, 'wifi', 'Removed:'), '2 today, 2 in the last 30 days; 3 wait for you in the popup');
-  assert.equal(line(at({ wifi: { pending: 1, helper: 'ok' } }), 'wifi', 'There now:'), '1 remembered network that was not used for 30 days or more, or never');
-  assert.equal(line(at({ wifi: { helper: 'ok' } }), 'wifi', 'There now:'), 'no remembered network that was not used for 30 days or more, or never');
-  assert.equal(line(at({ wifi: { helper: 'missing' } }), 'wifi', 'There now:'), 'Chrome cannot see Wi-Fi networks, and the helper program that can is not installed. The command below lists them.');
-  assert.equal(line(at({ wifi: { mode: 'off' } }), 'wifi', 'There now:'), 'This is switched off, so the extension has not looked. The command below lists them.');
+  assert.equal(line(html, 'permissions', 'Removed:'), '1 today, 1 in the last 30 days, 1 waiting in the popup');
+  assert.equal(line(html, 'wifi', 'There now:'), '3 networks unused for 30 days or more, or never used');
+  assert.equal(line(html, 'wifi', 'Kept:'), 'every network used in the last 30 days');
+  assert.equal(line(html, 'wifi', 'Removed:'), '2 today, 2 in the last 30 days, 3 waiting in the popup');
+  assert.equal(line(at({ wifi: { pending: 1, helper: 'ok' } }), 'wifi', 'There now:'), '1 network unused for 30 days or more, or never used');
+  assert.equal(line(at({ wifi: { helper: 'ok' } }), 'wifi', 'There now:'), 'no networks unused for 30 days or more, or never used');
+  assert.equal(line(at({ wifi: { helper: 'missing' } }), 'wifi', 'There now:'), 'The Wi-Fi helper program is not installed. The command below lists them.');
+  assert.equal(line(at({ wifi: { mode: 'off' } }), 'wifi', 'There now:'), 'This is off, so nothing was checked. The command below lists them.');
 });
 test('blocked requests: the count Chrome still remembers, by site in a collapsed list, and why there is no history of it', () => {
   const blocked = [{ site: 'news.example', n: 12 }, { site: '', n: 3 }, { site: '<b>x', n: 1 }], html = renderHistoryPage(state({ blocked })), s = section(html, 'blocking');
-  assert.ok(s.includes('<h2>Requests to trackers stopped before they leave (request blocking)</h2>'));
-  assert.equal(line(html, 'blocking', 'There now:'), '16 requests stopped in the tabs that are open and those closed in the last few minutes. Chrome remembers no more than that, so there is no count per day.');
+  assert.ok(s.includes('<h2>Blocked tracker requests</h2>'));
+  assert.equal(line(html, 'blocking', 'There now:'), '16 requests stopped in open and recently closed tabs. Chrome keeps no daily count.');
   assert.ok(text(s).includes('By site (3)news.example: 12a tab closed since: 3&lt;b&gt;x: 1')); assert.equal(s.includes('<b>x'), false);
-  assert.equal(line(renderHistoryPage(state({ blocked: [{ site: 'a.test', n: 1 }] })), 'blocking', 'There now:').startsWith('1 request stopped in the tabs'), true);
-  assert.equal(line(renderHistoryPage(state({ blocked: [] })), 'blocking', 'There now:').startsWith('no requests stopped in the tabs'), true);
+  assert.equal(line(renderHistoryPage(state({ blocked: [{ site: 'a.test', n: 1 }] })), 'blocking', 'There now:').startsWith('1 request stopped in open'), true);
+  assert.equal(line(renderHistoryPage(state({ blocked: [] })), 'blocking', 'There now:').startsWith('no requests stopped in open'), true);
   assert.equal(line(renderHistoryPage(state()), 'blocking', 'There now:'), 'Chrome did not say how many requests it stopped.');
-  assert.equal(line(html, 'blocking', 'What happens if you clean this:'), 'Nothing is cleaned here: these requests never leave your computer. A page that needs one may show a gap; "Don\'t clean on this site" in the popup lets them through.');
+  assert.equal(line(html, 'blocking', 'What happens if you clean this:'), 'These requests never leave your computer. If a page breaks, "Don\'t clean on this site" in the popup lets them through.');
 });

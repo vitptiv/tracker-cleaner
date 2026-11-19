@@ -20,7 +20,7 @@ const queued = (bg) => ((bg.state.storage.pending || {}).wifi || { items: [] }).
 const log = (bg) => (bg.state.storage.log || []).map((l) => [l.cap, l.kind, l.site, l.name, l.did].join(' '));
 const row = (state) => renderPopup(state, null).split('data-group="wifi"')[1].split('data-group=')[0];
 const wifi = async (bg) => (await bg.send({ type: 'state' })).groups.find((g) => g.id === 'wifi');
-const HINT = 'Helper not installed (see wifi-helper/README.md)';
+const HINT = 'The Wi-Fi helper is not installed';
 
 test('registry: C24 never runs by itself, whatever is stored, so it is never held either', () => {
   for (const master of [true, undefined]) assert.equal(mayRun('C24', { master, modes: { C24: 'auto' } }), 'ask');
@@ -127,7 +127,7 @@ test('deletion not permitted for this user: the row says so and has no Approve b
     await bg.alarm('sweep');
     const s = await bg.send({ type: 'state' }), html = row(s);
     assert.equal(s.groups.find((g) => g.id === 'wifi').canDelete, perm);
-    assert.ok(html.includes('2 pending')); assert.ok(html.includes('not allowed to remove saved networks'));
+    assert.ok(html.includes('2 pending')); assert.ok(html.includes('may not remove networks without a password'));
     assert.equal(html.includes('"approve'), false); assert.equal(html.includes('Remove 2'), false);
     assert.ok(html.includes('>Postpone 1 h</button>'));
   }
@@ -137,12 +137,12 @@ test('the row: "Remove N saved networks", the warning under it, and each network
   await bg.alarm('sweep');
   const html = row(await bg.send({ type: 'state' }));
   assert.match(html, /<button data-msg="[^"]*approve[^"]*wifi[^"]*" class="go">Remove 2 saved networks<\/button>/);
-  assert.ok(html.indexOf('This cannot be undone here') > html.indexOf('Remove 2 saved networks'));
+  assert.ok(html.indexOf('This cannot be undone') > html.indexOf('Remove 2 saved networks'));
   assert.ok(html.includes('Cafe · not used for 40 days') && html.includes('Hotel · never used'));
   assert.equal(html.split('class="go"').length, 2); assert.equal(html.includes(U(2)), false);
   h.rows.pop(); await bg.alarm('sweep');
   assert.ok(row(await bg.send({ type: 'state' })).includes('>Remove 1 saved network</button>'));
-  assert.equal(renderPopup(await bg.send({ type: 'state' }), null).split('This cannot be undone here').length, 2);
+  assert.equal(renderPopup(await bg.send({ type: 'state' }), null).split('This cannot be undone<').length, 2);
 });
 test('"This site" never lists a Wi-Fi entry, even for a network named like the site', async () => {
   const h = helper(); h.rows.push(`example.com:${U(6)}:802-11-wireless:0:no`);

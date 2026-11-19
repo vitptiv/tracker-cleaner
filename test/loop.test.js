@@ -77,6 +77,6 @@ test('the breaker pauses for one hour, then deleting goes on: the cookie is remo
 test('L8: the popup and the report say that it is left alone for an hour and then removed again', () => {
   const { renderPopup } = require('../extension/popup-view.js'), { buildReport } = require('../extension/report-view.js');
   const it = { cap: 'C03', kind: 'cookie', site: 'example.com', name: '_ga', why: 'this site keeps putting it back' }, g = { id: 'cookies', title: 'Trackers\' cookies', says: '', ask: true, mode: 'auto', pending: 1, items: [it], looping: 1 };
-  assert.ok(renderPopup({ now: 1, master: true, hold: {}, groups: [g] }, null).includes('1 of these is left alone for an hour because its site keeps putting it back; after that it is removed again.'));
-  assert.ok(buildReport({ now: 1, master: true, hold: {}, groups: [g] }, null).waiting[0].items[0].includes('left alone for an hour: its site keeps putting it back'));
+  assert.ok(renderPopup({ now: 1, master: true, hold: {}, groups: [g] }, null).includes('1 keeps coming back, so it waits an hour.'));
+  assert.ok(buildReport({ now: 1, master: true, hold: {}, groups: [g] }, null).waiting[0].items[0].includes('keeps coming back, so it waits an hour'));
 });

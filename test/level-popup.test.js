@@ -9,20 +9,20 @@ const row = (html, id) => html.split(`data-group="${id}"`)[1].split('data-group=
 const top = (html) => html.split('data-group=')[0];
 
 test('the dial comes first: three positions, the chosen one pressed, one true sentence under it, and the rows that are not on it', () => {
-  for (const [level, says] of [['ask', /Nothing is deleted, and nothing it learns is blocked, until you press/], ['balanced', /wait for your answer/], ['strong', /without asking/]]) {
+  for (const [level, says] of [['ask', /Nothing is deleted or newly blocked until you press/], ['balanced', /waits for your answer/], ['strong', /without asking/]]) {
     const html = renderPopup(state({ level }), null);
     assert.ok(html.startsWith('<div class="c" data-level'), level);
     assert.deepEqual([...html.matchAll(/data-level-pick="(\w+)"[^>]*aria-pressed="(\w+)"/g)].map((m) => [m[1], m[2]]), [['ask', String(level === 'ask')], ['balanced', String(level === 'balanced')], ['strong', String(level === 'strong')]]);
     assert.match(top(html), says, level);
     if (level === 'strong') assert.match(top(html), /sites you use.*cannot be put back/, 'Strongest names its two costs (1.32: the hourly cap is in the README)');
-    assert.match(top(html), /Tor, the tab limit, keeping only listed cookies, Wi-Fi networks and the reports keep their own switch/); }
+    assert.match(top(html), /Tor, Wi-Fi and a few other rows keep their own switch/); }
   const custom = renderPopup(state({ level: 'custom' }), null);
-  assert.match(top(custom), /Custom: you set some rows yourself/); assert.equal(/aria-pressed="true"/.test(custom), false);
+  assert.match(top(custom), /Custom: you changed some rows/); assert.equal(/aria-pressed="true"/.test(custom), false);
   for (const l of ['Ask first', 'Balanced', 'Strongest']) assert.ok(top(custom).includes(`>${l}</button>`), l);
 });
 test('the Ask first sentence names what stays on, and says nothing that is not true', () => {
   const t = top(renderPopup(state({ level: 'ask' }), null));
-  assert.match(t, /Still on: blocking of listed trackers, the rules that give other companies less, and what you chose yourself \(blocks you pressed, your always-delete list, the history switch\)/);
+  assert.match(t, /Known trackers stay blocked/);   // 1.32: short; the full list of what stays on is in the README
 });
 test('one "Clean everything now" at the top; off while paused or switched off, and before cleaning was ever turned on', () => {
   const all = (s) => msgs(renderPopup(s, null)).filter((m) => m.type === 'cleanAll');
@@ -54,7 +54,7 @@ test('after a press the row shows what was done, for ten minutes; an answer give
 test('the first-run line says the level it starts at', () => {
   assert.match(renderPopup(state({ firstRun: true }), null), /On, at Strongest: trackers are blocked and cleaned without asking, also on sites you use\. This can sign you out, and wiped site data cannot be put back\. Pick Balanced to be asked first\./);
   const bal = renderPopup(state({ firstRun: true, level: 'balanced' }), null);
-  assert.match(bal, /asks before it blocks or removes anything of a company that is on no list/); assert.equal(bal.includes('Tracker Cleaner is on, at Strongest'), false);
+  assert.match(bal, /Anything new is asked first/); assert.equal(bal.includes('Tracker Cleaner is on, at Strongest'), false);
 });
 test('popup.js: the refusals of a press are said in plain words, and the count of a Clean now is shown', () => {
   const js = fs.readFileSync(path.join(__dirname, '../extension/popup.js'), 'utf8');

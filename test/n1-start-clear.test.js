@@ -82,7 +82,7 @@ test('N1: the note that a start clearing is due is kept in memory only, and no n
 });
 test('N1: the row and the first-run line say that the saved copies also go when Chrome starts', () => {
   const says = require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says;
-  assert.match(says, /once a day and each time Chrome starts/);
+  assert.match(says, /Cleared daily and when Chrome starts/);
   const { renderPopup } = require('../extension/popup-view.js');
-  assert.match(renderPopup({ master: true, firstRun: true, groups: [], log: [], hold: {} }, null), /clears the saved copies of pages once a day and when Chrome starts/);
+  assert.match(require('fs').readFileSync(require('path').join(__dirname, '..', 'README.md'), 'utf8').replace(/\s+/g, ' '), /each time Chrome starts/);   // 1.32: the long version is in the README
 });

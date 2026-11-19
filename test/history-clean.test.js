@@ -30,15 +30,15 @@ test('the switch: only true or false is taken; the popup offers it with what Chr
   for (const v of [undefined, 'yes', 1]) assert.deepEqual(await bg.send({ type: 'histOn', on: v }), { ok: false });
   let html = renderPopup(await bg.send({ type: 'state' }), null);
   assert.match(html, /<button data-perm="history"[^>]*>Also remove trackers&#39; pages from my history<\/button>/);
-  assert.ok(html.includes('Chrome will ask you to let Tracker Cleaner read your history. Only pages on trackers&#39; own addresses are removed; nothing of your history is kept or sent anywhere.'));
+  assert.ok(html.includes('Chrome will ask for access. Only trackers&#39; pages are removed, and nothing is sent anywhere.'));
   assert.deepEqual(await bg.send({ type: 'histOn', on: true }), { ok: true }); await bg.settle();
   html = renderPopup(await bg.send({ type: 'state' }), null);
-  assert.ok(html.includes('Pages on trackers&#39; own addresses are taken out of your history once a day.')); assert.match(html, /<button data-perm-off="history"/);
+  assert.ok(html.includes('Trackers&#39; pages leave your history once a day.')); assert.match(html, /<button data-perm-off="history"/);
   assert.equal(left(bg).includes('https://trk.example/a?b=1'), false, 'switching it on did not clean at once');
 });
 test('carried over, as changed by J6: with 300 companies blocked the popup says that the oldest block makes room for a new one', () => {
   const s = { now: 1, master: true, hold: {}, groups: [], stopped: Array.from({ length: 300 }, (_, i) => `t${i}.example`) };
-  assert.ok(renderPopup(s, null).includes('300 companies are blocked, the most Tracker Cleaner keeps: when a new one is blocked, the one blocked longest ago is let through again.'));
+  assert.ok(renderPopup(s, null).includes('300 hosts are blocked, the most kept. A new block lets the oldest through.'));
   assert.equal(renderPopup({ ...s, stopped: s.stopped.slice(1) }, null).includes('300 companies are blocked'), false);
 });
 test('carried over: the report does not say "deleted automatically" for a cookie of a stopped company that is kept', async () => {
@@ -47,6 +47,6 @@ test('carried over: the report does not say "deleted automatically" for a cookie
   const got = await bg.send({ type: 'cookies', host: 'trk.example' });
   assert.deepEqual(got.cookies.map((c) => [c.name, c.used === true]), [['sess', true], ['uid', false]]);
   const rows = buildReport(await bg.send({ type: 'state' }), { id: 1, host: 'news.example', cookies: got.cookies }).cookies.rows;
-  assert.equal(rows[0].what, 'comes from a company that was stopped, kept because you may be signed in there');
+  assert.equal(rows[0].what, 'from a stopped company, kept in case you are signed in there');
   assert.match(rows[1].what, /deleted automatically$/);
 });

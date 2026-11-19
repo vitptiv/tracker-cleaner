@@ -114,7 +114,7 @@ test('a live cookie action records the page: the host of the active tab of the l
   assert.deepEqual(l.map((e) => [e.name, e.did, e.page]), [['x', 'removed', 'www.news.test'], ['_ga', 'queued', undefined], ['y', 'queued', 'www.news.test']]);
   assert.equal('page' in l[1], false); assert.equal(JSON.stringify(bg.state.storage.pending).includes('news.test'), false);
   const html = renderPopup(await bg.send({ type: 'state' }), { host: 'www.news.test', blocked: null });
-  assert.equal(html.split('set while you were on this site').length - 1, 2); assert.ok(html.includes('ad.doubleclick.net · x'));
+  assert.equal(html.split('set while you were here').length - 1, 2); assert.ok(html.includes('ad.doubleclick.net · x'));
 });
 
 // ---- 1.22

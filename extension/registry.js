@@ -88,27 +88,27 @@ const answersYes = (id, settings, hold) => modeOf(id, settings) === 'yes' && gat
 // One row per group, in the usability order of PLAN.md. 'control' capabilities have no mode and no row.
 // says: what the group does for you, in one sentence anyone can read (the report shows it under the title).
 const GROUPS = [
-  ['signin', 'Pause cleaning while you sign in', 'While you sign in somewhere, and for five minutes after, nothing is cleaned so the sign-in cannot break.'],
-  ['blocking', 'Ads and trackers blocked as pages load', 'Pages are stopped from calling the companies that follow you from site to site, and YouTube plays without its ads.'],
-  ['cookies', "Trackers' cookies", 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.'],
-  ['google', 'Cookies Google uses to recognise you', 'Small files that Google and YouTube save to recognise you when you are not signed in are deleted, while the ones that keep you signed in stay.'],
-  ['othercookies', 'Other companies get no cookies', 'When a page you visit asks another company for something, your cookies for that company are not sent along and it cannot save new ones, so it cannot recognise you there.'],
-  ['othertags', 'Other companies get no page address or tag', 'When a page you visit asks another company for something, that company is not told which page you are on, and a hidden label it left in a saved copy is not sent back to it.'],
-  ['local', 'Pages may not call this computer', 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.'],
-  ['shield', 'Blur browser recognition (experimental)', 'Experimental, best effort: makes this browser harder to recognise by its drawing, sound, fonts and screen size; a determined site can still undo it.'],
-  ['crossid', 'Codes that follow you across sites', 'When the same hidden code turns up on two different sites you visit, it is a tracker following you between them, so it is stripped from links and requests and the address that collects it is blocked - that exact address, never the whole site. Cookies that carry the code, and cookies that address saved for the site, are deleted, but never one that keeps you signed in; a deleted cookie can be put back for 10 minutes, and the rest is undone by switching this row off.'],
-  ['params', 'Tracking tags removed from links', 'The extra letters that advertisers add to a link to see where you came from are cut off before the page opens.'],
+  ['signin', 'Pause while you sign in', 'Nothing of a site is deleted while you sign in there, and for five minutes after.'],
+  ['blocking', 'Block ads and trackers', 'Pages cannot call known trackers, and YouTube plays without ads.'],
+  ['cookies', "Trackers' cookies", 'Tracker cookies are deleted. Cookies that keep you signed in stay.'],
+  ['google', "Google's tracking cookies", 'Google cookies that recognise you are deleted. Sign-in cookies stay.'],
+  ['othercookies', 'No cookies for others', 'Other companies a page calls get none of your cookies.'],
+  ['othertags', 'No page address for others', 'Other companies a page calls are not told which page you are on.'],
+  ['local', 'Protect this computer', 'Websites cannot call this computer or your home network.'],
+  ['shield', 'Experimental fingerprint blur', 'Experimental: makes this browser harder to recognise. A determined site can undo it.'],
+  ['crossid', 'Codes shared across sites', 'A code seen on two sites is cut from links and its collector is blocked.'],
+  ['params', 'Clean tags from links', 'Tracking tags are cut from links before the page opens.'],
   ['unknown', 'Trackers on no list', 'Asks before blocking a company seen following you on two sites. At Strongest it blocks and cleans by itself, sites you use included.'],
   ['bounce', 'Sites that pass you on', 'Asks before cleaning a site that only passes you on. At Strongest it cleans by itself, sites you use included.'],
-  ['own', 'What trackers saved on their own sites', "What the trackers on the built-in list have left on their own sites (a background program, saved data, the right to send notifications) is taken away once a day; for a host you blocked yourself only if you ticked \"Keep removing what it saves\"."],
-  ['storage', 'Data that sites keep (site storage)', 'Other things a site has saved in your browser are emptied, but only for the sites you chose yourself.'],
-  ['wifi', 'Remembered Wi-Fi networks', 'Wi-Fi networks this computer remembers but has not used for 30 days are forgotten.'],
-  ['permissions', 'What sites may do (site permissions)', 'Sites you chose yourself are stopped from doing things such as sending notifications or using the camera.'],
-  ['cache', 'Saved copies of pages (HTTP cache)', 'All copies of pages that Chrome saved to load them faster are thrown away once a day and each time Chrome starts, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.'],
-  ['allowlist', 'Keep only the cookies you list', 'Every small file that sites save to recognise you is deleted, except the ones on your own list.'],
-  ['tabs', 'Limit how many tabs stay open', 'When more tabs are open than the number you set, the ones you used least are closed.'],
-  ['tor', 'Hiding your address from websites (Tor)', 'Chrome reaches websites through the Tor network, so they cannot see where you are.'],
-  ['server', 'Reports to a server on this computer', 'A summary of what was cleaned is sent to a settings program on this computer, and its lists and switches are read from it; nothing goes anywhere else.']]
+  ['own', "Trackers' own sites", 'What listed trackers left on their own sites is emptied once a day.'],
+  ['storage', 'Site data you chose', 'Saved data of the sites you chose is emptied.'],
+  ['wifi', 'Old Wi-Fi networks', 'Networks unused for 30 days are forgotten.'],
+  ['permissions', 'Site rights you chose', 'The sites you chose lose rights such as notifications.'],
+  ['cache', 'Saved copies of pages', 'Cleared daily and when Chrome starts, at Strongest every 10 minutes. Pages then load slower.'],
+  ['allowlist', 'Keep only listed cookies', 'Every cookie is deleted except the ones on your list.'],
+  ['tabs', 'Limit open tabs', 'When too many tabs are open, the least used close.'],
+  ['tor', 'Hide your address with Tor', 'Websites are reached through Tor, so they cannot see where you are.'],
+  ['server', 'Reports to this computer', 'A summary goes to a settings program on this computer only.']]
   .map(([id, title, says]) => ({ id, title, says, caps: CAPS.filter((c) => c.group === id && c.mode !== null).map((c) => c.id) }));
 // The rows that have something to clean, and so a "Clean now" button (1.30). Not: the rules that only block or strip
 // (nothing to clean), Wi-Fi (it keeps its own confirm before anything is removed), allow-list mode (it would delete

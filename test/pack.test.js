@@ -38,7 +38,7 @@ test('pack.sh: without the signing key it explains loading unpacked, before Chro
 });
 test('version 1.32, and a description of what it does', () => {
   assert.equal(manifest.version, '1.32');
-  for (const w of [/blocks listed trackers/i, /cookies/i, /script in every page/i]) assert.match(manifest.description, w);
+  for (const w of [/blocks trackers/i, /cookies/i, /script in every page/i]) assert.match(manifest.description, w);
   assert.ok(manifest.description.length <= 132);                    // Chrome's limit for a description
   assert.doesNotMatch(manifest.description + bgjs.split('\n').slice(0, 6).join(' ') + read('popup.js').split('\n').slice(0, 5).join(' '), /chrome-baddies|every 15 min\)|1\.20/);
 });

@@ -118,16 +118,16 @@ test('the waiting lines work: "Remove 1 cookie" removes exactly what waits, Post
   assert.deepEqual(await bg.names(), ['SID', 'theme', 'o']); assert.equal(page.note.textContent, 'Removed 1 of 1.');
   assert.ok(page.text().includes('Nothing is waiting for your answer.'));
 });
-test('"Count what this page has saved" looks into the tab only when pressed; the count stays through a redraw and is forgotten when the tab moves on', async () => {
+test('"Count what this page saved" looks into the tab only when pressed; the count stays through a redraw and is forgotten when the tab moves on', async () => {
   const bg = await load(on({ pages: { 1: { local: { uid: SECRET, a: '1' }, session: {} } } })), page = await loadPage(bg);
   assert.equal(bg.called('scripting.executeScript').length, 0);
-  await page.click('Count what this page has saved');
+  await page.click('Count what this page saved');
   assert.ok(page.text().includes('2 on this page'));
   await page.click('Read again'); assert.ok(page.text().includes('2 on this page'));
   await page.click('Show the 2');
   assert.ok(page.out.innerHTML.includes(`uid <code>${SHOWN}…</code>`)); assert.equal(page.out.innerHTML.includes(SECRET), false);
   await bg.navigate(1, 'https://www.example.com/next'); await bg.settle();
-  assert.ok(page.text().includes('Nothing on the page is looked at until you press this.'));
+  assert.ok(page.text().includes('Nothing is read until you press it.'));
   for (const kept of [bg.state.storage, bg.state.session, bg.state.sync]) assert.equal(JSON.stringify(kept).includes(SHOWN), false);
 });
 test('the page script writes nothing itself: no storage call, no fetch', () => {

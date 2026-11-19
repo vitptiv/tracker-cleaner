@@ -47,7 +47,7 @@ test('the list the page script gets: the hosts the user chose to skip (1.25, J4)
 test('"Let it through again" takes a host off the list and the report offers it; only a host name is accepted', async () => {
   const bg = await load(on()); await choose(bg);
   const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
-  assert.match(html, /Sites that are skipped \(\d+\)/); assert.ok(html.includes('hop.example') && html.includes('&quot;type&quot;:&quot;unskip&quot;'));
+  assert.match(html, /Skipped sites \(\d+\)/); assert.ok(html.includes('hop.example') && html.includes('&quot;type&quot;:&quot;unskip&quot;'));
   assert.deepEqual(await bg.send({ type: 'unskip', site: 'hop.example' }), { ok: true }); await bg.settle();
   assert.deepEqual(mine(bg), []); assert.equal((await bg.send({ type: 'state' })).skipped.includes('hop.example'), false);
   for (const site of [undefined, 7, '<img src=x>', 'a b']) assert.deepEqual(await bg.send({ type: 'unskip', site }), { ok: false });

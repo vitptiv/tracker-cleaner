@@ -11,7 +11,7 @@ const noti = (bg) => bg.called('contentSettings.set').filter((c) => c.args[0].pr
 
 test('the question says it is once; Remove removes what is there now and nothing later: a cookie set afterwards stays, nothing is emptied daily, no notification block', async () => {
   const bg = await load(on({ cookies: [UID] })); await blockIt(bg);
-  assert.ok(renderReport(buildReport(await bg.send({ type: 'state' }), null)).includes('trk.example is blocked on other sites. Also remove what it has saved here? This removes what is there now, once; nothing later.'));
+  assert.ok(renderReport(buildReport(await bg.send({ type: 'state' }), null)).includes('trk.example is blocked on other sites. Remove what it saved here, just this once?'));
   await bg.send(REMOVE); await bg.settle(); assert.deepEqual(await bg.names(), []); assert.deepEqual(bg.state.storage.hard || [], []);
   const emptied = bg.called('browsingData.remove').filter((c) => (c.args[0].origins || []).includes('https://trk.example')).length; assert.ok(emptied >= 1);
   await bg.setCookie(again); for (let i = 0; i < 100; i++) { bg.now += 15 * 60e3; await bg.alarm('sweep'); }

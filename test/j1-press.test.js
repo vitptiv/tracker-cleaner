@@ -17,7 +17,7 @@ test('a company on no list seen on many visited sites, one the user never opens:
   assert.deepEqual(deleted(bg), { cookies: 0, storage: 0, notifications: 0 }); assert.deepEqual(await bg.names(), ['uid']);
   assert.deepEqual(asks(bg), [['used', 'trk.example']]);
   const html = renderReport(buildReport(await bg.send({ type: 'state' }), null));
-  assert.ok(html.includes('trk.example is blocked on other sites. Also remove what it has saved here? This removes what is there now, once; nothing later.')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
+  assert.ok(html.includes('trk.example is blocked on other sites. Remove what it saved here, just this once?')); assert.match(html, />Remove<\/button>.*>Keep<\/button>/);
 });
 test('Remove: its cookies but the sign-in-looking ones, its storage and worker; Keep: never asked again', async () => {
   const bg = await load(on({ cookies: [UID, { name: 'sess', domain: '.trk.example', value: 's-3fa9c2d1e0', httpOnly: true, secure: true }] }));

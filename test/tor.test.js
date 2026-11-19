@@ -5,9 +5,9 @@ const test = require('node:test'), assert = require('node:assert'), load = requi
 const { buildReport, renderReport } = require('../extension/report-view.js'), { renderPopup } = require('../extension/popup-view.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const row = async (bg) => { const s = await bg.send({ type: 'state' }), f = buildReport(s, null).features.find((x) => x.id === 'tor'); return [f.state, f.count, s.tor]; };
-const NO = 'Routed over Tor: no', YES = 'Routed over Tor: yes, websites see an address of the Tor network, not yours';
-const NOT_RUNNING = 'Tor is not running on this computer; nothing is routed';
-const STOPPED = 'Routed over Tor: yes, but Tor has stopped answering. Pages will not load until Tor runs again or you switch this off';
+const NO = 'Not routed over Tor', YES = 'On: sites see a Tor address, not yours';
+const NOT_RUNNING = 'Tor is not running, so nothing is routed';
+const STOPPED = 'Tor has stopped, so pages will not load';
 
 test('switched off (as it comes): nothing is routed, the port is not even asked, and the row says "no"', async () => {
   const bg = await load(on());
@@ -72,7 +72,7 @@ test('the main switch, a pause and cleaning never turned on: not routed; turned 
 test('drawn: the row in the report and the row in the popup say the same sentence', async () => {
   for (const [tor, want] of [[{ wanted: true, running: false, routed: false }, NOT_RUNNING], [{ wanted: true, running: true, routed: true }, YES], [{ wanted: true, running: false, routed: true }, STOPPED],
     [{ wanted: false, running: null, routed: false }, NO]]) {
-    const s = { now: 1.8e12, master: true, hold: {}, tor, groups: [{ id: 'tor', title: 'Hiding your address from websites (Tor)', says: 'x', ask: true, mode: 'auto', pending: 0, items: [] }] };
+    const s = { now: 1.8e12, master: true, hold: {}, tor, groups: [{ id: 'tor', title: 'Hide your address with Tor', says: 'x', ask: true, mode: 'auto', pending: 0, items: [] }] };
     assert.ok(renderReport(buildReport(s, null)).includes(`on · ${want}</span>`), want);
     assert.ok(renderPopup(s, null).includes(`<span>${want}</span>`), want);
   }

@@ -11,13 +11,13 @@ test('feature rows from the real state: sentences, state words, deleted today an
   await bg.alarm('sweep');
   const state = { ...(await bg.send({ type: 'state' })), history: await bg.send({ type: 'history' }) };
   const r = buildReport(state, { id: 1, host: 'www.example.com', matched: ['trackers'] });
-  assert.equal(row(r, 'cookies').says, 'Small files that trackers save to recognise you are deleted, while the ones that keep you signed in stay.');
-  assert.deepEqual([row(r, 'cookies').state, row(r, 'cookies').count], ['on', '1 deleted on this site today, 1 deleted today on all sites, 0 waiting']);
-  assert.deepEqual([row(r, 'google').state, row(r, 'google').count], ['asks first', '0 deleted on this site today, 0 deleted today on all sites, 1 waiting']);
+  assert.equal(row(r, 'cookies').says, 'Tracker cookies are deleted. Cookies that keep you signed in stay.');
+  assert.deepEqual([row(r, 'cookies').state, row(r, 'cookies').count], ['on', '1 deleted here today, 1 on all sites, 0 waiting']);
+  assert.deepEqual([row(r, 'google').state, row(r, 'google').count], ['asks first', '0 deleted here today, 0 on all sites, 1 waiting']);
   assert.deepEqual([row(r, 'blocking').state, row(r, 'blocking').count], ['on', '1 blocked on this page']);
   await bg.send({ type: 'pause' });
   assert.equal(row(buildReport(await bg.send({ type: 'state' }), null), 'cookies').state, 'paused');
-  assert.match(renderReport(r), /Cookies Google uses to recognise you.*asks first · 0 deleted on this site today, 0 deleted today on all sites, 1 waiting/s);
+  assert.match(renderReport(r), /Google&#39;s tracking cookies.*asks first · 0 deleted here today, 0 on all sites, 1 waiting/s);
 });
 
 // ---- step 2
@@ -182,7 +182,7 @@ test('Delete all on this site: the number on the button is what goes; sign-ins a
   assert.deepEqual(await bg.names(), ['SID', 'cart', 'other', '_gid']);
   assert.deepEqual(log(bg).filter((l) => l.endsWith('removed')), ['cookie www.example.com theme removed', 'cookie example.com _ga removed']);
   assert.equal((await bg.send({ type: 'state' })).undo.length, 2);
-  assert.deepEqual(await bg.send({ ...b.msg, kept: true }), { ok: true, done: 2, of: 2 });   // the box "also the ones that keep me signed in and the ones I chose to keep"
+  assert.deepEqual(await bg.send({ ...b.msg, kept: true }), { ok: true, done: 2, of: 2 });   // the box "also the kept ones"
   assert.deepEqual(await bg.names(), ['cart', 'other']);
   assert.deepEqual(bg.state.storage.allow, [{ site: 'example.com', name: '_gid' }]);        // still on your keep list for when it comes back
 });
@@ -236,7 +236,7 @@ test('Show: the names of one kind, each value cut to 24 characters inside the pa
 test('a page that may not use its own storage: that kind has no number, the rest is counted', async () => {
   const bg = await load(on({ tabs: [TAB], pages: { 1: { local: null, session: { a: '1' } } } })), { stored, report } = await drawStored(bg);
   assert.deepEqual(stored.counts, { local: null, session: 1, databases: 0, caches: 0, workers: 0 });
-  assert.equal(report.stored.kinds[0].count, 'this page is not allowed to use it');
+  assert.equal(report.stored.kinds[0].count, 'not allowed on this page');
 });
 test('the stored message: a tab id that is not a number is refused, an unknown kind shows nothing, a web page is not answered', async () => {
   const bg = await load(on({ tabs: [TAB], pages: pages() }));

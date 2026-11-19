@@ -383,6 +383,15 @@ test('R: the hourly clear after a block does not add a second clear within 10 mi
 });
 test('R: the cache row at Strongest says every 10 minutes', async () => {
   const s = await (await at10('strong')).send({ type: 'state' }), row = renderPopup(s, null).split('data-group="cache"')[1].split('data-group=')[0];
-  assert.match(row, /every 10 minutes/);
-  const b = await (await at10('balanced')).send({ type: 'state' }); assert.equal(/every 10 minutes/.test(renderPopup(b, null)), false);
+  assert.match(row, /Cleared every 10 minutes/);
+  const b = await (await at10('balanced')).send({ type: 'state' }); assert.equal(/cleared every 10 minutes/.test(renderPopup(b, null)), false);
+});
+
+// ---- T (owner, 1.32): every popup-visible sentence is short
+test('T: no row title, row sentence or level sentence is longer than 140 characters; titles are 2 to 5 words', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'extension', 'popup-view.js'), 'utf8');
+  const levels = [...src.slice(src.indexOf('const LEVEL_SAYS'), src.indexOf('const OWN_LINE')).matchAll(/(\w+): '((?:[^'\\]|\\.)*)'/g)].map((m) => m[2]);
+  assert.equal(levels.length, 4);
+  for (const t of [...GROUPS.flatMap((g) => [g.title, g.says]), ...levels]) assert.ok(t.length <= 140, `${t.length}: ${t}`);
+  for (const g of GROUPS) { const w = g.title.split(/\s+/).length; assert.ok(w >= 2 && w <= 5, g.title); assert.equal(/[;()]/.test(g.title + g.says), false, g.id); }
 });

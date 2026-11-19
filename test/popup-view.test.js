@@ -14,7 +14,7 @@ test('fresh install: one line, a Turn on button, no switch and no pause; one row
   assert.ok(html.includes('Cleaning is off until you turn it on.')); assert.equal(count(html, '>Turn on</button>'), 1);
   for (const s of ['Pause 10 min', 'type="checkbox"', 'This site', 'Approve']) assert.equal(html.includes(s), false, s);
   assert.equal(count(html, 'data-group="'), GROUPS.length);
-  for (const g of GROUPS) assert.ok(html.includes(`data-group="${g.id}"`) && html.includes(`<b>${g.title.replace(/'/g, '&#39;')}</b>`), g.id);
+  for (const g of GROUPS) assert.ok(html.includes(`data-group="${g.id}"`) && html.includes(`>${g.title.replace(/'/g, '&#39;')}</b>`), g.id);
   for (const m of ['>Off</option>', '>Ask first</option>', '>Automatic</option>']) assert.equal(count(html, m), GROUPS.length, m);
   assert.equal(count(html, '<option value="ask" selected>'), GROUPS.length);
 });
@@ -44,8 +44,8 @@ test('this site also lists what was set elsewhere while this page was open, mark
     { t: NOW, cap: 'C03', kind: 'cookie', site: 'criteo.com', name: 'uid', did: 'removed', page: 'other.test' }] });
   const html = renderPopup(s, { host: 'www.example.com', blocked: null });
   assert.ok(html.includes('doubleclick.net · IDE') && html.includes('example.com · _ga')); assert.equal(html.includes('criteo.com'), false);
-  assert.equal(count(html, 'set while you were on this site'), 1);
-  assert.ok(html.indexOf('doubleclick.net · IDE') < html.indexOf('set while you were on this site') && html.indexOf('set while you were on this site') < html.indexOf("Don't clean"));
+  assert.equal(count(html, 'set while you were here'), 1);
+  assert.ok(html.indexOf('doubleclick.net · IDE') < html.indexOf('set while you were here') && html.indexOf('set while you were here') < html.indexOf("Don't clean"));
 });
 test('more pending than listed: the summary says so', () => {
   assert.ok(renderPopup(state({}, { cookies: { pending: 25, items: [item('a.test', 'x')] } }), null).includes('newest 1 of 25'));
@@ -61,7 +61,7 @@ test('switched off: the switch says Off, nothing to pause, the removing button i
   assert.equal(html.includes('Pause 10 min'), false); assert.equal(count(html, 'disabled>Remove '), 2);
 });
 test('sign-in guard: its line shows only while the guard holds', () => {
-  const line = 'Sign-in in progress: the cookies of that sign-in and of the site you came from are left alone for now.';
+  const line = 'Sign-in going on: its cookies are left alone.';
   assert.ok(renderPopup(state({ hold: { paused: false, guard: true, guardUntil: AT } }), null).includes(line));
   assert.equal(renderPopup(state(), null).includes(line), false);
 });
@@ -160,10 +160,10 @@ test('the cache row says how much there is and when it is next offered, instead 
 test('a row with cookies that keep coming back says so, with the number, and marks them in the list', () => {
   const back = 'this site keeps putting it back', row = (items, looping) => rowOf(renderPopup(state({}, { google: { mode: 'auto', pending: items.length, looping, items } }), null), 'google');
   const one = row([item('google.com', 'NID', { cap: 'C04', why: back })], 1);
-  assert.ok(one.includes('<div class="m">1 of these is left alone for an hour because its site keeps putting it back; after that it is removed again.</div>'), one);
+  assert.ok(one.includes('<div class="m">1 keeps coming back, so it waits an hour.</div>'), one);
   assert.ok(one.includes('google.com · NID <span class="m">keeps coming back</span>'));
   const two = row([item('google.com', 'NID', { cap: 'C04', why: back }), item('youtube.com', 'YSC', { cap: 'C04', why: back }), item('google.com', 'OTZ', { cap: 'C04', why: 'google' })], 2);
-  assert.ok(two.includes('<div class="m">2 of these are left alone for an hour because their sites keep putting them back; after that they are removed again.</div>'));
+  assert.ok(two.includes('<div class="m">2 keep coming back, so they wait an hour.</div>'));
   assert.equal(two.split('keeps coming back').length - 1, 2);
   assert.equal(row([item('google.com', 'OTZ', { cap: 'C04', why: 'google' })], 0).includes('no longer removed'), false);
 });

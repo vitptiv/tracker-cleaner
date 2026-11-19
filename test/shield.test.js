@@ -55,7 +55,7 @@ test('J5: every tool is taken hold of before use: after the first lines the page
 test('M4: its own row, experimental and ON by default; then one script for every page and frame, never on the sign-in hosts or a site cleaning is off for; out while paused or during a sign-in', async () => {
   assert.deepEqual([cap('C32').group, cap('C32').mode, cap('C32').destructive], ['shield', 'auto', false]); assert.equal(mayRun('C32', { master: true }), 'run');
   const g = GROUPS.find((x) => x.id === 'shield'); assert.match(g.title, /experimental/i);
-  assert.ok(g.says.includes('makes this browser harder to recognise by its drawing, sound, fonts and screen size; a determined site can still undo it.'));
+  assert.ok(g.says.includes('makes this browser harder to recognise. A determined site can undo it.'));
   const def = await load(on()); await def.alarm('sweep'); assert.ok(def.state.scripts.some((s) => s.id === 'shield'), 'the shield is on by default (M4)');
   const off = await load(on({ storage: { modes: { C32: 'off' } } })); await off.alarm('sweep'); assert.equal(off.state.scripts.some((s) => s.id.startsWith('shield')), false);
   const bg = await load(on({ storage: { modes: { C32: 'auto' }, sitesOff: ['off.example'] } })); await bg.alarm('sweep');

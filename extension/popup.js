@@ -8,13 +8,13 @@
 const out = document.getElementById('out'), note = document.getElementById('note');
 const send = (m) => chrome.runtime.sendMessage(m);
 const REFUSED = { paused: 'Not done: cleaning is paused.', off: 'Not done: cleaning is switched off.',
-  signin: 'Not done: a sign-in is going on. Press again when it is over.', busy: 'Already cleaning: one press is enough.', rowOff: 'Not done: this row is switched off.' };
+  signin: 'Not done: a sign-in is going on.', busy: 'Already cleaning.', rowOff: 'Not done: this row is switched off.' };
 let tab = null, audit = null, serverUp = false;
 // details the user opened stay open across a re-render
 async function show(msg) {
   const open = [...out.querySelectorAll('details[open]')].map((d) => d.id);
   try { const [state, history] = await Promise.all([send({ type: 'state' }), send({ type: 'history' })]);   // the history: for "N removed today"
-    serverUp = state.server === true; out.innerHTML = renderPopup({ ...state, history, audit }, tab); } catch { msg = 'Tracker Cleaner did not answer. Close this and open it again.'; }
+    serverUp = state.server === true; out.innerHTML = renderPopup({ ...state, history, audit }, tab); } catch { msg = 'No answer. Close this and open it again.'; }
   for (const id of open) { const d = id && document.getElementById(id); if (d) d.open = true; }
   note.textContent = msg || '';
 }
@@ -34,7 +34,7 @@ async function activeTab() {
 async function act(el, extra) {
   const r = await send({ ...JSON.parse(el.dataset.msg), ...extra }).catch(() => null);
   await show(!r || r.ok === false ? REFUSED[r && r.why] || 'That did not work.'
-    : r.cleaned !== undefined ? `Cleaned now: ${r.cleaned} removed.${r.left ? ` ${r.left} question${r.left === 1 ? '' : 's'} left for you to answer one by one.` : ''}` : r.of !== undefined ? `Cleaned ${r.done} of ${r.of}.` : r.restored !== undefined ? `Restored ${r.restored}.` : '');
+    : r.cleaned !== undefined ? `Cleaned: ${r.cleaned} removed.${r.left ? ` ${r.left} question${r.left === 1 ? '' : 's'} left.` : ''}` : r.of !== undefined ? `Cleaned ${r.done} of ${r.of}.` : r.restored !== undefined ? `Restored ${r.restored}.` : '');
 }
 // ---- the 8088 audit view: silent when the server is down
 const post = (path, body) => fetch(`${AUDIT}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -52,10 +52,10 @@ async function auditClick(b) {
   else if (d.decide || d.permanent) {
     const r = await (await post(d.decide ? 'decisions' : 'drops/permanent', { action: d.decide, was: d.was, kind: d.kind || d.permanent, site: d.site, name: d.name, perm: d.perm })).json().catch(() => ({ error: 'no answer' }));
     if (r.error) note.textContent = '✗ ' + r.error;
-    else got(r, d.permanent ? '✓ Permanent: the cleaner repeats this drop every 15 min' : d.decide === 'allow' ? '✓ Allowed: the cleaner keeps it from now on (Revert under Your decisions)' : '✓ Reverted'); }
+    else got(r, d.permanent ? '✓ Permanent: dropped again every 15 minutes' : d.decide === 'allow' ? '✓ Allowed: kept from now on' : '✓ Reverted'); }
 }
 out.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.copy) return navigator.clipboard.writeText(b.dataset.copy).then(() => { note.textContent = 'Copied. Paste it into a terminal opened in the Tracker Cleaner folder.'; }, () => { note.textContent = `Could not copy. The command is: ${b.dataset.copy}`; });
+  if (b.dataset.copy) return navigator.clipboard.writeText(b.dataset.copy).then(() => { note.textContent = 'Copied. Paste it in a terminal in the Tracker Cleaner folder.'; }, () => { note.textContent = `Could not copy. The command is: ${b.dataset.copy}`; });
   // Chrome shows its own question for the history right, and only straight from a press
   if (b.dataset.perm === 'history') return chrome.permissions.request({ permissions: ['history'] }).then((ok) => ok ? send({ type: 'histOn', on: true }).then(() => show()) : show('Chrome did not allow it, so nothing changed.'), () => show('That did not work.'));
   if (b.dataset.permOff === 'history') return send({ type: 'histOn', on: false }).then(() => chrome.permissions.remove({ permissions: ['history'] })).then(() => show(), () => show());

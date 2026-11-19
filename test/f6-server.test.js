@@ -19,7 +19,7 @@ test('its row on and it has switched things off: the popup says which, in one li
   await bg.alarm('sweep');
   assert.ok(local(bg).length > 0); assert.deepEqual(await bg.names(), ['_ga', 'session']);
   const s = await bg.send({ type: 'state' }); assert.deepEqual(s.serverOff, ['deleting cookies', 'blocking']);
-  assert.ok(renderPopup(s, null).includes('The settings program on this computer has switched off: deleting cookies, blocking.'));
+  assert.ok(renderPopup(s, null).includes('Switched off by the settings program: deleting cookies, blocking.'));
   bg.limits = { enabled: false }; await bg.alarm('sweep');
   assert.deepEqual((await bg.send({ type: 'state' })).serverOff, ['blocking', 'the YouTube ad remover', 'your own lists']);
 });

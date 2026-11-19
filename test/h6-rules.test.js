@@ -14,7 +14,7 @@ test('a header rule Chrome refuses: the others are installed, and the popup name
   assert.equal(ids.includes(NET_BASE), false); assert.ok(ids.includes(NET_BASE + 1) && ids.includes(NET_BASE + 5));
   const s = await bg.send({ type: 'state' });
   assert.deepEqual(s.notWorking, ['Other companies get no cookies or cache tags']);
-  assert.ok(renderPopup(s, null).includes('Not working right now, because Chrome refused a rule: Other companies get no cookies or cache tags.'));
+  assert.ok(renderPopup(s, null).includes('Chrome refused a rule, so this is not working: Other companies get no cookies or cache tags.'));
   bg.refuse = null; await flip('off'); await flip('auto');
   assert.equal((await bg.send({ type: 'state' })).notWorking, undefined);
 });

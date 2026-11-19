@@ -12,7 +12,7 @@ test('updated with cleaning on: blocking and the header rules start at once, but
   assert.deepEqual(await bg.names(), ['uid']); assert.equal(bg.called('browsingData.remove').some((c) => c.args[1].localStorage || c.args[1].serviceWorkers), false);
   assert.ok(bg.state.rules.some((r) => r.id === NET_BASE), 'the header rules are not on'); assert.deepEqual(bg.state.rulesets, ['trackers', 'google-paths', 'url-params']);
   const html = renderPopup(await bg.send({ type: 'state' }), null);
-  assert.ok(html.includes('New: Tracker Cleaner now cleans by itself.')); assert.match(html, />OK<\/button>.*>Keep asking<\/button>/);
+  assert.ok(html.includes('New: cleaning can now run without asking.')); assert.match(html, />OK<\/button>.*>Keep asking<\/button>/);
 });
 test('OK: from then on by itself. Keep asking: it stays as it was, and the line is gone either way', async () => {
   const ok = await update({}); await two(ok);

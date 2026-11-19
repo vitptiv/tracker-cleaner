@@ -32,7 +32,7 @@ const renderHistoryPage = (() => {
     const removed = (ids) => { const per = Object.entries(days).map(([d, by]) => [d, ids.reduce((n, id) => n + (Number((by || {})[id]) || 0), 0)]).filter(([, n]) => n).sort().reverse();
       return { per, today: (per.find(([d]) => d === today) || [0, 0])[1], all: per.reduce((n, [, k]) => n + k, 0) }; };
     const when = (r) => r.all ? `${r.today ? num(r.today) : 'none'} today, ${num(r.all)} in the last 30 days` : 'none in the last 30 days';
-    const waits = (id) => { const n = Number(group(id).pending) || 0; return n ? `; ${num(n)} wait${n === 1 ? 's' : ''} for you in the popup` : ''; };
+    const waits = (id) => { const n = Number(group(id).pending) || 0; return n ? `, ${num(n)} waiting in the popup` : ''; };
 
     const block = (id, title, b) => `<section id="${id}"><h2>${title}</h2><p><b>There now:</b> ${b.now}</p>`
       + (b.kept ? `<p><b>Kept:</b> ${b.kept}</p><p><b>Removed:</b> ${b.removed}</p>` : '') + (b.more || '')
@@ -54,9 +54,9 @@ const renderHistoryPage = (() => {
         now: !Array.isArray(s.cookies) ? 'Chrome did not say which cookies it has.' : list.length ? `${count(list.length, 'cookie')} from ${count(sites.size, 'site')}` : 'no cookies',
         kept: esc(sum([[n('keep'), 'that keeps you signed in', 'that keep you signed in'], [n('other'), 'that is on no tracker list', 'that are on no tracker list'],
           [n('allowed'), 'that you allowed', 'that you allowed'], [n('off'), 'on a site you told it not to clean', 'on sites you told it not to clean']])),
-        removed: `${when(r)}. Still there and would be removed: ${esc(go)}`,
-        more: !loops ? '' : `<p>${loops === 1 ? '1 cookie is left alone for an hour because its site keeps putting it back; after that it is removed again.'
-          : `${num(loops)} cookies are left alone for an hour because their sites keep putting them back; after that they are removed again.`}</p>`,
+        removed: `${when(r)}. Would be removed now: ${esc(go)}`,
+        more: !loops ? '' : `<p>${loops === 1 ? '1 cookie keeps coming back, so it waits an hour.'
+          : `${num(loops)} cookies keep coming back, so they wait an hour.`}</p>`,
         after: 'Trackers recognise you less from one site to the next, and you stay signed in. Without Google&#39;s cookies you may be asked to prove you are human more often.',
         lists: [['Removed, day by day', r.per.map(([d, k]) => `${date(d)}: ${num(k)}`)], ['Removed most often', often],
           ['Still there: has a tracker&#39;s name', by.name], ['Still there: comes from a tracker&#39;s site', by.host], ['Still there: Google uses it to recognise you', by.google],
@@ -67,61 +67,60 @@ const renderHistoryPage = (() => {
     // ---- the saved copies of pages; the code cache and the remembered servers go with them (seen in a real Chrome:
     // test/browser/run.js V6), so all three say the same about when
     const cleared = () => { const g = group('cache'), r = removed(['cache']);
-      return (r.all ? `cleared on ${count(r.per.length, 'day')} in the last 30 days, the last time on ${date(r.per[0][0])}` : 'not cleared in the last 30 days')
-        + (g.mode === 'off' ? '; clearing is switched off' : g.pending ? '; clearing waits for you in the popup' : g.nextAt > s.now ? `; ${g.mode === 'auto' ? 'cleared' : 'offered'} again ${dayAt(g.nextAt, s.now)}` : ''); };
+      return (r.all ? `cleared on ${count(r.per.length, 'day')} in the last 30 days, last on ${date(r.per[0][0])}` : 'not cleared in the last 30 days')
+        + (g.mode === 'off' ? '. Clearing is off' : g.pending ? '. Waiting in the popup' : g.nextAt > s.now ? `. ${g.mode === 'auto' ? 'Cleared' : 'Offered'} again ${dayAt(g.nextAt, s.now)}` : ''); };
     const cache = () => block('cache', 'Saved copies of pages (HTTP cache)', {
-      now: 'Chrome does not tell an extension how much it has saved. The command below shows the size and the number of files.',
+      now: 'Chrome does not tell extensions its size. The command below shows it.',
       kept: 'none (the copies are cleared all together, not site by site)', removed: cleared(),
       after: 'Pages load a little slower until Chrome has saved them again. You stay signed in.', command: 'cache' });
     const codeCache = () => block('code-cache', 'Ready-made copies of page scripts (code cache)', {
-      now: 'Chrome does not tell an extension how much this is. The command below shows the size and the number of files.',
+      now: 'Chrome does not tell extensions its size. The command below shows it.',
       kept: 'none (it is emptied together with the saved copies of pages)', removed: cleared(),
       after: 'Pages start a little slower the first time. Websites cannot read these files, so little is gained.', command: 'code-cache' });
     const servers = () => block('servers', 'Servers Chrome remembers how to reach (remembered servers)', {
-      now: 'Chrome does not tell an extension which servers it remembers. The command below counts them.',
+      now: 'Chrome does not tell extensions which servers it remembers. The command below counts them.',
       kept: 'none (both lists are emptied together with the saved copies of pages)', removed: cleared(),
       after: 'The first visit to each site connects a little slower. A site that asked Chrome to always connect securely is remembered again at its next visit.', command: 'servers' });
 
     const storage = () => block('storage', 'Data that sites keep in your browser (site storage)', {
-      now: 'Chrome does not tell an extension which sites keep data. The command below lists them.',
-      kept: 'everything, unless you drop a site yourself or put it on your always-drop list', removed: when(removed(['storage'])) + waits('storage'),
+      now: 'Chrome does not tell extensions which sites keep data. The command below lists them.',
+      kept: 'everything except sites you drop or put on your always-drop list', removed: when(removed(['storage'])) + waits('storage'),
       after: 'Those sites forget what they stored about you. Without the data of a &quot;prove you are human&quot; check you will be asked to prove you are human more often.', command: 'storage' });
     const permissions = () => block('permissions', 'What sites may do, such as send notifications or use the camera (site permissions)', {
-      now: 'Chrome does not give an extension the list of what sites may do. The command below lists it.',
+      now: 'Chrome does not give extensions this list. The command below lists it.',
       kept: 'all of them, unless you put one on your always-block list', removed: when(removed(['permissions'])) + waits('permissions'),
       after: 'The site can no longer do that thing, and cannot ask you for it again.', command: 'permissions' });
     // Chrome keeps a blocked request for as long as its tab is open and a few minutes more (V4): a count, no history
     const blocking = () => { const list = Array.isArray(s.blocked) ? s.blocked : null, n = (list || []).reduce((k, b) => k + (Number(b.n) || 0), 0);
-      return block('blocking', 'Requests to trackers stopped before they leave (request blocking)', {
+      return block('blocking', 'Blocked tracker requests', {
         now: !list ? 'Chrome did not say how many requests it stopped.'
-          : `${n ? count(n, 'request') : 'no requests'} stopped in the tabs that are open and those closed in the last few minutes. Chrome remembers no more than that, so there is no count per day.`,
-        after: 'Nothing is cleaned here: these requests never leave your computer. A page that needs one may show a gap; &quot;Don&#39;t clean on this site&quot; in the popup lets them through.',
+          : `${n ? count(n, 'request') : 'no requests'} stopped in open and recently closed tabs. Chrome keeps no daily count.`,
+        after: 'These requests never leave your computer. If a page breaks, &quot;Don&#39;t clean on this site&quot; in the popup lets them through.',
         lists: [['By site', (list || []).map((b) => `${esc(b.site) || 'a tab closed since'}: ${num(Number(b.n) || 0)}`)]] }); };
     const wifi = () => { const g = group('wifi'), n = Number(g.pending) || 0;
       return block('wifi', 'Remembered Wi-Fi networks', {
-        now: g.mode === 'off' ? 'This is switched off, so the extension has not looked. The command below lists them.'
-          : g.helper === 'missing' ? 'Chrome cannot see Wi-Fi networks, and the helper program that can is not installed. The command below lists them.'
+        now: g.mode === 'off' ? 'This is off, so nothing was checked. The command below lists them.'
+          : g.helper === 'missing' ? 'The Wi-Fi helper program is not installed. The command below lists them.'
           : g.helper !== 'ok' ? 'The helper program has not been asked yet. The command below lists them.'
-          : `${n ? count(n, 'remembered network that was', 'remembered networks that were') : 'no remembered network that was'} not used for 30 days or more, or never`,
-        kept: 'every network in use now or used in the last 30 days', removed: when(removed(['wifi'])) + waits('wifi'),
+          : `${n ? count(n, 'network') : 'no networks'} unused for 30 days or more, or never used`,
+        kept: 'every network used in the last 30 days', removed: when(removed(['wifi'])) + waits('wifi'),
         after: 'This computer forgets those networks and their passwords. To use one again you type its password again.', command: 'wifi' }); };
 
     // ---- Tor: asked from inside Chrome, so the answer is about Chrome itself. One request, only at the button.
     const tor = () => { const t = s.tor || {}, set = s.proxy === 'tor';
       const answer = t.checking ? '<p>Asking check.torproject.org…</p>'
-        : t.failed ? (set ? '<p class="bad">There was no answer. Chrome is set to use Tor, so Tor is probably not running, and pages will not load until it runs or you switch Tor off.</p>' : '<p>There was no answer from check.torproject.org.</p>')
-        : typeof t.ip !== 'string' ? '' : `<p>Websites see you as ${esc(t.ip)}. ${t.isTor ? 'This is Tor.' : 'This is not Tor: it is your own address, or that of your VPN.' + (set ? ' Chrome is set to use Tor, so something is wrong.' : '')}</p>`;
+        : t.failed ? (set ? '<p class="bad">No answer. Tor is probably not running, so pages will not load.</p>' : '<p>No answer from check.torproject.org.</p>')
+        : typeof t.ip !== 'string' ? '' : `<p>Websites see you as ${esc(t.ip)}. ${t.isTor ? 'This is Tor.' : set ? 'That is not Tor, so something is wrong.' : 'That is your own or your VPN&#39;s address, not Tor.'}</p>`;
       return block('tor', 'Hiding your address from websites (Tor)', {
-        now: set ? 'Chrome is set to use Tor.' : s.proxy === 'other' ? 'Chrome is set to use another go-between (proxy), not Tor.' : s.proxy === 'none' ? 'Chrome is not set to use Tor.' : 'Whether Chrome is set to use Tor could not be read.',
-        more: answer + (t.checking ? '' : '<p><button data-act="tor">Check how websites see me</button> <span class="m">Pressing it sends one request to check.torproject.org, a site of the Tor Project. Nothing is sent before you press it.</span></p>'),
+        now: set ? 'Chrome is set to use Tor.' : s.proxy === 'other' ? 'Chrome is set to use another go-between, not Tor.' : s.proxy === 'none' ? 'Chrome is not set to use Tor.' : 'Could not read whether Chrome uses Tor.',
+        more: answer + (t.checking ? '' : '<p><button data-act="tor">Check how websites see me</button> <span class="m">It sends one request to check.torproject.org, only when pressed.</span></p>'),
         after: 'Nothing is cleaned here. With Tor switched on, pages load slower and you are asked to prove you are human more often.', command: 'tor' }); };
 
     const kept = Object.keys(days).length;
-    return '<p>What Chrome holds right now, what Tracker Cleaner keeps and why, and what it has removed. '
-      + 'Each command reads Chrome&#39;s own files without the extension, so you can check what this page says. Paste it into a terminal opened in the Tracker Cleaner folder.</p>'
-      + '<p class="m">What was removed is counted for 30 days: how many each day, and for each cookie its site, its name and how often. Never what a cookie contained. '
-      + 'The history stays inside the extension on this computer: it is not synced, it is not sent anywhere, and websites cannot read it.</p>'
-      + (kept ? `<p><button data-msg="${esc(JSON.stringify({ type: 'clearHistory' }))}">Clear history (${count(kept, 'day')})</button></p>` : '<p class="m">Nothing has been removed yet, so there is no history.</p>')
+    return '<p>Run a command in a terminal in the Tracker Cleaner folder to check this page.</p>'
+      + '<p class="m">Removals are counted for 30 days, never what a cookie held. '
+      + 'This history stays on this computer, and no website can read it.</p>'
+      + (kept ? `<p><button data-msg="${esc(JSON.stringify({ type: 'clearHistory' }))}">Clear ${count(kept, 'day')} of history</button></p>` : '<p class="m">Nothing has been removed yet, so there is no history.</p>')
       + cookies() + cache() + codeCache() + storage() + servers() + permissions() + blocking() + tor() + wifi();
   };
 })();

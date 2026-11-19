@@ -23,6 +23,6 @@ test('the rules: names are blocked for a page of another site; a name under loca
   assert.equal(new Set(rules.map((r) => r.id)).size, rules.length); assert.ok(rules.every((r) => r.id >= NET_BASE + 20 && r.id < NET_BASE + 80 && r.condition.regexFilter.length < 170));
 });
 test('said in the report: a name that leads to a device at home cannot be stopped', () => {
-  const c = buildReport({ now: 1, groups: [] }, null).cannot.find((x) => /name that leads to/.test(x.what));
-  assert.ok(c); assert.match(c.why, /^Tracker Cleaner cannot stop this: /);
+  const c = buildReport({ now: 1, groups: [] }, null).cannot.find((x) => /home addresses/.test(x.what));
+  assert.ok(c); assert.match(c.why, /points to your router gets through\.$/);
 });

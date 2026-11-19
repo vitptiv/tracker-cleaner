@@ -4,10 +4,10 @@ const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), mani
 const { renderPopup } = require('../extension/popup-view.js'), { buildReport } = require('../extension/report-view.js');
 const ALL = [/block/i, /cookies/i, /cache tags/i, /referring page/i, /script in every page/i, /links/i, /reads?\b.*(addresses|sends|send)/i];
 
-test('the first-run line names every thing that now happens by itself, and where the switch is', () => {
-  const html = renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null), line = /<p class="c">Tracker Cleaner is on\..*?<\/p>/.exec(html)[0];
-  for (const w of ALL) assert.match(line, w);
-  assert.match(line, /on this computer only/); assert.match(line, /untick .On. above/); assert.match(line, />OK<\/button>/);
+test('the first-run line is short (1.32, owner): what happens by itself and how to be asked; the full list is in the README', () => {
+  const html = renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null), line = /<p class="c">On: .*?<\/p>/.exec(html)[0];
+  assert.match(line, /blocked and cleaned by themselves/); assert.match(line, /asked first/); assert.match(line, />OK<\/button>/);
+  assert.ok(line.replace(/<[^>]+>/g, '').length < 120, line);
 });
 test('the README says the same in its first paragraph, and nothing about a version that "has not been run"', () => {
   const readme = read('README.md'), first = readme.split('\n## ')[0].replace(/\s+/g, ' ');
@@ -22,8 +22,7 @@ test('the report no longer says the history cannot be cleaned: it says who can c
   const h = buildReport({ now: 1, groups: [] }, null).cannot.find((x) => /history/.test(x.what));
   assert.equal(/cannot clean this/.test(h.why), false); assert.match(h.why, /Clear my browsing history/); assert.match(h.why, /no website can read it/);
 });
-test('J8: the first-run line also says that listed trackers\' cookies and saved data are deleted and that saved copies are cleared once a day', () => {
-  const html = renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null), line = /<p class="c">Tracker Cleaner is on\..*?<\/p>/.exec(html)[0];
-  assert.match(line, /deletes the cookies and saved data of the trackers on its built-in list/); assert.match(line, /clears the saved copies of pages once a day/);
-  assert.match(line, /asks before it blocks or removes anything of a company that is on no list/);
+test('J8, as shortened in 1.32: the README says that listed trackers\' cookies and saved data are deleted and that saved copies are cleared once a day', () => {
+  const first = read('README.md').split('\n## ')[0].replace(/\s+/g, ' ');
+  assert.match(first, /deletes tracking cookies/); assert.match(first, /clears the saved copies of pages once a day/);
 });

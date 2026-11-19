@@ -20,6 +20,6 @@ test('refused while paused or switched off', async () => {
 });
 test('the popup says plainly what it does: all of it, and it cannot be put back (how the press is confirmed: h9-limits.test.js)', () => {
   const html = renderPopup({ now: 1, master: true, hold: {}, groups: [] }, null);
-  assert.ok(html.includes('This clears all of it and cannot be put back.'));
-  assert.ok(html.includes('Clears every page Chrome remembers you visited, on all sites. It cannot be put back. Tracker Cleaner never does this by itself.'));
+  assert.ok(html.includes('This cannot be put back.'));
+  assert.ok(html.includes('Clears all of it. This cannot be put back.'));
 });

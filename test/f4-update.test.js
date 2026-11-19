@@ -7,7 +7,7 @@ test('a profile that had cleaning on and no modes stored: after the update the p
   const bg = await update({ master: true, cacheClearedAt: 1.8e12 });
   for (const id of ['C11', 'C25', 'C27', 'C28']) assert.equal(mayRun(id, bg.state.storage), 'ask', id);
   const s = await bg.send({ type: 'state' }); assert.equal(s.firstRun, 'update');
-  assert.ok(renderPopup(s, null).includes('New: Tracker Cleaner now cleans by itself.'));
+  assert.ok(renderPopup(s, null).includes('New: cleaning can now run without asking.'));
   await bg.send({ type: 'seen', auto: true }); assert.equal(renderPopup(await bg.send({ type: 'state' }), null).includes('New: Tracker Cleaner'), false);
   for (const id of ['C11', 'C25', 'C27', 'C28']) assert.equal(mayRun(id, bg.state.storage), 'run', id);
 });
