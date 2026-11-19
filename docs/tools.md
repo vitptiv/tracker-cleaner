@@ -5,7 +5,7 @@
     node tools/inspect.js cookies
 
 It reads Chrome's own files and changes nothing; Chrome can stay open. In place of `cookies`: `cache`, `code-cache`,
-`storage`, `servers`, `permissions`, `tor`, `wifi`. Each answers what is there now, what is kept and why, what would be
+`storage`, `servers`, `permissions`, `tor`. Each answers what is there now, what is kept and why, what would be
 removed, and what cleaning costs you. `--list` names each item, `--raw` prints the plain command underneath so you can
 run it yourself, `--json` gives the same as data. It judges by the built-in lists only: your own exceptions and
 switches live inside Chrome. Needs `python3` and `jq`. `tor` also says what your internet provider can see; it
@@ -32,10 +32,3 @@ what is kept and why, what was removed and when, and what cleaning costs you, in
 a "Copy command" button to check each block from a terminal. The history is numbers and cookie names for 30 days,
 kept inside the extension on this computer and nowhere else; "Clear history" empties it. The button "Check how
 websites see me" asks check.torproject.org once, from inside Chrome, and only when pressed.
-
-## Wi-Fi helper
-
-Chrome cannot see saved Wi-Fi networks, so `wifi-helper/` does that part: it lists the networks not
-used for 30 days and removes only those you approve, from a terminal (`node wifi-helper/cli.js list`)
-or from the popup row "Unused Wi-Fi networks" once `wifi-helper/install.sh <extension id>` has
-registered it with Chrome. It is optional and never automatic. See `../wifi-helper/README.md`.

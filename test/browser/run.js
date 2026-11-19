@@ -522,7 +522,7 @@ async function main() {
   process.exit(failed ? 1 : 0);
 }
 
-// ---- third run, fresh profile: what Chrome really does for the "to verify" items of PLAN.md ("Todo for 1.22").
+// ---- third run, fresh profile: what Chrome really does for the "to verify" items of docs/build-log.md ("Todo for 1.22").
 // These checks report (FOUND: ...); one fails only when it could not look at all. Where headless Chrome gives no
 // answer it says NOT DECIDED instead of guessing. Cleaning stays off in this run, so the extension changes nothing by
 // itself. Chrome's own files are read from the throwaway profile only, the SQLite ones read-only.
@@ -624,7 +624,7 @@ async function verify(offline) {
 }
 
 // ---- fourth run, fresh profile: the report of 1.23 (report.html), beside the page or in a tab of its own.
-// R1 and R2 report what Chrome really does for the two open questions of PLAN.md ("Todo for 1.23"): can the popup's
+// R1 and R2 report what Chrome really does for the two open questions of docs/build-log.md ("Todo for 1.23"): can the popup's
 // button open the side panel, and is the report told when another tab comes to the front.
 const portOpen = (port) => new Promise((done) => { const s = require('node:net').connect(port, '127.0.0.1'); s.on('connect', () => { s.destroy(); done(true); }); s.on('error', () => done(false)); });
 async function report(offline) {

@@ -8,7 +8,7 @@ The popup keeps one short line per row; the full explanation is here.
   by themselves; Google's own cookies, companies on no list and sites that only pass you along wait for your answer.
   Strongest: every cleaning row works by itself, every 10 minutes, and the two question rows below answer yes by
   themselves, at most 10 an hour, also for a site you use (see below). The sign-in pause, Tor, the tab limit,
-  keeping only listed cookies, Wi-Fi networks and the reports keep their own switch.
+  keeping only listed cookies and the reports keep their own switch.
 - **Pause while you sign in.** While you sign in somewhere, and for five minutes after, nothing of that sign-in's
   site (and of the site you came from) is deleted, so the sign-in cannot break.
 - **Block ads and trackers.** Pages are stopped from calling the companies that follow you from site to site, and
@@ -48,8 +48,6 @@ The popup keeps one short line per row; the full explanation is here.
   ticked "Keep removing what it saves". Never a site you turned off.
 - **Site data you chose / Site rights you chose.** Only for the sites you chose yourself: what they saved is emptied,
   or they are stopped from things such as notifications or the camera.
-- **Old Wi-Fi networks.** Networks this computer has not used for 30 days are forgotten, after your press; this
-  cannot be undone.
 - **Saved copies of pages.** All copies of pages Chrome saved to load them faster are thrown away once a day and each
   time Chrome starts, at Strongest every 10 minutes, and besides that at most once an hour when a host is blocked
   (never within 10 minutes of another clearing). At Strongest that means the whole cache is gone every 10 minutes:

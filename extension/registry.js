@@ -1,4 +1,4 @@
-// Every capability of Tracker Cleaner (table in PLAN.md) and the one gate that decides whether it may act.
+// Every capability of Tracker Cleaner (table in docs/build-log.md) and the one gate that decides whether it may act.
 // mode: what the group does until the user chooses: 'auto' runs by itself (1.25: every group that only touches what
 // follows you; what was done is in the log, and of it only deleted cookies can be put back), 'ask' waits for Approve,
 // 'off' does nothing, null = not an action group. destructive: it deletes, closes or reroutes something.
@@ -83,7 +83,7 @@ const gate = (id, settings, hold) => {
 // where the gate says 'run' (master stored on, not paused, no sign-in hold). What it may answer is narrowed further
 // per host in background.js (mayYes).
 const answersYes = (id, settings, hold) => modeOf(id, settings) === 'yes' && gate(id, settings, hold) === 'run';
-// One row per group, in the usability order of PLAN.md. 'control' capabilities have no mode and no row.
+// One row per group, in the usability order of docs/build-log.md. 'control' capabilities have no mode and no row.
 // says: what the group does for you, in one sentence anyone can read (the report shows it under the title).
 const GROUPS = [
   ['signin', 'Pause while you sign in', 'Nothing of a site is deleted while you sign in there, and for five minutes after.'],

@@ -66,7 +66,7 @@
   },
   "broken": []
  },
- "extension": "1.32",
+ "extension": "1.32.1",
  "settings": {
   "A": "fresh install defaults (1.30: Strongest), nothing approved, no lab entries",
   "AB": "fresh install set to Balanced (the 1.29 defaults, the old A), nothing approved, no lab entries",
@@ -201,8 +201,7 @@
   "tor": "would send requests off this computer",
   "tabs": "would close the trip's own tabs",
   "allowlist": "needs a list from the settings program; would delete every cookie",
-  "server": "only reports and self-update",
-  "wifi": "never automatic; touches this computer's saved networks, so it is not approved either"
+  "server": "only reports and self-update"
  },
  "runs": {
   "A": {
@@ -227,12 +226,12 @@
     "cutOff": [],
     "removed": 9,
     "byItself": [
-     "cookie hop.localhost",
-     "bounce hop.localhost",
      "cookie testbook.localhost",
      "cache *",
      "tracker testbook.localhost",
      "used testbook.localhost",
+     "cookie hop.localhost",
+     "bounce hop.localhost",
      "skip hop.localhost"
     ],
     "waiting": {
@@ -1074,10 +1073,10 @@
       "parcelpine.localhost"
      ],
      "via": [
-      "canvas 67118736, graphics de1a1cf2, audio 417267e0, fonts bd8a2c56, traits 802,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 99a5d50b, graphics de1a1cf2, audio dcbb4a7e, fonts bd8a2c56, traits 799,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas ca9ac0c2, graphics de1a1cf2, audio 99da0e10, fonts bd8a2c56, traits 800,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 0bb8e0bb, graphics de1a1cf2, audio 3ea66568, fonts bd8a2c56, traits 801,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 61627402, graphics de1a1cf2, audio feadfc7b, fonts bd8a2c56, traits 798,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas a2107bca, graphics de1a1cf2, audio 9af9373e, fonts bd8a2c56, traits 801,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 766ef391, graphics de1a1cf2, audio 911c5969, fonts bd8a2c56, traits 802,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 2242dc87, graphics de1a1cf2, audio 6e70c6a4, fonts bd8a2c56, traits 798,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 12,
      "atEnd": true,
@@ -1668,7 +1667,7 @@
       "tidewater.localhost"
      ],
      "via": [
-      "canvas 21a88005, graphics de1a1cf2, audio f15505d0, fonts bd8a2c56, traits 799,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 6476d313, graphics de1a1cf2, audio f3e84071, fonts bd8a2c56, traits 801,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 3,
      "atEnd": false,
@@ -2250,10 +2249,10 @@
       "parcelpine.localhost"
      ],
      "via": [
-      "canvas f2efff27, graphics de1a1cf2, audio 537c78c2, fonts bd8a2c56, traits 798,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas cdd31170, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 802,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 09fa9bf1, graphics de1a1cf2, audio 441e8d30, fonts bd8a2c56, traits 799,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas f04b080c, graphics de1a1cf2, audio 2049cf1d, fonts bd8a2c56, traits 800,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas f6ce63d1, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 802,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas feb2a5f7, graphics de1a1cf2, audio 8c1b05b8, fonts bd8a2c56, traits 799,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 6f97fd24, graphics de1a1cf2, audio fac735c0, fonts bd8a2c56, traits 799,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 649472d2, graphics de1a1cf2, audio f2cdc730, fonts bd8a2c56, traits 801,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 12,
      "atEnd": true,

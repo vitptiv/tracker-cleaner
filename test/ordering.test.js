@@ -4,7 +4,7 @@
 // Set-Cookie in onHeadersReceived, while the structural rule C29 (net-rules.js) strips Set-Cookie on third-party
 // responses. Whether the extension's own onHeadersReceived sees the header before or after its own DNR strip is a
 // Chrome ordering detail the Node fake does not model. This test pins the code path as it is today; the real-Chrome
-// ordering is stated in PLAN.md as a known limitation, to be settled (and fixed if needed) in a later batch.
+// ordering is stated in docs/build-log.md as a known limitation, to be settled (and fixed if needed) in a later batch.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const on = (o = {}) => ({ ...o, storage: { master: true, cacheClearedAt: 1.8e12, ...o.storage } });
 const answer = async (bg, host, page) => { await bg.answer({ url: `https://${host}/a`, initiator: `https://www.${page}`, type: 'script', responseHeaders: [{ name: 'Set-Cookie', value: 'tid=t-77ab12cd34ef; SameSite=None; Secure' }] }); await bg.settle(); };
@@ -24,5 +24,5 @@ test('the same Set-Cookie header is what C29 removes on a third-party response, 
   const r = netRules({ cookies: true })[0];
   assert.ok((r.action.responseHeaders || []).some((h) => h.header === 'set-cookie' && h.operation === 'remove'), 'C29 removes set-cookie third-party');
   // documented, not asserted about real Chrome: if the strip runs before the extension's own onHeadersReceived, e.ck
-  // never becomes true for a third party and this one-sighting path cannot fire on the wire. See PLAN.md.
+  // never becomes true for a third party and this one-sighting path cannot fire on the wire. See docs/build-log.md.
 });

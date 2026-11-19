@@ -29,7 +29,7 @@ There is no store listing; you load the folder.
 1. Download or clone this repository.
 2. Open `chrome://extensions` and switch on **Developer mode** (top right).
 3. Press **Load unpacked** and choose the `extension/` folder.
-4. Open the popup from the toolbar. It should say version 1.32.
+4. Open the popup from the toolbar. It should say version 1.32.1.
 
 To update, pull the new files and press the reload arrow on the extension's card. Only a fresh install starts
 at Strongest; an update keeps your settings.
@@ -53,8 +53,7 @@ if questions are waiting it names the sites first.
 - **A blocked or skipped company**: "Let it through". It then stays let through, for that whole site.
 - **One site misbehaves**: "Don't clean on this site" in the popup. The cleaner then leaves it alone completely.
 - **Everything**: untick "On", or "Pause 10 min".
-- **Not undoable**: emptied site data, cleared saved copies, a forgotten Wi-Fi network, cleared history. The
-  popup says so before each.
+- **Not undoable**: emptied site data, cleared saved copies, cleared history. The popup says so before each.
 
 Cookies that keep you signed in are never deleted, sign-in pages of Google, Microsoft and Apple are never
 touched, and nothing is deleted while you are signing in.
@@ -73,7 +72,7 @@ Of the 35 ways that were built, still following you at the end:
 | Any setting, every question answered yes | 5 |
 
 Against the hidden tracker the cleaner stops 6 of 10 ways, after the first contact.
-The full list, one row per way: [docs/scorecard.md](docs/scorecard.md).
+Every way, one row each, in one table: [docs/scorecard.md](docs/scorecard.md).
 
 ## What it cannot stop
 
@@ -103,22 +102,21 @@ Known weak spots, found by adversarial review and left open on purpose:
 
 ## For developers
 
-    npm test              # 808 unit tests, Node 22, no packages, no browser
+    npm test              # 735 unit tests, Node 22, no packages, no browser
     npm run test:lab      # the lab walk with the cleaner off (needs google-chrome)
     node test/lab/trip-cleaner.js   # the same walk with the cleaner on
-    node test/lab/ff2-trip.js       # the hidden-collector tracker
+    node test/lab/ff2-trip.js       # the hidden-collector lab
+    node tools/scorecard.js         # docs/scorecard.md from the last two walks
 
 - `extension/` the extension. `background.js` is the service worker; `registry.js` holds the rows, the
   strength levels and the one gate every action passes.
 - `security/trackers.js` the lists, edited by hand; `node extension/build.js` regenerates the rule files.
 - `lab/` the test trackers. `test/` the tests, with a stand-in for the `chrome` API.
-- `extension-1.20/` an old version the tests compare against.
-- `wifi-helper/` an optional local program for the Wi-Fi row.
-- [docs/rows.md](docs/rows.md) what each row does, in full. [docs/tools.md](docs/tools.md) the command that
-  reads Chrome's own files, the report panel and the Wi-Fi helper. `PLAN.md` the build log, including every
-  audit finding.
+- `tools/inspect.js` the command that reads Chrome's own files; `tools/scorecard.js` writes the scorecard.
+- [docs/rows.md](docs/rows.md) what each row does, in full. [docs/tools.md](docs/tools.md) the command and the
+  report panel. [docs/build-log.md](docs/build-log.md) the build log, including every audit finding.
 
-`git.sh` and a few test helpers contain paths from the author's machine; adjust them or use plain `git`.
+Lab browsers get throwaway profiles in the system temp folder, or in `TC_BROWSER_TMP` when set.
 
 ## Licence
 

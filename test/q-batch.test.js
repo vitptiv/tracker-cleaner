@@ -1,4 +1,4 @@
-// Q-batch (1.32): the sixth adversarial audit's findings, each pinned as the SAFE behaviour (PLAN.md "Q-batch").
+// Q-batch (1.32): the sixth adversarial audit's findings, each pinned as the SAFE behaviour (docs/build-log.md "Q-batch").
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js');
 const strong = (o = {}) => ({ tabs: [{ id: 1, active: true, url: 'https://news1.example/a' }, { id: 2, url: 'https://news2.example/b' }], ...o,
   storage: { master: true, cacheClearedAt: 1.8e12, level: 'strong', ...o.storage } });

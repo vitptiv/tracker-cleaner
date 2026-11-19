@@ -8,7 +8,7 @@
 // replace it, and only those copies are used afterwards. The key that decides the changes is 128 random bits made
 // here, new for every page that is loaded, and never leaves this function. Which values change depends on the key
 // AND on what was drawn. Replaced functions answer like Chrome's own (name, length, "native code", no prototype).
-// It makes recognising harder, not impossible: see PLAN.md (J5) for what a determined page can still do.
+// It makes recognising harder, not impossible: see docs/build-log.md (J5) for what a determined page can still do.
 (() => {
   const imul = Math.imul, mmax = Math.max, apply = Reflect.apply, define = Object.defineProperty, describe = Object.getOwnPropertyDescriptor;
   const fmix = (h) => { h ^= h >>> 16; h = imul(h, 0x85ebca6b); h ^= h >>> 13; h = imul(h, 0xc2b2ae35); return (h ^ h >>> 16) >>> 0; };
@@ -53,7 +53,7 @@
   // M4: the F6 join-key surfaces the shield now also blurs -- the width text measures to (the installed-font probe) and
   // the screen size. The per-page key makes the value differ each load, so a cross-site join by these cannot settle;
   // the change is a few hundredths to about a pixel, below what a layout needs. matchMedia, the pixel ratio and the
-  // window's own size are left alone: a page needs them and changing them breaks it (PLAN.md). Best effort, detectable.
+  // window's own size are left alone: a page needs them and changing them breaks it (docs/build-log.md). Best effort, detectable.
   const C2P = W.CanvasRenderingContext2D, O2P = W.OffscreenCanvasRenderingContext2D, TM = W.TextMetrics && TextMetrics.prototype, wd = TM && describe(TM, 'width');
   const metric = (orig, self, args) => { const tm = apply(orig, self, args);
     try { const w = apply(wd.get, tm, []), h = prf(key, (w * 64) >>> 0, 0); define(tm, 'width', { value: w + ((h % 257) - 128) / 100, configurable: true }); } catch {} return tm; };
