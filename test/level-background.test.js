@@ -136,3 +136,29 @@ test('the popup: the dial on top, its sentence, Custom, the top button and a Cle
   await bg.send({ type: 'setMode', group: 'google', mode: 'ask' });
   assert.match(renderPopup(await bg.send({ type: 'state' }), null), /Custom/);
 });
+
+// 1.31: a press answers every waiting question yes, at every level, within the absolute limits
+test('1.31: Clean now on the question rows answers ALL their questions, also about a site you open and one you seem signed in to, at Balanced; a site turned off stays a question', async () => {
+  const bg = await load(at('balanced', { cookies: [ID('.mine.example'), ID('.bank.example'), { name: 'SID', domain: 'bank.example', value: 'signed-in' }, ID('.off.example')], tabs: ELSEWHERE, storage: { sitesOff: ['off.example'] } }));
+  await bg.opens('https://mine.example/home'); await bg.closeTab(bg.tabOf('https://mine.example/home'));
+  await two(bg, 'mine.example', ['a1.example', 'a2.example']); await two(bg, 'bank.example', ['b1.example', 'b2.example']); await two(bg, 'off.example', ['c1.example', 'c2.example']);
+  assert.deepEqual(auto(bg), [], 'Balanced answers nothing by itself');
+  const r = await bg.send({ type: 'cleanNow', group: 'unknown' }); await bg.settle();
+  assert.deepEqual(bg.blockedHosts().sort(), ['bank.example', 'mine.example']); assert.equal(r.left, 1);
+  assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => `${c.domain} ${c.name}`).sort(), ['.off.example uid', 'bank.example SID']);
+  assert.deepEqual(queued(bg, 'unknown').map((i) => i.site), ['off.example']);
+});
+test('1.31: a host you let through is never answered by itself again, but your own Clean now press still answers it', async () => {
+  const bg = await fresh({ cookies: [ID()], tabs: ELSEWHERE });
+  await two(bg); await bg.send({ type: 'restoreAll' }); await bg.send({ type: 'unstop', site: 'trk.example' }); bg.now += 8 * 86400e3; await bg.alarm('sweep');
+  assert.deepEqual(bg.blockedHosts(), []); assert.equal(queued(bg, 'unknown').filter((i) => i.kind === 'tracker').length, 1);
+  await bg.send({ type: 'cleanNow', group: 'unknown' }); await bg.settle();
+  assert.deepEqual(bg.blockedHosts(), ['trk.example']);
+});
+test('1.31: the removal never deletes an allowed cookie, nor a cookie of a site turned off, also at a single press on Remove', async () => {
+  const bg = await load(at('balanced', { cookies: [ID(), ID('.trk.example', 'pref'), { name: 'hop_id', domain: 'hop.example', value: 'h-99aa88bb77' }, { name: 'keep', domain: 'hop.example', value: 'h-99aa88bb77' }],
+    tabs: ELSEWHERE, storage: { allow: [{ site: 'trk.example', name: 'pref' }, { site: 'hop.example', name: 'keep' }] } }));
+  await two(bg); await hops(bg);
+  await bg.send({ type: 'cleanAll' }); await bg.settle();
+  assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => c.name).sort(), ['keep', 'pref']);
+});

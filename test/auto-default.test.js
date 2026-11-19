@@ -45,8 +45,8 @@ test('fresh install at Balanced: a company seen on several sites is blocked at o
   assert.equal(bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern.includes('trk.example')).length, 0);   // 1.25, L2: Remove is one-off; the notification block belongs to "Keep removing"
   assert.deepEqual(((bg.state.storage.pending || {}).unknown || { items: [] }).items, []);   // answered: nothing waits
 });
-test('a company whose own site you open as a page is blocked on other sites, but its cookies and what it saved stay: you may be signed in there', async () => {
-  const bg = await fresh({ cookies: [ID] });
+test('at Balanced a company whose own site you open as a page is blocked on other sites (at a press), but its cookies and what it saved stay: you may be signed in there', async () => {
+  const bg = await balanced({ cookies: [ID] });
   await bg.opens('https://www.trk.example/home'); await bg.closeTab(bg.tabOf('https://www.trk.example/home')); await three(bg);
   assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']);
   assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);

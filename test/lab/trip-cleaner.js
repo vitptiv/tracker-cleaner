@@ -111,7 +111,7 @@ async function run(name, set, cert, flags, chance = {}) {
     const ext = await E.b.msg({ type: 'state' }).catch(() => ({ log: [], groups: [], hold: {} }));
     const matched = await E.b.popup.ev(`chrome.declarativeNetRequest.getMatchedRules({}).then((r) => r.rulesMatchedInfo.map((x) => x.rule.rulesetId + ':' + x.rule.ruleId))`).catch(() => []);
     out.startEvent = started;
-    out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], cutOff: ext.params || [], removed: ext.log.filter((l) => l.did === 'removed').length,
+    out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], cutOff: ext.params || [], removed: ext.log.filter((l) => l.did === 'removed').length, byItself: [...new Set(ext.log.filter((l) => l.auto).map((l) => `${l.kind} ${l.site}`))],   // 1.30: answered yes by the cleaner itself (Strongest)
       waiting: Object.fromEntries(ext.groups.filter((g) => g.pending).map((g) => [g.id, g.pending])), blockRuleMatches: matched.filter((m) => m.endsWith(':9001')).length, tagRuleMatches: matched.filter((m) => m.endsWith(':9002') || m.startsWith('url-params')).length };
     // S15: what Chrome's real notification setting for the network's site is, read from the extension's side (declared in `simulated`)
     const setting = await E.b.popup.ev(`chrome.contentSettings.notifications.get({ primaryUrl: ${JSON.stringify(E.at('friendface'))} }).then((d) => d.setting)`).catch(() => null);

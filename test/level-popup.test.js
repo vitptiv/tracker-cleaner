@@ -41,7 +41,7 @@ test('a Clean now on each row that has something to clean, none on the rows that
 test('the question rows: a fourth mode that says yes by itself; Clean now says it answers them yes', () => {
   const html = renderPopup(state({}, { unknown: { mode: 'yes', pending: 2, items: [] } }), null);
   assert.match(row(html, 'unknown'), /<option value="yes" selected>Automatic, says yes<\/option>/);
-  assert.match(row(html, 'unknown'), /Clean now answers them yes/);
+  assert.match(row(html, 'unknown'), /Clean now answers them all yes/);
   assert.equal(row(html, 'cookies').includes('value="yes"'), false);
 });
 test('after a press the row shows what was done, for ten minutes; an answer given by itself is marked so in "This site"', () => {
@@ -66,4 +66,10 @@ test("the report beside the page shows a row that answers yes by itself as on, n
   const r = buildReport({ now: NOW, master: true, hold: {}, groups: groups({ unknown: { mode: 'yes' }, bounce: { mode: 'yes' } }), allow: [], always: [], sitesOff: [], history: { days: {}, cookies: {} } }, null);
   const w = Object.fromEntries(r.features.map((f) => [f.id, f.state]));
   assert.deepEqual([w.unknown, w.bounce], ['on', 'on']);
+});
+
+test('1.31: the Strongest sentence and the first-run line say it can sign you out of a site that follows you, and how to undo or prevent it', () => {
+  for (const html of [top(renderPopup(state(), null)), renderPopup(state({ firstRun: true }), null)]) {
+    assert.match(html, /can sign you out of a site that follows you/); assert.match(html, /Let it through again/); assert.match(html, /Don&#39;t clean on this site|Don't clean on this site/);
+    assert.equal(/never a site you open yourself/.test(html), false, 'the old promise is still there'); }
 });

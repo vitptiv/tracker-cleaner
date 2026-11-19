@@ -15,29 +15,58 @@ const auto = (bg) => (bg.state.storage.log || []).filter((l) => l.auto);
 // what was emptied of these hosts (the daily clean-out of the listed trackers' own sites, C28, is not about them)
 const emptied = (bg, hosts) => bg.called('browsingData.remove').filter((c) => !c.args[1].cache && (c.args[0].origins || []).some((o) => hosts.some((h) => o.includes(h))));
 
-test('ATTACK (a): a staged sign-in host or company is never noted, so never blocked; a site you turned off, a site you open yourself, one you allowed a cookie of and one holding a sign-in cookie are only asked about', async () => {
+// 1.31 (the owner's decision, "make strongest work the strongest"): at Strongest a site the user opens, has open, or seems
+// signed in to is answered yes by itself too. What stays absolute at every level is pinned here.
+test('ATTACK (a, 1.31): a staged sign-in host or company is never noted, blocked or emptied, a site turned off is never touched; a site you open, one with a kept cookie and one you seem signed in to ARE blocked and cleaned, but their sign-in-like and kept cookies stay', async () => {
   const cookies = [ID('.accounts.google.com'), ID('.login.microsoftonline.com'), ID('.okta.com'), ID('.github.com'), ID('.off.example'), ID('.mine.example'), ID('.kept.example'),
-    ID('.bank.example'), { name: 'session', domain: 'bank.example', value: 'b-1234abcd5678', httpOnly: true, secure: true }];
+    ID('.bank.example'), { name: 'session', domain: 'bank.example', value: 'b-1234abcd5678', httpOnly: true, secure: true }, { name: 'SID', domain: 'mine.example', value: 'signed-in' }];
   const bg = await load(strong({ cookies, storage: { sitesOff: ['off.example'], allow: [{ site: 'kept.example', name: 'uid' }] } }));
   await bg.opens('https://mine.example/home'); await bg.closeTab(bg.tabOf('https://mine.example/home'));
   const pages = [['a1.example', 'a2.example'], ['b1.example', 'b2.example'], ['c1.example', 'c2.example'], ['d1.example', 'd2.example']];
   for (const [i, host] of [...SIGNIN_HOSTS, 'okta.com', 'github.com', 'off.example', 'mine.example', 'kept.example', 'bank.example'].entries())
     for (const p of pages[i % 4]) { await req(bg, host, p); bg.now += 1; }
-  bg.now += 61 * 60e3; await bg.alarm('sweep');   // past the hour: every page may mark again
-  assert.deepEqual(bg.blockedHosts(), []); assert.deepEqual(auto(bg), []); assert.deepEqual(await bg.names(), cookies.map((c) => c.name));
+  bg.now += 61 * 60e3; await bg.alarm('sweep');
+  assert.deepEqual(bg.blockedHosts().sort(), ['bank.example', 'kept.example', 'mine.example']);
+  assert.deepEqual(auto(bg).filter((l) => l.kind === 'tracker').map((l) => l.site).sort(), ['bank.example', 'kept.example', 'mine.example']);
   for (const h of [...SIGNIN_HOSTS, 'okta.com', 'github.com']) assert.equal(h in (bg.state.storage.follow || {}), false, h);
-  assert.deepEqual(emptied(bg, ['off.example', 'mine.example', 'kept.example', 'bank.example', ...SIGNIN_HOSTS, 'okta.com', 'github.com']), []);
-  assert.deepEqual(queued(bg, 'unknown').map((i) => i.site).sort(), ['bank.example', 'kept.example', 'mine.example', 'off.example'], 'asked about instead');
+  assert.deepEqual(emptied(bg, ['off.example', ...SIGNIN_HOSTS, 'okta.com', 'github.com']), [], 'a sign-in host or a site turned off was emptied');
+  const left = (await bg.chrome.cookies.getAll({})).map((c) => `${c.domain} ${c.name}`).sort();
+  assert.deepEqual(left, ['.accounts.google.com uid', '.github.com uid', '.kept.example uid', '.login.microsoftonline.com uid', '.off.example uid', '.okta.com uid', 'bank.example session', 'mine.example SID'].sort(),
+    'gone: the plain ID cookies of the three; kept: sign-in hosts and companies, the site turned off, the allowed cookie, the sign-in-like cookies');
+  assert.deepEqual(queued(bg, 'unknown').map((i) => i.site), ['off.example'], 'a site turned off is asked about, never answered by itself');
 });
-test('ATTACK (a): a staged pass-through via a site you open, or one holding a sign-in cookie, or a site turned off: never cleaned or skipped by itself', async () => {
+test('ATTACK (a, 1.31): a staged pass-through via a site you open or seem signed in to is cleaned by itself (its sign-in cookie stays); a site turned off never is', async () => {
   const cookies = [{ name: 'hop_id', domain: 'used.example', value: 'h-99aa88bb77' }, { name: 'hop_id', domain: 'bank.example', value: 'h-99aa88bb77' }, { name: 'SID', domain: 'bank.example', value: 'signed-in' },
     { name: 'hop_id', domain: 'off.example', value: 'h-99aa88bb77' }];
   const bg = await load(strong({ cookies, storage: { sitesOff: ['off.example'] } }));
   await bg.opens('https://used.example/home'); await bg.closeTab(bg.tabOf('https://used.example/home'));
   for (const h of ['used.example', 'bank.example', 'off.example']) await hop(bg, h);
-  assert.deepEqual(await bg.names(), cookies.map((c) => c.name)); assert.deepEqual(auto(bg), []);
-  assert.deepEqual(bg.state.storage.skipok || [], []); assert.deepEqual(emptied(bg, ['used.example', 'bank.example', 'off.example']), []);
-  assert.ok(queued(bg, 'bounce').some((i) => i.site === 'bank.example'), 'asked instead');
+  assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => `${c.domain} ${c.name}`), ['bank.example SID', 'off.example hop_id']);
+  assert.deepEqual(emptied(bg, ['off.example']), []); assert.ok(emptied(bg, ['used.example']).length && emptied(bg, ['bank.example']).length);
+  // the skip question is asked only of a site the user does not open (J4), so only bank.example can be skipped
+  assert.deepEqual(bg.state.storage.skipok, ['bank.example']);
+  assert.ok(queued(bg, 'bounce').length >= 1 && queued(bg, 'bounce').every((i) => i.site === 'off.example'));
+});
+test('ATTACK (1.31): what the removal of a site you use deletes: plain and storage-held sign-ins go, HttpOnly+Secure, KEEP_RE and allowed cookies stay; with its tab open only the background program goes', async () => {
+  const cookies = [ID('.used.example'), { name: 'plain_session', domain: 'used.example', value: 'p-1234abcd5678' }, { name: 'auth', domain: 'used.example', value: 'a-1234abcd5678', httpOnly: true, secure: true },
+    { name: 'SID', domain: 'used.example', value: 'keep-1234' }, { name: 'pref', domain: 'used.example', value: 'x' }];
+  const bg = await load(strong({ cookies, storage: { allow: [{ site: 'used.example', name: 'pref' }] } }));
+  await bg.opens('https://used.example/home'); await bg.closeTab(bg.tabOf('https://used.example/home'));
+  for (const p of ['a.example', 'b.example']) await req(bg, 'used.example', p);
+  assert.deepEqual((await bg.chrome.cookies.getAll({})).map((c) => c.name).sort(), ['SID', 'auth', 'pref']);
+  const kinds = emptied(bg, ['used.example']).map((c) => c.args[1]);
+  assert.deepEqual(kinds, [{ localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true }], 'storage of a site you use was not emptied as it is for any other');
+  const open = await load(strong({ cookies, tabs: [{ id: 1, active: true, url: 'https://used.example/home' }, { id: 2, url: 'https://social.example/' }] }));
+  for (const p of ['a.example', 'b.example']) await req(open, 'used.example', p);
+  assert.deepEqual(emptied(open, ['used.example']).map((c) => c.args[1]), [{ serviceWorkers: true }], 'with its tab open only the background program');
+  assert.ok(open.blockedHosts().includes('used.example'));
+});
+test('ATTACK (1.31): during a sign-in hold nothing is deleted; the automatic answer waits and is given once the hold is over', async () => {
+  const bg = await load(strong({ cookies: [ID('.trk.example')], storage: { sguard: { 'trk.example': 1.8e12 - 60e3 } } }));
+  for (const p of ['a.example', 'b.example']) await req(bg, 'trk.example', p);
+  assert.deepEqual(auto(bg), []); assert.deepEqual(await bg.names(), ['uid']); assert.equal(queued(bg, 'unknown').length, 1);
+  bg.now += 5 * 60e3; await bg.alarm('unguard');
+  assert.deepEqual(bg.blockedHosts(), ['trk.example']); assert.deepEqual(await bg.names(), []);
 });
 test(`ATTACK (b): pages cannot get more than STOPS_HOUR (${STOPS_HOUR}) hosts answered by itself in an hour; the rest wait as questions; one pair of pages gets at most ASK_HOUR`, async () => {
   const hosts = Array.from({ length: 15 }, (_, i) => `t${i}.example`);

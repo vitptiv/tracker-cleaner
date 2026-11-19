@@ -10,7 +10,8 @@ has "Clean everything now":
   you (on two sites you visit, or handed a site's own ID) is only ever asked about: blocking it, removing what
   it saved (once), cleaning a site that only passes you along, and sending its links straight on each need
   your press on one question. At Strongest the cleaner answers those questions yes itself, at most 10 an hour
-  and never for a site you open yourself, seem to be signed in to or turned off; each such answer is in the log and
+  and since 1.31 also for a site you use (its sign-in-like and kept cookies stay, what it saved in the browser goes,
+  so it can sign you out of a site that follows you), never for a sign-in company or a site you turned off; each such answer is in the log and
   can be let through again;
 - it deletes tracking cookies, clears the saved copies of pages once a day and each time Chrome starts (and at
   most once an hour besides, when you block a host), and strips the listed tracking parameters from links;

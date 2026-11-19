@@ -1,4 +1,4 @@
-// Tracker Cleaner 1.30: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.31: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic. A new install is switched on, and the groups
 // that only touch what follows you run without asking from the start; the popup says so once. Only deleted cookies
@@ -193,7 +193,7 @@ chrome.runtime.onStartup.addListener(() => withQueue(queueRestart));
 // tab is on a sign-in host; what a site's own sign-in page holds stays where it is. One press is one pass: a press while
 // one runs is refused (busy). The pass: a sweep (on Automatic it cleans; on Ask first it queues), then what waits in those
 // rows is carried out, as Approve does, and the two question rows' questions are answered yes (a block's next question,
-// remove what it saved, in a second round) -- but only those mayYes allows; the others stay for the user, one by one.
+// remove what it saved, in a second round) -- all of them but what mayYes holds absolutely (sign-in companies, sites turned off, sign-in holds).
 // Wi-Fi is never part of it: it keeps its own Remove button and the line that it cannot be undone. Then what a row has
 // beyond its queue: the saved copies (cache), what trackers saved on their own sites (own), cookies with a cross-site
 // code (crossid). The answer: how many were removed per row, from the log lines (tally); each row keeps { t, n }.
@@ -227,7 +227,7 @@ async function cleanPress(rows) {
 // what waits in these rows, carried out now; a question only where mayYes allows it, nothing of a site whose sign-in holds it
 async function carryNow(rows, cx) {
   const all = await allCookies(), items = []; let left = 0;
-  const take = (it) => it.kind !== 'wifi' && (it.kind === 'cache' || !guarded(cx, siteOf(bare(String(it.site))))) && (!QUESTION_KINDS.includes(it.kind) || mayYes(cx, all, it.site));
+  const take = (it) => it.kind !== 'wifi' && (it.kind === 'cache' || !guarded(cx, siteOf(bare(String(it.site))))) && (!QUESTION_KINDS.includes(it.kind) || mayYes(cx, it.site, true));
   await withQueue((p) => { let changed = false;
     for (const g of rows) { const q = p[g]; if (!q) continue;
       const mine = q.items.filter(take); left += q.items.filter((it) => QUESTION_KINDS.includes(it.kind) && !take(it)).length;
@@ -1002,31 +1002,32 @@ async function followSweep(cx, all, wait) {
   // once: blocked, and what it saved removed, as the presses on Block and Remove do; logged as done by itself (auto)
   const yes = answersYes('C25', cx.set, cx.hold);
   for (const { w, ...it } of asks.sort((a, b) => b.w - a.w).slice(0, QUESTIONS_MAX)) {
-    if (yes && await yesNow(cx, all, it.site) && await stopTracker(it.site)) { const used = await hardClean(it.site, true);   // its saved copies: copiesNow, there
+    if (yes && await yesNow(cx, it.site) && await stopTracker(it.site)) { const used = await hardClean(it.site, true);   // its saved copies: copiesNow, there
       await logged([{ ...it, auto: true }, ...(used ? [{ cap: 'C25', kind: 'used', site: it.site, name: USED, auto: true }] : [])], 'removed'); continue; }
     wait.push(it); }
   // a blocked host: the second question, once (USED: remove what it saved)
   for (const site of stopped) if (!hard.includes(site) && !later(cx, 'C25', site, USED)) {
     const it = { cap: 'C25', kind: 'used', site, name: USED, why: String(((follow[site] || {}).on || []).length), did: 'queued' };
-    if (yes && await yesNow(cx, all, site) && await hardClean(site, true)) { await logged([{ ...it, auto: true }], 'removed'); continue; }
+    if (yes && await yesNow(cx, site) && await hardClean(site, true)) { await logged([{ ...it, auto: true }], 'removed'); continue; }
     wait.push(it); }
 }
-// ---- 1.30: what the cleaner may answer yes by itself (Strongest). Only a host that is none of: a sign-in host or a
-// company people sign in with (also never learned, noteRequest), under a site the user switched off, of a site the user
-// opens as a page (mine) or has open in a tab, of a site with a cookie the user keeps (allow) or one that looks like a
-// sign-in (it may be signed in there), one the user let through or said "Not now" to before (`unauto`); and nothing at all
-// while a tab is on a sign-in host or that site's sign-in page holds deleting. What is left is asked, as at Balanced.
-// The same narrowing applies to the questions a "Clean now" press answers in bulk.
-const mayYes = (cx, all, site) => { const co = siteOf(site);
+// ---- What the cleaner may answer yes by itself (Strongest), and what a press answers in bulk (Clean now). 1.31 (the
+// owner's decision): a site the user opens, has open or seems signed in to is answered too, as a press would be; the
+// removal keeps its sign-in-like and allowed cookies (`kept`), but what it saved in storage goes. Absolute, at every level:
+// never a sign-in host or a company people sign in with (also never learned, noteRequest), never under a site the user
+// switched off, nothing while a tab is on a sign-in host or that site's sign-in page holds deleting (the answer waits and
+// is given at the sweep after the hold). By itself only: never a host the user let through or said "Not now" to (`unauto`);
+// the user's own press still answers it.
+const mayYes = (cx, site, press = false) => { const co = siteOf(site);
   return isHost(site) && !signInCompany(co) && !SIGNIN_HOSTS.some((h) => siteOf(h) === co) && !(cx.set.sitesOff || []).some((s) => under(site, s) || siteOf(s) === co)
-    && !visited(cx, co) && !cx.hosts.some((h) => siteOf(h) === co) && !cx.signing && !guarded(cx, co)
-    && !(cx.set.allow || []).some((a) => siteOf(a.site) === co) && !(cx.set.unauto || []).includes(site)
-    && !(all || []).some((c) => siteOf(realHost(c.domain)) === co && signinLike(c)); };
+    && !cx.signing && !guarded(cx, co) && (press || !(cx.set.unauto || []).includes(site)); };
+// what no removal of a learned host (hardClean, cleanBounce) deletes: a sign-in-like cookie, an allowed one, one of a site switched off
+const kept = (cx, c) => signinLike(c) || (cx.set.allow || []).some((a) => a.site === bare(c.domain) && a.name === c.name) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s));
 // at most STOPS_HOUR answers by itself in an hour, in all (`autoAt`: when each was given): pages cannot make more
 const spendYes = () => { let ok = false;
   return serial(async () => { const now = Date.now(), { autoAt = [] } = await chrome.storage.local.get('autoAt'), recent = autoAt.filter((t) => t > now - 3600e3);
     if (recent.length < STOPS_HOUR) { ok = true; await chrome.storage.local.set({ autoAt: [...recent, now] }); } }).then(() => ok); };
-const yesNow = async (cx, all, site) => mayYes(cx, all, site) && await spendYes();
+const yesNow = async (cx, site) => mayYes(cx, site) && await spendYes();
 // the user let it through again, or said "Not now": never answered by itself again (it is asked)
 const noAuto = (site) => serial(async () => { const { unauto = [] } = await chrome.storage.local.get('unauto');
   if (isHost(site) && !unauto.includes(site)) await chrome.storage.local.set({ unauto: [...unauto, site].slice(-STOPPED_MAX) }); });
@@ -1048,9 +1049,9 @@ async function hardClean(site, auto = false) {
   const { stopped = [], follow = {}, later: lt = {} } = await chrome.storage.local.get(['stopped', 'follow', 'later']);
   if (!isHost(site) || !stopped.includes(site)) return false;
   const cx = await context(), gone = [], origins = [...new Set([site, ...((follow[site] || {}).hosts || []).filter((h) => under(h.replace(/:\d+$/, ''), site))])].flatMap((h) => [`https://${h}`, `http://${h}`]);
-  for (const c of await allCookies()) if (under(bare(c.domain), site) && !signinLike(c) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
+  for (const c of await allCookies()) if (under(bare(c.domain), site) && !kept(cx, c) && !firstParty(c, cx.hosts) && await remove(c)) gone.push({ cap: 'C25', kind: 'cookie', site: bare(c.domain), name: c.name });
   await logged(gone, 'removed');
-  try { await chrome.browsingData.remove({ origins }, cx.hosts.some((h) => under(h, site)) ? { serviceWorkers: true } : { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true }); } catch {}
+  if (!(cx.set.sitesOff || []).some((s) => under(site, s))) try { await chrome.browsingData.remove({ origins }, cx.hosts.some((h) => under(h, site)) ? { serviceWorkers: true } : { localStorage: true, indexedDB: true, serviceWorkers: true, cacheStorage: true, fileSystems: true, webSQL: true }); } catch {}
   // the saved copies are cleared with it. This is the user's own press, so it is not counted against the hour's one clearing,
   // which bounds only what a page can cause (K1)
   if (auto) await copiesNow(cx);
@@ -1112,7 +1113,7 @@ async function bounceSweep(cx, wait, all) {
       ...((e.to || []).length >= 2 && e.id === true && !visited(cx, siteOf(site)) && !choices.includes(site) ? [{ kind: 'skip', name: SKIPQ }] : [])];
     const open = asks.filter((x) => !later(cx, 'C27', site, x.name)).map((x) => ({ cap: 'C27', site, why: 'a redirect', ...x, did: v === 'held' ? 'held' : 'queued' }));
     // 1.30, Strongest ('yes'): both questions about a site answered yes by itself, as one of the hour's STOPS_HOUR (mayYes)
-    if (yes && open.length && await yesNow(cx, all, site)) { for (const it of open) if (await (it.kind === 'bounce' ? cleanBounce(site) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true }); continue; }
+    if (yes && open.length && await yesNow(cx, site)) { for (const it of open) if (await (it.kind === 'bounce' ? cleanBounce(site) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true }); continue; }
     // otherwise never by itself (F2, J1): what a passing site saved is deleted, and its links changed, only after the user's press on its question
     wait.push(...open); }
   await logged(done, 'removed');
@@ -1126,8 +1127,10 @@ async function skipAdd(site) {
 async function cleanBounce(site) {
   const e = ((await chrome.storage.local.get('bounce')).bounce || {})[site], gone = [];
   if (!e) return false;
-  for (const c of await allCookies()) if (under(bare(c.domain), site) && !signinLike(c) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name });
-  await dropStorage(e.hosts);
+  const cx = await context();
+  for (const c of await allCookies()) if (under(bare(c.domain), site) && !kept(cx, c) && await remove(c)) gone.push({ cap: 'C27', kind: 'cookie', site: bare(c.domain), name: c.name });
+  const hosts = (e.hosts || []).filter((h) => !(cx.set.sitesOff || []).some((s) => under(h.replace(/:\d+$/, ''), s)));   // never a site switched off
+  if (hosts.length) await dropStorage(hosts);
   await serial(async () => { const { bounce = {} } = await chrome.storage.local.get('bounce'); if (bounce[site]) { bounce[site].done = bounce[site].n; await chrome.storage.local.set({ bounce }); } });
   await logged(gone, 'removed');
   return true;
