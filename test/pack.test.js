@@ -36,8 +36,8 @@ test('pack.sh: without the signing key it explains loading unpacked, before Chro
   assert.match(branch, /Load unpacked/); assert.match(branch, /chrome:\/\/extensions/); assert.match(branch, /exit 0/);
   assert.match(sh, /--pack-extension-key="\$KEY"/);                 // the signed path is still there
 });
-test('version 1.31, and a description of what it does', () => {
-  assert.equal(manifest.version, '1.31');
+test('version 1.32, and a description of what it does', () => {
+  assert.equal(manifest.version, '1.32');
   for (const w of [/blocks listed trackers/i, /cookies/i, /script in every page/i]) assert.match(manifest.description, w);
   assert.ok(manifest.description.length <= 132);                    // Chrome's limit for a description
   assert.doesNotMatch(manifest.description + bgjs.split('\n').slice(0, 6).join(' ') + read('popup.js').split('\n').slice(0, 5).join(' '), /chrome-baddies|every 15 min\)|1\.20/);

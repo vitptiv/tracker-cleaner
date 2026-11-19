@@ -1,4 +1,4 @@
-// Tracker Cleaner 1.31: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.32: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic. A new install is switched on, and the groups
 // that only touch what follows you run without asking from the start; the popup says so once. Only deleted cookies
@@ -1020,7 +1020,11 @@ async function followSweep(cx, all, wait) {
 // the user's own press still answers it.
 const mayYes = (cx, site, press = false) => { const co = siteOf(site);
   return isHost(site) && !signInCompany(co) && !SIGNIN_HOSTS.some((h) => siteOf(h) === co) && !(cx.set.sitesOff || []).some((s) => under(site, s) || siteOf(s) === co)
-    && !cx.signing && !guarded(cx, co) && (press || !(cx.set.unauto || []).includes(site)); };
+    && !cx.signing && !guarded(cx, co) && (press || !unautoHas(cx, co)); };
+// Q-batch F2 (1.32): `unauto` is kept per registrable site (siteOf), so after "Let it through again" on app.bank.example no
+// other host of bank.example, and not its root, is answered by itself either. An entry 1.31 stored per exact host counts
+// for its whole site too.
+const unautoHas = (cx, co) => (cx.set.unauto || []).some((u) => siteOf(u) === co);
 // what no removal of a learned host (hardClean, cleanBounce) deletes: a sign-in-like cookie, an allowed one, one of a site switched off
 const kept = (cx, c) => signinLike(c) || (cx.set.allow || []).some((a) => a.site === bare(c.domain) && a.name === c.name) || (cx.set.sitesOff || []).some((s) => under(realHost(c.domain), s));
 // at most STOPS_HOUR answers by itself in an hour, in all (`autoAt`: when each was given): pages cannot make more
@@ -1028,9 +1032,9 @@ const spendYes = () => { let ok = false;
   return serial(async () => { const now = Date.now(), { autoAt = [] } = await chrome.storage.local.get('autoAt'), recent = autoAt.filter((t) => t > now - 3600e3);
     if (recent.length < STOPS_HOUR) { ok = true; await chrome.storage.local.set({ autoAt: [...recent, now] }); } }).then(() => ok); };
 const yesNow = async (cx, site) => mayYes(cx, site) && await spendYes();
-// the user let it through again, or said "Not now": never answered by itself again (it is asked)
-const noAuto = (site) => serial(async () => { const { unauto = [] } = await chrome.storage.local.get('unauto');
-  if (isHost(site) && !unauto.includes(site)) await chrome.storage.local.set({ unauto: [...unauto, site].slice(-STOPPED_MAX) }); });
+// the user let it through again, or said "Not now": no host of that site is answered by itself again (it is asked)
+const noAuto = (host) => serial(async () => { const { unauto = [] } = await chrome.storage.local.get('unauto'), site = isHost(host) ? siteOf(host) : '';
+  if (site && !unauto.includes(site)) await chrome.storage.local.set({ unauto: [...unauto, site].slice(-STOPPED_MAX) }); });
 async function stopTracker(site) {
   if (!isHost(site)) return false;
   const { stopped = [] } = await chrome.storage.local.get('stopped');
