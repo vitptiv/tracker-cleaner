@@ -9,10 +9,12 @@ has "Clean everything now":
 - it blocks requests to listed trackers. At Ask first and Balanced, a host on no list that it sees following
   you (on two sites you visit, or handed a site's own ID) is only ever asked about: blocking it, removing what
   it saved (once), cleaning a site that only passes you along, and sending its links straight on each need
-  your press on one question. At Strongest the cleaner answers those questions yes itself, at most 10 an hour
-  and since 1.31 also for a site you use (its sign-in-like and kept cookies stay, what it saved in the browser goes,
-  so it can sign you out of a site that follows you), never for a sign-in company or a site you turned off; each such answer is in the log and
-  can be let through again;
+  your press on one question. At Strongest the cleaner answers those questions yes itself, at most 10 an hour.
+  That can hit a site you use, not only a tracker: when other sites ask it for things and it answers with a
+  cookie other sites can use, it is blocked on other sites and its cookies (but those that look like a sign-in)
+  and what it saved in the browser are emptied. That can sign you out of it, and emptied site data cannot be put
+  back. Never a sign-in company or a site you turned off; each such answer is in the log, and "Let it through"
+  stops it for that whole site;
 - it deletes tracking cookies, clears the saved copies of pages once a day and each time Chrome starts (and at
   most once an hour besides, when you block a host), and strips the listed tracking parameters from links;
 - from every request a page makes to another company it removes cookies, cache tags and the referring

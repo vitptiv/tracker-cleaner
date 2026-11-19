@@ -321,3 +321,16 @@ test('F4: a value handed on in the address (the Friendface 2 chain) is confirmed
   assert.ok(xblock(bg, 'https://sundial.example/f/hit'));
 });
 
+
+// ---- F10: the disclosure says plainly that a site you use can be affected and that emptied site data cannot be put back
+const { GROUPS } = require('../extension/registry.js');
+test('F10: the Strongest sentence, the first-run line, the two question rows and the README name sites you use and that wiped data is gone for good', () => {
+  const base = { now: 1.8e12, master: true, level: 'strong', hold: {}, groups: [], log: [], allow: [], always: [], sitesOff: [], undo: [] };
+  const texts = { dial: renderPopup(base, null).split('</div>')[1], first: renderPopup({ ...base, firstRun: true }, null),
+    unknown: GROUPS.find((g) => g.id === 'unknown').says, bounce: GROUPS.find((g) => g.id === 'bounce').says,
+    readme: require('fs').readFileSync(require('path').join(__dirname, '..', 'README.md'), 'utf8') };
+  for (const [k, t] of Object.entries(texts)) {
+    assert.match(t, /sites? you use/, k); assert.equal(/a site that follows you/.test(t), false, `${k}: as if only trackers were affected`); }
+  for (const k of ['dial', 'first', 'readme']) assert.match(texts[k], /cannot be put back/, k);
+  assert.match(texts.readme, /other sites (ask|call) it/);
+});

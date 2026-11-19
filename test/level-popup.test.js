@@ -14,7 +14,7 @@ test('the dial comes first: three positions, the chosen one pressed, one true se
     assert.ok(html.startsWith('<div class="c" data-level'), level);
     assert.deepEqual([...html.matchAll(/data-level-pick="(\w+)"[^>]*aria-pressed="(\w+)"/g)].map((m) => [m[1], m[2]]), [['ask', String(level === 'ask')], ['balanced', String(level === 'balanced')], ['strong', String(level === 'strong')]]);
     assert.match(top(html), says, level);
-    if (level === 'strong') assert.ok(top(html).includes(`at most ${STOPS_HOUR} an hour`), 'the hourly cap in the sentence is not learn.js STOPS_HOUR');
+    if (level === 'strong') assert.match(top(html), /sites you use.*cannot be put back/, 'Strongest names its two costs (1.32: the hourly cap is in the README)');
     assert.match(top(html), /Tor, the tab limit, keeping only listed cookies, Wi-Fi networks and the reports keep their own switch/); }
   const custom = renderPopup(state({ level: 'custom' }), null);
   assert.match(top(custom), /Custom: you set some rows yourself/); assert.equal(/aria-pressed="true"/.test(custom), false);
@@ -52,7 +52,7 @@ test('after a press the row shows what was done, for ten minutes; an answer give
   assert.match(renderPopup(s(NOW, 1), { host: 'trk.example', blocked: null }), /removed by itself<\/span> trk\.example/);
 });
 test('the first-run line says the level it starts at', () => {
-  assert.match(renderPopup(state({ firstRun: true }), null), /Tracker Cleaner is on, at Strongest\. By itself it now: blocks trackers;.*blocks a company on no list.*To turn it off, untick "On" above/s);
+  assert.match(renderPopup(state({ firstRun: true }), null), /On, at Strongest: trackers are blocked and cleaned without asking, also on sites you use\. This can sign you out, and wiped site data cannot be put back\. Pick Balanced to be asked first\./);
   const bal = renderPopup(state({ firstRun: true, level: 'balanced' }), null);
   assert.match(bal, /asks before it blocks or removes anything of a company that is on no list/); assert.equal(bal.includes('Tracker Cleaner is on, at Strongest'), false);
 });
@@ -70,6 +70,6 @@ test("the report beside the page shows a row that answers yes by itself as on, n
 
 test('1.31: the Strongest sentence and the first-run line say it can sign you out of a site that follows you, and how to undo or prevent it', () => {
   for (const html of [top(renderPopup(state(), null)), renderPopup(state({ firstRun: true }), null)]) {
-    assert.match(html, /can sign you out of a site that follows you/); assert.match(html, /Let it through again/); assert.match(html, /Don&#39;t clean on this site|Don't clean on this site/);
+    assert.match(html, /also on sites you use\. This can sign you out, and wiped site data cannot be put back/);   // 1.32 (F10): not only trackers; the undo is the Let it through press, the README says more
     assert.equal(/never a site you open yourself/.test(html), false, 'the old promise is still there'); }
 });

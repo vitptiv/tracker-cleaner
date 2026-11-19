@@ -20,7 +20,7 @@ test('a fresh install is switched on and says so once; an update changes nothing
   const bg = await fresh();
   assert.equal(bg.state.storage.master, true); assert.equal((await bg.send({ type: 'state' })).firstRun, true); assert.equal(bg.state.storage.level, 'strong');   // 1.30
   const html = renderPopup(await bg.send({ type: 'state' }), null);
-  assert.match(html, /Tracker Cleaner is on, at Strongest\. By itself it now: blocks trackers; .* To turn it off, untick .On. above\./);   // 1.30: the line names the level
+  assert.match(html, /On, at Strongest: trackers are blocked and cleaned without asking.*Pick Balanced to be asked first\./);   // 1.30: the line names the level (1.32: short)
   assert.match(renderPopup(await (await balanced()).send({ type: 'state' }), null), /Tracker Cleaner is on\. By itself it now: blocks trackers; .* To turn it off, untick .On. above\./);
   await bg.send({ type: 'seen' });
   assert.equal((await bg.send({ type: 'state' })).firstRun, undefined);

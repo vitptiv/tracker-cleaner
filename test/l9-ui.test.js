@@ -16,8 +16,8 @@ test('the audit scenario: questions wait in the two rows that only ask: the popu
   for (const m of every) { const r = await bg.send(m); assert.ok(r.of > 0, `a button that does nothing: ${JSON.stringify(m)}`); }
 });
 test('the rows say what happens now: nothing learned is blocked or deleted without a press; saved copies daily and at most hourly otherwise', () => {
-  assert.match(says('unknown'), /you are asked whether to block it/); assert.match(says('unknown'), /nothing is blocked or deleted before you press/i);
-  assert.match(says('bounce'), /you are asked/); assert.equal(/cut off|is deleted/.test(says('bounce')), false);
+  assert.match(says('unknown'), /^Asks before blocking/); assert.match(says('unknown'), /At Strongest it blocks and cleans by itself, sites you use included/);   // 1.32 (F10)
+  assert.match(says('bounce'), /^Asks before cleaning/); assert.equal(/cut off|is deleted/.test(says('bounce')), false);
   assert.match(says('own'), /built-in list/); assert.match(says('own'), /Keep removing/);
   assert.match(says('cache'), /once a day/); assert.match(says('cache'), /at most once an hour/); assert.equal(/cleaned out/.test(says('cache')), false);
 });

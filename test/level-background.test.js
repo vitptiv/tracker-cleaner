@@ -18,7 +18,7 @@ test('a new install starts at Strongest and says so; an update keeps what it had
   assert.equal(bg.state.storage.level, 'strong'); assert.equal(bg.state.storage.master, true);
   const s = await bg.send({ type: 'state' });
   assert.equal(s.level, 'strong'); assert.equal(s.groups.find((g) => g.id === 'unknown').mode, 'yes'); assert.equal(s.groups.find((g) => g.id === 'google').mode, 'auto');
-  assert.match(renderPopup(s, null), /Tracker Cleaner is on, at Strongest\./);
+  assert.match(renderPopup(s, null), /On, at Strongest:/);
   for (const was of [{ master: true }, { master: true, modes: { C03: 'ask' } }]) {
     const old = await load({ storage: { cacheClearedAt: 5, ...was } }); await old.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.29' }); await old.settle();
     assert.equal(old.state.storage.level, undefined, 'an update jumped to a level');
