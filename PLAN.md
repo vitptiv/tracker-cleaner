@@ -1467,3 +1467,18 @@ finding below got a test of the SAFE behaviour first (test/q-batch.test.js), the
   history-view, h5-local, j1-press, h1-soft, l2-once, report-page, skip.
 - Found, not changed: manifest has no "webNavigation" permission, so M3's `xidNav` (onHistoryStateUpdated) is never
   registered in real Chrome (the try/catch swallows it); F4 uses tabs.onUpdated instead.
+- Final audit of 1.32 (audit7/exploit.test.js), fixed inside 1.32: (1) the live address is matched as a substring of
+  the whole decoded address and noteOutside tokenises without the 20-token cap, so junk parameters cannot hide a value
+  (E6); (2) the per-tab set compares new tokens by content (E7), is marked `full` instead of trimmed (every own send
+  from that tab on that site is then an echo, as is any address over 64 KB), is keyed 't' + tab id so the oldest entry
+  is evicted, and a closed tab's entry is removed (E3); (3) the Balanced line and the first-run lines no longer say
+  "anything new is asked": codes seen on two sites are cut without asking, and it reads what pages send, on this
+  computer only; (4) INFRA_COOKIE_RE anchors the vendor-made names to their formats (E4: TS01uid, visid_incap_track are
+  evidence again; exact names such as _abck stay ignored); (5) the 10-minute clearing keeps one log line updated in
+  place (E5); (6) nothing is noted about addresses with the main switch or the codes row off; (7) the once-a-day
+  pass-through limit reads its own record (`bounceAuto`), not the evictable autoDone.
+- Known limits, shipped as such: a tracker that adapts can evade C33 cheaply -- it puts its id into each page's own
+  address (then every send is only an echo) and hands it on encoded or in a POST body (then it is never seen being
+  handed on), so nothing is blocked (audit7 E1, E2); at Strongest the forced-HTTPS entries are dropped every 10 minutes
+  with the cache; a shared-hosting name missing from the built-in table makes its tenants one site for `unauto` (one
+  "Let it through" then covers them all: it fails safe).
