@@ -1396,3 +1396,74 @@ Traced through one whole trip at fresh-install defaults, stored state after ever
 - The gate that stays closed: `e.q !== true` in `followSweep`. All the evidence is there (`followFull`, `e.ck`), `later` is not set, `mine` plays no part in this question. And it stays closed for good: a mark is only ever asked for when something new is noted about a host, and nothing new can be noted about this one any more (two sites is the most that is kept, `ck` and `sent` are yes).
 - Fix (a plain bug, implemented): `followNote()` keeps a mark that was given (`q` is carried over; it is never set there). The evidence asked for and the caps are untouched: still FOLLOW_N sites and a cookie of its own (or the handed-over ID and its own answer), still at most ASK_HOUR marks per visited page per hour and QUESTIONS_MAX questions. After it: the question "followed you on 2 sites" is there after step 3, the first moment the host really has been seen on two visited sites. Tests: test/p3-question.test.js, including an ATTACK test: a page that keeps noting new things about five full companies within the hour (other ports, its own ID handed over) holds exactly ASK_HOUR marks and two questions; the next hour gives two more marks, not more. It is also the only test that fails when followNote is changed to set the mark for a host that is already full.
 - Not changed, for a decision (these touch the rule itself): (a) a host that becomes full on a page whose two marks of the hour are already given is never looked at again, because marks are only asked for when something new is noted; a third real tracker on one page can so stay unasked for good. Options: ask again at the first sighting after the hour is over (needs a sighting to be let through although nothing new is noted), or let the sweep hand out marks, per visited page, to full hosts that have none. (b) A mark is spent on hosts whose question can never be shown: the loopback address (C31 blocks it anyway) and hosts without a cookie of their own took marks in the trip. Options: no mark for a bare address, or spend the mark only when the cookie evidence is there. Either changes who gets asked about under L5's cap, so neither is done here.
+
+### Q-batch (1.32): sixth-audit fixes
+The sixth adversarial audit's exploit tests (session scratchpad audit6/exploit.test.js) all passed against 1.31. Each
+finding below got a test of the SAFE behaviour first (test/q-batch.test.js), then the fix; one commit each.
+- F2 `unauto` per registrable site. `noAuto` stores `siteOf(host)`; `mayYes` refuses any host whose site is in
+  `unauto` (`unautoHas`, which also reads 1.31's per-host entries by their site). So after "Let it through again" on
+  app.bank.example neither bank.example (the root clean-out) nor www.bank.example is answered by itself; a press still is.
+- F9 infrastructure cookies are no evidence. `INFRA_COOKIE_RE` (security/trackers.js -> lists.js, with a comment):
+  AWS ALB, Azure ARR, F5 TS01*, Cloudflare, Akamai, Imperva/Incapsula. Ignored by `hasId` and by `noteAnswer`'s
+  Set-Cookie test (now per Set-Cookie line). Nothing is deleted or kept for being on it.
+- F8 `cleanOwn` (also the built-in list and the follow hosts), the queued `storage` carry, the permanent storage drops
+  and the notification mute skip sites in `sitesOff` (`isOff`).
+- F7 the per-cookie lines of `hardClean`/`cleanBounce` and the cache line of `copiesNow` inside an automatic answer
+  carry `auto: true`.
+- F6 ASK_HOUR (`asked`), NEW_HOUR (`fresh`), XNEW_HOUR (`xnew`) live in chrome.storage.session via `hourCap`, always
+  called inside `serial()`; at most 500 pages each. The chrome fake takes `init.session` so a test can wake a new worker.
+- F3 pass-through at Strongest: an automatic answer is noted in `autoDone` { host: { t, row } } (100 at most); `state`
+  lists them (`autoDone`, minus sites in `unauto`); the popup shows each on its row and under "This site" with
+  "Let it through" (`letThrough`: unblock or unskip as needed, put its site in `unauto`). A site's pass-through is
+  cleaned by itself at most once per 24 h (`BOUNCE_AUTO_MS`); within the day it is a question. Never automatic (clean
+  nor skip) while a tab is open on that site.
+- Pending decision (owner since: keep 'full'): `USED_SITE_AUTO` in background.js, one line, 'full' | 'block' | 'ask',
+  decides what the automatic answer does for a site the user uses (`usesSite`: in `mine`, open in a tab, an allowed
+  cookie there, or a sign-in-like cookie there). 'block' = blocked on other sites only, nothing first-party deleted,
+  no storage wiped, the "remove what it saved" and pass-through questions stay questions; 'ask' = nothing by itself.
+  All three tested by patching that one line (load-background.js `patch`).
+- F5 "Clean everything now": `state.cleanAllAsks` names the hosts whose waiting questions a press would answer; with
+  any, the popup's top button opens a confirm naming them ("Clean these too" sends `answer: [...]`, "Clean the rest
+  only" sends none). `cleanAll` answers only the hosts in `answer`. A row's own Clean now beside its questions still
+  answers them all.
+- F4 (Balanced default) the reflected-parameter exploit. Done: (a) per tab, session `xtab` { tab: { site, toks } }
+  (200 tabs, 60 token hashes each, never a raw value) holds the id-like tokens of every main-frame address the tab had
+  on its current site (request, redirects, fragment/pushState via tabs.onUpdated, onCompleted), the page the
+  navigation came from, its Referer (onBeforeSendHeaders, extraHeaders) and its form body; the tab's live address is
+  checked too. (b') a site counts towards a confirmation only when it sent the value to an endpoint under its OWN name.
+  (b) as asked was NOT done: the Friendface 2 collector is the site's own page calling its own /f/, so exempting the
+  own site as initiator would reopen it. MEASURED: (a) as first written (such a send not counted at all) left
+  Friendface 2 with nothing confirmed (ff2-trip FAIL "xsid entries: 0"): its id travels in the address and the
+  receiving sites' echoes are what reveal it, i.e. Friendface 2's sundial/atlas look exactly like the reflecting
+  bank. Then (an echo counts towards two sites but its endpoint is never acted on) only ledger's /f/ was blocked
+  (FAIL, sundial and atlas reachable). Shipped: an echo marks the endpoint 'e'; it becomes actionable only once a page
+  of that same site starts a navigation to another site carrying the value (`noteForward`, xseen `fwd`) -- a collector
+  network hands its id along, a search box that reflects a parameter does not. ff2-trip: 6/10 stopped.
+  Residual, honestly: (1) a victim page that itself navigates cross-site with the reflected value (a client-side open
+  redirect such as ?next=https://evil/?t=TOKEN, or a reflected link the user clicks) is "handing it on" and its
+  endpoint is acted on again; (2) a value the victim sends unhanded that the attacker can learn (a public API key, a
+  build id, a public object id fetched by script, an account id after login CSRF) can be sent by the attacker's own
+  page to its own endpoint and confirms the victim's endpoint as a collector: block of that path for the victim's own
+  page and N2's delete of the readable cookies that path set; (3) the `xtab` set is per tab and per current site: a
+  victim that stores the reflected value and sends it on a later page without it in the address counts as its own;
+  (4) the session memory is lost when Chrome closes. The URL strip of a confirmed value also strips it from the
+  victim's links (an attacker-chosen value only).
+- R (owner) at Strongest the timed sweep and the clearing of all saved copies run every 10 minutes (registry.js
+  `cleanEvery`, beside the level; a hand-set cache row keeps the day). One 'sweep' alarm, its period follows the level,
+  re-made only when it differs; a timed sweep is skipped while one runs. Held while paused, master off, or a tab on a
+  sign-in host. One log line per clearing; a sweep that removes nothing writes nothing. The hourly clear after a block
+  never comes within 10 minutes of a real clearing (`cacheWipedAt`). Cost: at Strongest the whole HTTP cache, the
+  remembered servers and forced-secure entries are gone every 10 minutes: every page, picture and script is fetched
+  again, slower and using more data.
+- F10 + T (owner) all user-facing text short; the long explanations are in the README "What each row does". The
+  Strongest line and first-run line say sites you use are affected and wiped site data cannot be put back. Strings
+  tools/inspect.js prints word for word were left. Popup at 380 px, fresh install: 2089 px high (1.31: 2896).
+- Tests changed because the behaviour changed on purpose: level-background, level-attack (F7 lines, F3 second pass
+  a question, F5 confirm), queue-background (state keys), m8-weaponization and n2-collector-cookie (third-party-only
+  sends are not confirmed), drop-sweep (coalescing via the unguard alarm). Text pins updated: auto-default,
+  clear-history, f4-update, f6-server, h6-rules, h8-update, h9-limits, h10-words (first-run line short; the full list
+  is the README's), history-clean, i-batch, j6-limits, l9-ui, level-popup, loop, n1-start-clear, params, pack,
+  popup-background, popup-view, registry, report-background, report-view, shield, stop-copies, wifi-background, tor,
+  history-view, h5-local, j1-press, h1-soft, l2-once, report-page, skip.
+- Found, not changed: manifest has no "webNavigation" permission, so M3's `xidNav` (onHistoryStateUpdated) is never
+  registered in real Chrome (the try/catch swallows it); F4 uses tabs.onUpdated instead.
