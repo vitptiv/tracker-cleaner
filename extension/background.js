@@ -570,9 +570,14 @@ async function notNow(m) {
 // its tab is still on that site MINE_WAIT_MS later: one that passes the browser straight on cannot put itself here.
 const MINE_MAX = 2000, MINE_SHARED = 50, MINE_WAIT_MS = 3000;
 // the random value of this install that every stored hash of a site name is made with
-async function saltNow() { let { salt } = await chrome.storage.local.get('salt');
+// P2 (1.29): made exactly once. Everyone who asks while it is being read or made waits for that same answer; before, the
+// first requests of a fresh install each found none and each wrote one, and one visited site got two different marks.
+// The slot is cleared by .finally, which always runs after it was filled (a try/finally inside would run first when the
+// read throws at once, and the failure would then be kept for good).
+let salting = null;
+const saltNow = () => salting || (salting = (async () => { let { salt } = await chrome.storage.local.get('salt');
   if (!salt) await chrome.storage.local.set({ salt: salt = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('') });
-  return salt; }
+  return salt; })().finally(() => { salting = null; }));
 function visited(cx, site) { const m = mark(`${cx.set.salt} ${site}`); return !!cx.set.salt && ((cx.set.mine || []).includes(m) || (cx.set.mineShared || []).includes(m)); }
 async function notePage(d) {
   if (d.type !== 'main_frame' || !(d.statusCode >= 200 && d.statusCode < 300) || !(d.tabId >= 0)) return;
