@@ -29,7 +29,7 @@ const SAYS = {
   local: 'A page on the internet is stopped from calling programs on this computer or devices on your home network, which some pages do to recognise you.',
   shield: 'Experimental, best effort: makes this browser harder to recognise by its drawing, sound, fonts and screen size; a determined site can still undo it.',
   crossid: 'When the same hidden code turns up on two different sites you visit, it is a tracker following you between them, so it is stripped from links and requests and the address that collects it is blocked - that exact address, never the whole site. Everything can be undone.',
-  cache: 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.',
+  cache: 'All copies of pages that Chrome saved to load them faster are thrown away once a day and each time Chrome starts, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.',
   allowlist: 'Every small file that sites save to recognise you is deleted, except the ones on your own list.',
   tabs: 'When more tabs are open than the number you set, the ones you used least are closed.',
   tor: 'Chrome reaches websites through the Tor network, so they cannot see where you are.',

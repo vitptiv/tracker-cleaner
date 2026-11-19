@@ -46,13 +46,21 @@ const OUTSIDE = ['T17', 'T18', 'T19', 'T20'];
 const REVISITED = ['T1', 'T2', 'T3', 'T4', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26', 'T28', 'T36'];
 // what the report names as out of reach (report-view.js CANNOT), per row
 const SAID = { T18: 'cannot clean', T19: 'cannot clean', T27: 'cannot stop', T31: 'cannot stop', T32: 'cannot stop', T33: 'cannot stop' };
-const SIMULATED = { guard: 'nothing is cut short: there is no hold on everything any more; the lab\'s own sign-in page holds deleting for the network\'s own site for five minutes', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
+const SIMULATED = { start: 'Chrome does not keep an extension that was loaded over the debugging channel when it is closed, so after the restart (step 8) the trip loads it again; Chrome therefore sends it no runtime.onStartup, the event an installed extension gets at every start. The trip hands the freshly loaded extension that event itself, once (each run says under startEvent whether that worked)', guard: 'nothing is cut short: there is no hold on everything any more; the lab\'s own sign-in page holds deleting for the network\'s own site for five minutes', T22: 'the press on Allow is a grant over the control channel', T24: 'the second address is a forwarded-for header', T20: 'needs the lab certificate', T21: 'needs the lab certificate' };
 
+// N1: the start event an installed extension gets when Chrome starts, handed to the extension's own worker (see SIMULATED.start)
+const startEvent = async (b, id) => { try {
+  const sw = await until(async () => (await b.send('Target.getTargets')).targetInfos.find((x) => x.type === 'service_worker' && x.url.startsWith(`chrome-extension://${id}/`)), 8000);
+  const { sessionId } = await b.send('Target.attachToTarget', { targetId: sw.targetId, flatten: true });
+  const r = await b.send('Runtime.evaluate', { expression: 'chrome.runtime.onStartup.dispatch(); "sent"', returnByValue: true }, sessionId);
+  await b.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+  return r.exceptionDetails ? 'failed: ' + String((r.exceptionDetails.exception || {}).description || r.exceptionDetails.text).split('\n')[0] : r.result.value; } catch (e) { return 'failed: ' + String(e.message || e).split('\n')[0]; } };
 async function run(name, set, cert, flags, chance = {}) {
   const lab = await start({ port: PORT, tls: cert });
-  let first = true;
+  let first = true, started = 'no restart';
   const launchExt = async (dir) => { const b = await launch(dir, [...flags, '--enable-unsafe-extension-debugging']);
     const { id } = await b.send('Extensions.loadUnpacked', { path: EXT });
+    if (!first) started = await startEvent(b, id);   // Chrome was started again on the same profile
     b.popup = await b.tab(`chrome-extension://${id}/popup.html`);
     b.msg = (m) => within(b.popup.ev(`chrome.runtime.sendMessage(${JSON.stringify(m)})`), 20000, m.type);
     await until(async () => (await b.msg({ type: 'state' })).groups, 10000);
@@ -98,6 +106,7 @@ async function run(name, set, cert, flags, chance = {}) {
       out.afterManual = { reidentified: !!(kc && kc.who && kc.who.name === MARA.name), historyStillShown: kc ? kc.history.length : 0 }; }
     const ext = await E.b.msg({ type: 'state' }).catch(() => ({ log: [], groups: [], hold: {} }));
     const matched = await E.b.popup.ev(`chrome.declarativeNetRequest.getMatchedRules({}).then((r) => r.rulesMatchedInfo.map((x) => x.rule.rulesetId + ':' + x.rule.ruleId))`).catch(() => []);
+    out.startEvent = started;
     out.extension = { master: ext.master, guardHeldAtEnd: !!(ext.hold && ext.hold.guard), stopped: ext.stopped || [], cutOff: ext.params || [], removed: ext.log.filter((l) => l.did === 'removed').length,
       waiting: Object.fromEntries(ext.groups.filter((g) => g.pending).map((g) => [g.id, g.pending])), blockRuleMatches: matched.filter((m) => m.endsWith(':9001')).length, tagRuleMatches: matched.filter((m) => m.endsWith(':9002') || m.startsWith('url-params')).length };
     // S15: what Chrome's real notification setting for the network's site is, read from the extension's side (declared in `simulated`)
@@ -137,7 +146,7 @@ async function run(name, set, cert, flags, chance = {}) {
       else if (!caps.length) row.cause = `no capability covers it${WHY_NONE[id] ? ` (${WHY_NONE[id]})` : ''}`;
       else if (!set.entries && caps.every((c) => LIST_BASED.includes(c))) row.cause = 'not recognised: the lab\'s names are on no list' + (out.extension.stopped.length ? `; blocked after the press on Block (${out.extension.stopped.join(', ')})` : '; asked about, not blocked (no press)') + (row.lastStep ? `, last arrived tied to her in step ${row.lastStep}` : ', arrived tied to nobody');
       else if (!fired.length && !blockSeen) { const g = ext.groups.find((x) => x.pending && x.items && x.items.some((it) => it.name === COOKIE[id]));
-        row.cause = `capability exists but did not fire${caps.includes('C11') ? ' (cache: cleared when it is switched on or "Clean now" is pressed, then once a day; this copy was saved after that)' : out.extension.guardHeldAtEnd && (COOKIE[id] || KIND[id]) ? ' (held: sign-in guard, 5 minutes after any /login or /oauth address)' : g ? ' (waits for approval)' : ''}`; }
+        row.cause = `capability exists but did not fire${caps.includes('C11') ? ' (cache: cleared when it is switched on or "Clean now" is pressed, then once a day and when Chrome starts; this copy was saved after that)' : out.extension.guardHeldAtEnd && (COOKIE[id] || KIND[id]) ? ' (held: sign-in guard, 5 minutes after any /login or /oauth address)' : g ? ' (waits for approval)' : ''}`; }
       else if (!fired.length && blockSeen) row.cause = 'capability exists but did not fire for this request (the block rule matched others: this one is first-party or a page of its own)';
       else { const back = all.filter((r) => r.t > last && linked.has(r)), sameId = back.some((r) => all.some((x) => x.t <= last && x.value === r.value)), via = (back.find((r) => /put back from/.test(r.via)) || {}).via;
         row.cause = !back.length ? 'fired too late (ID already sent)'
@@ -167,11 +176,11 @@ async function run(name, set, cert, flags, chance = {}) {
     recognised: 'Not recognised as shipped: none of the lab\'s site names is in DOMAINS or rules.json, none of its cookie names matches COOKIE_RE, and ffclid is not in URL_PARAMS (only the canary\'s utm_source is).',
     testOnlyEntries: { how: 'B and C only, alive only while the script runs; no shipped file is edited', sessionRules: RULES, alwaysDeleteList: ALWAYS,
       notAdded: 'DOMAINS (cookies judged by tracker host) is a constant inside lists.js, so the always-delete list by cookie name stands in for it. Permanent storage and permission drops come only from the settings program on port 8088, which is not running and is not imitated: in C they are done by hand instead.' },
-    simulated: SIMULATED.guard, simulatedRows: { T22: 'the lab\'s Allow is a grant over the control channel and overrides every setting, so the lab reads "granted" whatever the cleaner does. When Chrome\'s real setting for that site (contentSettings, read from the extension at the end) is "block", T22 is not counted at the end and is listed in counts.simulated' }, ownRecord: 'T18 and T19 are the user\'s own history and site icons in Chrome\'s files, readable by no website; the trip hands them to the lab from outside. Still in the files at the end, they are not counted at the end and are listed in counts.own. C presses "Clear my browsing history" with its other manual actions, before the second look', automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
+    simulated: SIMULATED.guard, simulatedStart: SIMULATED.start, simulatedRows: { T22: 'the lab\'s Allow is a grant over the control channel and overrides every setting, so the lab reads "granted" whatever the cleaner does. When Chrome\'s real setting for that site (contentSettings, read from the extension at the end) is "block", T22 is not counted at the end and is listed in counts.simulated' }, ownRecord: 'T18 and T19 are the user\'s own history and site icons in Chrome\'s files, readable by no website; the trip hands them to the lab from outside. Still in the files at the end, they are not counted at the end and are listed in counts.own. C presses "Clear my browsing history" with its other manual actions, before the second look', automaticGroups: AUTO, groupsLeftAlone: NOT_SET, runs: {} };
   for (const n of names) { result.runs[n] = await run(n, SETTINGS[n], cert, flags, chance); console.log(''); }
   const cell = (r) => r.status === 'not built' ? '-' : (r.atEnd ? 'AT END ' : '') + r.status + (r.cause ? `: ${r.cause}` : '');
   for (const tr of TRACES) console.log(`${tr.id.padEnd(4)}${tr.type.slice(0, 34).padEnd(35)}${names.map((n) => `${n}=${cell(result.runs[n].rows[tr.id])}`).join(' | ')}`);
-  for (const n of names) { const r = result.runs[n]; console.log(`${n}: ${JSON.stringify(r.counts)} canary "${r.canary}" history ${r.history.rebuilt}/${r.history.opened}${r.history.complete ? ' complete' : ''} re-identified after step 12: ${r.reidentifiedAfterStep12}${r.afterManual ? `, after manual cleaning: ${r.afterManual.reidentified}` : ''} ext ${JSON.stringify(r.extension)}${r.broken.length ? ' broken: ' + r.broken.join('; ') : ''}`); }
+  for (const n of names) { const r = result.runs[n]; console.log(`${n}: ${JSON.stringify(r.counts)} canary "${r.canary}" start event ${r.startEvent}; history ${r.history.rebuilt}/${r.history.opened}${r.history.complete ? ' complete' : ''} re-identified after step 12: ${r.reidentifiedAfterStep12}${r.afterManual ? `, after manual cleaning: ${r.afterManual.reidentified}` : ''} ext ${JSON.stringify(r.extension)}${r.broken.length ? ' broken: ' + r.broken.join('; ') : ''}`); }
   result.headline = headline(result.runs);
   console.log(`reference (switched off): ${ref.counts.atEnd} at the end; ${ref.counts.ever} arrived and tied to her; ${ref.counts.arrived} arrived at all. ${result.headline}`);
   if (names.length === Object.keys(SETTINGS).length) { fs.writeFileSync(path.join(__dirname, '..', '..', 'lab', 'misses.json'), JSON.stringify(result, null, 1) + '\n'); console.log('written: lab/misses.json'); }

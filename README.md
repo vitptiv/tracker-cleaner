@@ -7,8 +7,8 @@ install (the popup says so once; each row can be set to off, ask first or automa
   visit, or handed a site's own ID) is only ever asked about: blocking it, removing what it saved (once),
   cleaning a site that only passes you along, and sending its links straight on each need your press on
   one question;
-- it deletes tracking cookies, clears the saved copies of pages once a day (and at most once an hour
-  besides, when you block a host), and strips the listed tracking parameters from links;
+- it deletes tracking cookies, clears the saved copies of pages once a day and each time Chrome starts (and at
+  most once an hour besides, when you block a host), and strips the listed tracking parameters from links;
 - from every request a page makes to another company it removes cookies, cache tags and the referring
   page, and it stops pages from calling this computer and the home network;
 - it runs a small script in every page that takes the notify-address off links you press, and sends a

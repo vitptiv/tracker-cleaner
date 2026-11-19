@@ -1,4 +1,4 @@
-// Tracker Cleaner 1.26: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
+// Tracker Cleaner 1.28: blocks tracker requests (the rule files), and cleans tracking cookies as they are set and in a
 // sweep every 15 minutes, but only what its group allows: each group (registry.js) is off, asks first (the
 // candidates wait in a queue for Approve or Postpone) or is automatic. A new install is switched on, and the groups
 // that only touch what follows you run without asking from the start; the popup says so once. Only deleted cookies
@@ -1056,8 +1056,9 @@ async function applyPermanentDrops(cx, wait) {
 }
 
 // ---- Clear the HTTP cache (C11). That also empties the list of servers Chrome remembers (Network Persistent
-// State); cookies and logins are untouched. Local since 1.21, no 8088 server involved: offered (ask) or done
-// (auto) at most once in 24 hours, counted from cacheClearedAt in storage.
+// State) and its forced-HTTPS entries; cookies and logins are untouched. Local since 1.21, no 8088 server involved:
+// offered (ask) or done (auto) at most once in 24 hours, counted from cacheClearedAt in storage; and, on Automatic
+// only, done once at each start of Chrome (N1, below).
 const CACHE_MS = 24 * 3600e3;
 // A saved copy can carry an ID and bring a deleted cookie back: when a cookie is deleted because it sits on a tracker's
 // own address (listed or stopped), the saved copies of that address go too, at most once an hour (kept in memory only).
@@ -1070,7 +1071,9 @@ async function copiesOf(hosts, cx) {
   for (const h of due) copiesAt.set(h, now);
   try { await chrome.browsingData.remove({ origins: due.flatMap((h) => [`https://${h}`, `http://${h}`]) }, { cache: true }); } catch {}
 }
-const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() }); };
+// Any clearing of all saved copies also settles the one that is due since Chrome started (`startClear`, N1).
+const clearCache = async () => { await chrome.browsingData.remove({ since: 0 }, { cache: true }); await chrome.storage.local.set({ cacheClearedAt: Date.now() });
+  try { if ((await chrome.storage.session.get('startClear')).startClear === true) await chrome.storage.session.set({ startClear: false }); } catch {} };
 // Every clearing of all saved copies that the extension starts by itself around a block or a clean-out shares one budget:
 // once an hour in total (`softClearAt`), however many blocks or clean-outs there are (J6). The daily clearing and the
 // user's own "Clean now" are not counted against it.
@@ -1079,11 +1082,22 @@ const copiesNow = async (cx) => { const { softClearAt = 0 } = await chrome.stora
   await chrome.storage.local.set({ softClearAt: now });
   try { await clearCache(); await logged([{ cap: 'C11', kind: 'cache', site: '*', name: 'http-cache' }], 'removed'); } catch {} };
 // (1.25, H7 and I1: all saved copies are cleared at most once a day, once at a clean-out, and once after a stop that only
-// blocks, that last one at most once an hour in total; never a minute later and never at a start of Chrome)
+// blocks, that last one at most once an hour in total; never a minute later.)
+// N1 (1.28) takes back H7's "never at a start of Chrome": a server Chrome remembers (Alt-Svc) and a forced-HTTPS entry
+// are saved after the daily clearing and then outlive it by up to a day, across restarts. Measured in Chrome 157: of
+// the browsingData types only `cache` over all time drops them (not `history`, not `cacheStorage`, not `cache` for one
+// origin), so the same clearing as the daily one is done once per start of Chrome. The start is noted in
+// chrome.storage.session { startClear: true } (memory; gone when Chrome closes) and settled by the next sweep in which
+// the row runs by itself (Automatic, main switch on, not paused) and no tab is on a sign-in host (`signing`, as for the
+// Tor switch and the self-reload: nothing of the network is changed under a sign-in). The five minutes for which a
+// site's own sign-in page holds deleting for that site (`sguard`) do not hold it, as they do not hold the daily
+// clearing: no cookie and nothing a site saved is touched. On "Ask first" a start makes no question.
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
-  if (v === 'no' || cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};
-  const it = { cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', why: 'daily', did: waitsAs(v) };
+  if (v === 'no') return {};
+  let start = false; try { start = v === 'run' && !cx.signing && (await chrome.storage.session.get('startClear')).startClear === true; } catch {}
+  if (!start && cx.set.cacheClearedAt > Date.now() - CACHE_MS) return {};
+  const it = { cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', why: start ? 'chrome start' : 'daily', did: waitsAs(v) };
   if (waits(v)) { wait.push(it); return {}; }
   try { await clearCache(); await logged([it], 'removed'); return { serversForgotten: true }; }
   catch (e) { return { serversForgotten: false, serversError: String(e) }; }
@@ -1133,7 +1147,8 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   if (!('cacheClearedAt' in await chrome.storage.local.get('cacheClearedAt'))) await chrome.storage.local.set({ cacheClearedAt: Date.now() });
   return sweep('installed');
 });
-chrome.runtime.onStartup.addListener(() => sweep('chrome-start'));
+// N1: the start is noted first, so the sweep it begins (or the one that follows a sweep already running) clears the saved copies
+chrome.runtime.onStartup.addListener(async () => { try { await chrome.storage.session.set({ startClear: true }); } catch {} return sweep('chrome-start'); });
 
 // ---- Tab limit (settings on 127.0.0.1:8088/settings → /audit/limits.json): at each sweep keep only
 // chromeTabs tabs and close the rest. First ONE tab for each preferred site (e.g. one Spotify, one

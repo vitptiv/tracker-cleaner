@@ -8,20 +8,26 @@ const on = (o = {}) => ({ cookies: [ID], ...o, storage: { master: true, cacheCle
 const clears = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].cache && c.args[0].since === 0).length;
 const blocked = (bg, site = 'trk.example') => bg.called('contentSettings.set').filter((c) => c.args[0].primaryPattern === `*://*.${site}/*` && c.args[0].setting === 'block').length;
 
-test('H7, I1, K1: all saved copies are cleared once after the block and once at the press on Remove, and at most once a day otherwise: no wake-up a minute later, nothing when Chrome starts or the extension is loaded again', async () => {
+test('H7, I1, K1: all saved copies are cleared once after the block and once at the press on Remove, and at most once a day otherwise: no wake-up a minute later, nothing when the extension is loaded again; once when Chrome starts (N1, 1.28)', async () => {
   const bg = await load(on()); await three(bg); assert.equal(clears(bg), 1);
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle();
   assert.equal(clears(bg), 2); assert.equal('copies' in bg.state.alarms, false);
-  await bg.chrome.runtime.onStartup.fire(); await bg.settle(); await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle();
+  await bg.chrome.runtime.onInstalled.fire({ reason: 'update', previousVersion: '1.25' }); await bg.settle();
   for (let i = 0; i < 4; i++) { bg.now += 15 * 60e3; await bg.alarm('sweep'); }
   assert.equal(clears(bg), 2, 'cleared again within the day');
-  bg.now += 24 * 3600e3; await bg.alarm('sweep'); assert.equal(clears(bg), 3, 'the daily clearing');
+  await bg.chrome.runtime.onStartup.fire(); await bg.settle(); assert.equal(clears(bg), 3, 'N1: once at a start of Chrome');
+  for (let i = 0; i < 4; i++) { bg.now += 15 * 60e3; await bg.alarm('sweep'); }
+  assert.equal(clears(bg), 3, 'cleared again after the start clearing');
+  bg.now += 24 * 3600e3; await bg.alarm('sweep'); assert.equal(clears(bg), 4, 'the daily clearing');
 });
-test('H7: twenty starts of Chrome with a tracker stopped clear nothing; the row says what really happens', async () => {
+test('H7, as changed by N1 (1.28): a start of Chrome clears the saved copies once, never more, and nothing at all when the row is off or asks; the row says what really happens', async () => {
   const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] } }));
   for (let i = 0; i < 20; i++) { await bg.chrome.runtime.onStartup.fire(); await bg.settle(); }
-  assert.equal(clears(bg), 0);
-  assert.equal(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, 'All copies of pages that Chrome saved to load them faster are thrown away once a day, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.');
+  assert.equal(clears(bg), 20, 'one clearing per start');
+  for (const mode of ['off', 'ask']) { const b2 = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'], modes: { C11: mode } } }));
+    for (let i = 0; i < 20; i++) { await b2.chrome.runtime.onStartup.fire(); await b2.settle(); }
+    assert.equal(clears(b2), 0, mode); }
+  assert.equal(require('../extension/registry.js').GROUPS.find((g) => g.id === 'cache').says, 'All copies of pages that Chrome saved to load them faster are thrown away once a day and each time Chrome starts, and besides that at most once an hour when you block a host; your own press on Remove or Clean now clears them too. Pages then load a little slower the first time.');
 });
 test("a stopped tracker's notifications are blocked once even while its own page is open; its cookies and what it saved there stay", async () => {
   const bg = await load(on({ storage: { stopped: ['trk.example'], hard: ['trk.example'] }, tabs: [{ id: 1, active: true, url: 'https://www.trk.example/feed' }],
