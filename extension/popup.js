@@ -7,7 +7,8 @@
 // is added at the end, collapsed.
 const out = document.getElementById('out'), note = document.getElementById('note');
 const send = (m) => chrome.runtime.sendMessage(m);
-const REFUSED = { paused: 'Not done: cleaning is paused.', off: 'Not done: cleaning is switched off.' };
+const REFUSED = { paused: 'Not done: cleaning is paused.', off: 'Not done: cleaning is switched off.',
+  signin: 'Not done: a sign-in is going on. Press again when it is over.', busy: 'Already cleaning: one press is enough.', rowOff: 'Not done: this row is switched off.' };
 let tab = null, audit = null, serverUp = false;
 // details the user opened stay open across a re-render
 async function show(msg) {
@@ -32,7 +33,8 @@ async function activeTab() {
 }
 async function act(el, extra) {
   const r = await send({ ...JSON.parse(el.dataset.msg), ...extra }).catch(() => null);
-  await show(!r || r.ok === false ? REFUSED[r && r.why] || 'That did not work.' : r.of !== undefined ? `Cleaned ${r.done} of ${r.of}.` : r.restored !== undefined ? `Restored ${r.restored}.` : '');
+  await show(!r || r.ok === false ? REFUSED[r && r.why] || 'That did not work.'
+    : r.cleaned !== undefined ? `Cleaned now: ${r.cleaned} removed.${r.left ? ` ${r.left} question${r.left === 1 ? '' : 's'} left for you to answer one by one.` : ''}` : r.of !== undefined ? `Cleaned ${r.done} of ${r.of}.` : r.restored !== undefined ? `Restored ${r.restored}.` : '');
 }
 // ---- the 8088 audit view: silent when the server is down
 const post = (path, body) => fetch(`${AUDIT}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

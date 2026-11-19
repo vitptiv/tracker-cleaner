@@ -1,7 +1,9 @@
 'use strict';
 // Phase B, part 1: what does Tracker Cleaner miss? The same trip as trip.js, in a throwaway headless Chrome with
 // extension/ loaded, in several settings. It measures only: nothing here demands "cleaned". The table goes to
-// lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A B0 B C]
+// lab/misses.json and to the screen.  node test/lab/trip-cleaner.js [A AB Q B0 B C]
+// 1.30: a fresh install is at Strongest, so A is that; AB is the old A (Balanced, the 1.29 defaults, no press) and Q stays
+// Balanced with every question answered by a press, so both stay comparable with the runs before 1.30.
 const fs = require('node:fs'), path = require('node:path');
 const { start } = require('../../lab/server'), { outside } = require('../../lab/outside'), { launch, sleep, until, newProfile, labCert } = require('./chrome'), { makeWalk, MARA } = require('./walk'), { RESTART, stepOf, atEnd, headline, simulatedOnly, ownRecord, CAVEATS } = require('./count');
 const TRACES = require('../../lab/traces.json'), TRIP = require('../../lab/trip.json');
@@ -22,8 +24,9 @@ const RULES = [
 const ALWAYS = [['friendface', 'ff_uid'], ['friendface', 'ff_frame'], ['hop', 'hop_id'], ['pennant', 'pn_uid'], ['metrics.parcelpine', 'pp_sid'],
   ...['gazette', 'tidewater', 'parcelpine'].flatMap((s) => [[s, '_ffp'], [s, '_ffc']])].map(([s, name]) => ({ site: s + '.localhost', name }));
 const SETTINGS = {
-  A: { says: 'fresh install defaults, nothing approved, no lab entries', entries: false, auto: false, manual: false },
-  Q: { says: 'as A, and every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press, when a user would see it: at the start of the step after the one in which it appeared (the badge is up by then), and once more after the last step; nothing else by hand; then the sites again', entries: false, auto: false, manual: false, answers: true },
+  A: { says: 'fresh install defaults (1.30: Strongest), nothing approved, no lab entries', entries: false, auto: false, manual: false },
+  AB: { says: 'fresh install set to Balanced (the 1.29 defaults, the old A), nothing approved, no lab entries', level: 'balanced', entries: false, auto: false, manual: false },
+  Q: { says: 'fresh install set to Balanced (as the old A), and every question the extension asks is answered with its yes (Remove, Skip it, cut it off), each by its own press, when a user would see it: at the start of the step after the one in which it appeared (the badge is up by then), and once more after the last step; nothing else by hand; then the sites again', level: 'balanced', entries: false, auto: false, manual: false, answers: true },
   B0: { says: 'main switch on, every group that can run here forced to Automatic, also those that ask on a fresh install (Google\'s identity cookies, storage and permissions of the user\'s own lists); no lab entries (the lab is on no list)', entries: false, auto: true, manual: false },
   B: { says: 'as B0, with the lab\'s test-only entries', entries: true, auto: true, manual: false },
   C: { says: 'as B, then every manual action at the end (approve all, drop each lab site\'s cookies and storage, block the permission, clear the cache), then the sites again', entries: true, auto: true, manual: true } };
@@ -66,6 +69,7 @@ async function run(name, set, cert, flags, chance = {}) {
     await until(async () => (await b.msg({ type: 'state' })).groups, 10000);
     if (set.entries) await b.popup.ev(`chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [9001, 9002], addRules: ${JSON.stringify(RULES)} })`);
     if (first && set.off) await b.msg({ type: 'setMaster', on: false });
+    if (first && set.level) await b.msg({ type: 'setLevel', level: set.level });
     if (first && set.auto) { await b.msg({ type: 'setMaster', on: true }); for (const g of AUTO) await b.msg({ type: 'setMode', group: g, mode: 'auto' }); }
     if (first && set.entries) for (const a of ALWAYS) await b.msg({ type: 'always', ...a, on: true });
     first = false; return b; };

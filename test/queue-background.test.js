@@ -1,6 +1,6 @@
 // Approval queue (C20) end to end: whatever the gate answers 'ask' or 'held' is queued, not dropped.
 const test = require('node:test'), assert = require('node:assert'), load = require('./load-background.js').asks;
-const { GROUPS } = require('../extension/registry.js');
+const { GROUPS, CLEANABLE } = require('../extension/registry.js');
 const MIN = 60e3;
 const tracker = (bg, name = 'x') => bg.setCookie({ url: 'https://ad.doubleclick.net/', name, value: 'secret-value' });
 // cacheClearedAt = the loader's clock: the daily cache clear (C11) is not due, so the counts below are cookies only
@@ -106,13 +106,16 @@ test('state message: settings, hold state, and per group its mode, pending count
   const bg = await load(ask({ cookies: many }));
   await bg.alarm('sweep'); await bg.send({ type: 'pause', minutes: 3 }); await bg.settle();
   const s = await bg.send({ type: 'state' });
-  assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'groups', 'hard', 'histOn', 'hold', 'log', 'master', 'modes', 'now', 'server', 'sitesOff', 'skipped', 'stopped', 'stoppedUsed', 'tor', 'undo']);
+  assert.deepEqual(Object.keys(s).sort(), ['allow', 'always', 'groups', 'hard', 'histOn', 'hold', 'level', 'log', 'master', 'modes', 'now', 'server', 'sitesOff', 'skipped', 'stopped', 'stoppedUsed', 'tor', 'undo']);   // 1.30: level (the dial)
+  assert.equal(s.level, 'custom');   // the four rows the loader stores as "Ask first" differ from Balanced
   assert.equal(s.master, true); assert.deepEqual(s.modes, { C11: 'ask', C25: 'ask', C27: 'ask', C28: 'ask', C03: 'ask' });
   assert.deepEqual(s.hold, { paused: true, guard: false, tab: false, pauseUntil: bg.now + 3 * MIN, guardUntil: 0 });
   assert.deepEqual(s.groups.map((g) => g.id), GROUPS.map((g) => g.id));
   // the Wi-Fi row also says it is never automatic and what its helper answered (none installed here)
-  for (const g of s.groups) assert.deepEqual(Object.keys(g).sort(), g.id === 'wifi' ? ['ask', 'helper', 'id', 'items', 'looping', 'mode', 'noAuto', 'pending', 'postponedUntil', 'says', 'title']
-    : ['ask', 'id', 'items', 'looping', 'mode', ...(g.id === 'cache' ? ['nextAt'] : []), 'pending', 'postponedUntil', 'says', 'title'], g.id);
+  // 1.30: answers (the two question rows can say yes by themselves), cleanable (the row has Clean now)
+  const more = (g) => [...(['unknown', 'bounce'].includes(g.id) ? ['answers'] : []), ...(CLEANABLE.includes(g.id) ? ['cleanable'] : [])];
+  for (const g of s.groups) assert.deepEqual(Object.keys(g).sort(), (g.id === 'wifi' ? ['ask', 'helper', 'id', 'items', 'looping', 'mode', 'noAuto', 'pending', 'postponedUntil', 'says', 'title']
+    : ['ask', 'id', 'items', 'looping', 'mode', ...(g.id === 'cache' ? ['nextAt'] : []), 'pending', 'postponedUntil', 'says', 'title', ...more(g)]).sort(), g.id);
   const c = s.groups.find((g) => g.id === 'cookies');
   assert.equal(c.mode, 'ask'); assert.equal(c.pending, 25); assert.equal(c.items.length, 20);
   assert.deepEqual(Object.keys(c.items[0]).sort(), ['cap', 'kind', 'name', 'site', 't', 'why']);

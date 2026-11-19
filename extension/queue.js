@@ -29,8 +29,9 @@ const queueCount = (pending, now) => Object.values(pending || {}).reduce((n, g) 
 const queueBadge = (pending, paused, now) => paused ? 'II' : String(queueCount(pending, now) || '');
 const queueView = (g) => ({ pending: g ? g.items.length : 0, postponedUntil: (g && g.postponedUntil) || 0, items: g ? g.items.slice(-QUEUE_SHOWN) : [] });
 // Action log (C21): what was removed, queued or held, newest last, for the popup's "This site". A ring: the oldest go.
-// entry: { t, cap, kind, site, name, did, page }, did: removed | queued | held. Never a cookie value.
+// entry: { t, cap, kind, site, name, did, page, auto }, did: removed | queued | held. Never a cookie value.
+// auto (1.30): true when the cleaner answered a question yes by itself (Strongest), not the user.
 // page (live cookie actions only): the host of the tab the user was looking at, a guess at which page set the cookie.
 const LOG_MAX = 200;
-const logAdd = (log, items, did, t) => [...log, ...items.map((it) => ({ t, cap: it.cap, kind: it.kind, site: it.site, name: it.name, did: did || it.did, ...(it.page ? { page: it.page } : {}) }))].slice(-LOG_MAX);
+const logAdd = (log, items, did, t) => [...log, ...items.map((it) => ({ t, cap: it.cap, kind: it.kind, site: it.site, name: it.name, did: did || it.did, ...(it.page ? { page: it.page } : {}), ...(it.auto === true ? { auto: true } : {}) }))].slice(-LOG_MAX);
 if (typeof module !== 'undefined') module.exports = { QUEUE_MAX, LOG_MAX, logAdd, queueKey, queueAdd, queueKeep, queuePostpone, queueRestart, queueCount, queueBadge, queueView };

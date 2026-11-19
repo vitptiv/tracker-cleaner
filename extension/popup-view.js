@@ -7,6 +7,13 @@ const AUDIT_VIEW = typeof module !== 'undefined' ? require('./popup-audit.js') :
 const SITE_SHOWN = 8, MODES = [['off', 'Off'], ['ask', 'Ask first'], ['auto', 'Automatic']], ON_OFF = [['off', 'Off'], ['auto', 'On']];
 const UNDO_SHOWN_MS = 10 * 60e3, UNDO_FULL = 300;   // as UNDO_MS and UNDO_MAX in undo.js: an older entry can no longer be restored; at the cap there were more
 const LOOPING = 'this site keeps putting it back';   // as LOOP_WHY in loop.js
+// The strength dial (1.30, registry.js `level`): its three positions and the one sentence under each. STOPS: as STOPS_HOUR in learn.js
+const STOPS = 10, CLEANED_SHOWN_MS = 10 * 60e3, LEVELS = [['ask', 'Ask first'], ['balanced', 'Balanced'], ['strong', 'Strongest']];
+const LEVEL_SAYS = { ask: 'Nothing is deleted, and nothing it learns is blocked, until you press. Still on: blocking of listed trackers, the rules that give other companies less, and what you chose yourself (blocks you pressed, your always-delete list, the history switch).',
+  balanced: 'As before: listed trackers and what they saved are cleaned by themselves; Google\'s own cookies, companies on no list and sites that only pass you along wait for your answer.',
+  strong: `Every cleaning row works by itself, and companies on no list that follow you are blocked and cleaned out without asking (at most ${STOPS} an hour; never a site you open yourself or seem to be signed in to). Each such step is in the log and can be let through again.`,
+  custom: 'Custom: you set some rows yourself. Press a level to set every row to it again.' };
+const OWN_LINE = 'The sign-in pause, Tor, the tab limit, keeping only listed cookies, Wi-Fi networks and the reports keep their own switch.';
 const DAY_OF = typeof module !== 'undefined' ? require('./history.js').historyDay : historyDay;
 // The inspector command (tools/inspect.js) that shows the same things from Chrome's own files, per group
 const COMMAND = { cookies: 'cookies', google: 'cookies', allowlist: 'cookies', storage: 'storage', wifi: 'wifi', permissions: 'permissions', cache: 'cache', tor: 'tor' };
@@ -23,6 +30,7 @@ const renderPopup = (state, tab) => {
   const check = (label, m, on) => `<label><input type="checkbox" ${msg(m)}${on ? ' checked' : ''}> ${label}</label>`;
   const under = (h, site) => h === site || h.endsWith('.' + site);
   const stopped = hold.paused || s.master === false;   // Approve would be refused
+  const noClean = hold.paused || s.master !== true;     // Clean now would be refused (it needs cleaning switched on)
   const undo = (s.undo || []).filter((u) => u.t > s.now - UNDO_SHOWN_MS);
 
   const status = () => typeof s.master !== 'boolean' ? `<p>Cleaning is off until you turn it on.</p><p>${btn('Turn on', { type: 'setMaster', on: true })}</p>`
@@ -31,8 +39,14 @@ const renderPopup = (state, tab) => {
       + (s.master && hold.guard ? '<p class="m">Sign-in in progress: the cookies of that sign-in and of the site you came from are left alone for now.</p>' : '')
       + (Array.isArray(s.serverOff) && s.serverOff.length ? `<p class="c">The settings program on this computer has switched off: ${esc(s.serverOff.join(', '))}.</p>` : '')
       + (Array.isArray(s.notWorking) && s.notWorking.length ? `<p class="c bad">Not working right now, because Chrome refused a rule: ${esc(s.notWorking.join(', '))}.</p>` : '')
-      + (s.master && s.firstRun === 'update' ? `<p class="c">New: Tracker Cleaner now cleans by itself. It can stop companies that follow you and delete what they saved without asking first; until you answer here it keeps asking as before. ${btn('OK', { type: 'seen', auto: true })} ${btn('Keep asking', { type: 'seen', auto: false })}</p>`
+      + (s.master && s.firstRun === true && s.level === 'strong' ? `<p class="c">Tracker Cleaner is on, at Strongest. By itself it now: blocks trackers; deletes the cookies and saved data of trackers and the cookies Google uses to recognise you, and clears the saved copies of pages once a day and when Chrome starts; blocks a company on no list that follows you and removes what it saved, and cleans sites that only pass you along (at most ${STOPS} an hour, never a site you open yourself or seem to be signed in to); takes cookies, cache tags and the referring page out of what pages ask of other companies; runs a small script in every page that takes the notify-address off links you press; and reads the addresses and contents of what pages send, on this computer only, to spot trackers. To be asked first, pick Balanced or Ask first at the top. To turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>`
+        : s.master && s.firstRun === 'update' ? `<p class="c">New: Tracker Cleaner now cleans by itself. It can stop companies that follow you and delete what they saved without asking first; until you answer here it keeps asking as before. ${btn('OK', { type: 'seen', auto: true })} ${btn('Keep asking', { type: 'seen', auto: false })}</p>`
         : s.master && s.firstRun ? `<p class="c">Tracker Cleaner is on. By itself it now: blocks trackers; deletes the cookies and saved data of the trackers on its built-in list, and clears the saved copies of pages once a day and when Chrome starts; asks before it blocks or removes anything of a company that is on no list; takes cookies, cache tags and the referring page out of what pages ask of other companies; runs a small script in every page that takes the notify-address off links you press; and reads the addresses and contents of what pages send, on this computer only, to spot trackers. To turn it off, untick "On" above. ${btn('OK', { type: 'seen' })}</p>` : '');
+  // the dial, at the very top: three positions (the one in use pressed), what it does, and one press that cleans every row
+  const level = s.level || 'balanced';
+  const dial = () => `<div class="c" data-level="${esc(level)}"><div class="lv">`
+    + LEVELS.map(([v, t]) => `<button data-level-pick="${v}" aria-pressed="${v === level}" ${msg({ type: 'setLevel', level: v })}>${t}</button>`).join('') + '</div>'
+    + `<p class="m">${LEVEL_SAYS[level] || LEVEL_SAYS.balanced}</p><p class="m">${OWN_LINE}</p>${btn('Clean everything now', { type: 'cleanAll' }, 'all', noClean)}</div>`;
   const undone = () => !undo.length ? '' : `<p>Removed in the last 10 minutes: ${undo.length >= UNDO_FULL ? UNDO_FULL + '+' : undo.length} ${btn('Restore all', { type: 'restoreAll' })}</p>`;
 
   // This site (C21). An action belongs here when its site is this host, a parent domain (where most cookies are
@@ -46,7 +60,7 @@ const renderPopup = (state, tab) => {
       .filter((l) => { const k = [l.kind, l.site, l.name, l.did].join(' '); return !seen.has(k) && seen.add(k); }).slice(0, SITE_SHOWN);
     const allowed = (l) => allow.some((a) => a.site === l.site && a.name === l.name);
     return `<h2>This site: ${esc(h)}</h2>` + (Number.isInteger(n) ? `<p>${n} request${n === 1 ? '' : 's'} blocked on this tab</p>` : '')
-      + (rows.map((l) => `<div class="c h"><span><span class="m">${hhmm(l.t)} ${esc(l.did)}</span> ${esc(l.site)} · ${esc(l.name)}</span>`
+      + (rows.map((l) => `<div class="c h"><span><span class="m">${hhmm(l.t)} ${esc(l.did)}${l.auto === true ? ' by itself' : ''}</span> ${esc(l.site)} · ${esc(l.name)}</span>`
         + `<span>${l.kind !== 'cookie' ? '' : l.cap === 'C07' ? '<span class="m">on your always-drop list</span>'   // neither Undo nor Allow would hold
           : (l.did === 'removed' && undo.some((u) => u.site === l.site && u.name === l.name) ? btn('Undo', { type: 'restore', site: l.site, name: l.name }) + ' ' : '')
           + (allowed(l) ? '<span class="m">allowed</span>' : btn('Allow', { type: 'allow', site: l.site, name: l.name }))}</span></div>`
@@ -72,11 +86,14 @@ const renderPopup = (state, tab) => {
     const line = `${g.id === 'tor' && s.tor ? TOR_SAYS(s.tor) : n && asksOnly ? `${n} question${n === 1 ? '' : 's'} waiting: answer ${n === 1 ? 'it' : 'each'} in the report beside the page` : n ? `${n} pending` : idle ? idle[0].toUpperCase() + idle.slice(1) : 'Nothing waiting'}${today ? ` · ${today} removed today` : ''}${post ? ` · ${post}` : ''}`;
     const k = Number(g.looping) || 0;
     return `<div class="c" data-group="${esc(g.id)}"><div class="h"><b>${esc(g.title)}</b><select ${msg({ type: 'setMode', group: g.id })}>`
-      + (g.ask === false ? ON_OFF : g.noAuto ? MODES.slice(0, 2) : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'
+      + (g.ask === false ? ON_OFF : g.noAuto ? MODES.slice(0, 2) : g.answers ? [...MODES, ['yes', 'Automatic, says yes']] : MODES).map(([v, t]) => `<option value="${v}"${v === mode ? ' selected' : ''}>${t}</option>`).join('') + '</select></div>'
       + (cmd ? `<div class="m h"><span>${line}</span><button class="small" data-copy="node tools/inspect.js ${cmd}">Copy command</button></div>` : `<div class="m">${line}</div>`) + (hint ? `<div class="m">${hint}</div>` : '')
       + (!k ? '' : `<div class="m">${k} of these ${k === 1 ? 'is left alone for an hour because its site keeps putting it back; after that it is removed again.'
         : 'are left alone for an hour because their sites keep putting them back; after that they are removed again.'}</div>`)
       + (g.id === 'cache' && mode !== 'off' && !n ? `<div class="b">${btn('Clean now', { type: 'drop', kind: 'servers' }, '', stopped)}</div>` : '')
+      // 1.30: Clean now on every other row with something to clean (the cache row's is the one above), and what the last press did
+      + (g.cleanable && g.id !== 'cache' && mode !== 'off' ? `<div class="b">${btn('Clean now', { type: 'cleanNow', group: g.id }, '', noClean)}${asksOnly && n ? ' <span class="m">Clean now answers them yes, except for sites you use or seem to be signed in to</span>' : ''}</div>` : '')
+      + (g.cleanedNow && g.cleanedNow.t > s.now - CLEANED_SHOWN_MS ? `<div class="m">Cleaned at ${hhmm(g.cleanedNow.t)}: ${g.cleanedNow.n ? `${Number(g.cleanedNow.n)} removed` : 'nothing to remove'}</div>` : '')
       + (!n || asksOnly ? '' : `<div class="b">${approve}${btn('Postpone 1 h', { type: 'postpone', group: g.id, minutes: 60 })}`
         + `${btn('Until restart', { type: 'postpone', group: g.id, minutes: 'restart' }, 'small')}</div>`
         + (wifi && approve ? '<div class="m">This cannot be undone here</div>' : '')   // the undo buffer holds cookies only
@@ -105,7 +122,7 @@ const renderPopup = (state, tab) => {
     // a second, separate button that popup.js shows at the press and makes pressable a second later: not a double click
     + `<div class="b"><button data-reveal="confirm-browsing">Clear my browsing history</button> <span id="confirm-browsing" hidden>This clears all of it and cannot be put back. <button data-wait="1000" disabled ${msg({ type: 'clearBrowsing' })}>Yes, clear all of my browsing history</button></span></div></div>`;
   const full = () => (s.stopped || []).length < 300 ? '' : '<p class="c">300 companies are blocked, the most Tracker Cleaner keeps: when a new one is blocked, the one blocked longest ago is let through again.</p>';
-  return status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + browsing() + exceptions() + audit();
+  return dial() + status() + full() + undone() + site() + '<h2>What gets cleaned</h2>' + (s.groups || []).map(group).join('') + history().replace(/'/g, '&#39;') + browsing() + exceptions() + audit();
 };
 const hhmm = (t) => new Date(t).toTimeString().slice(0, 5);
 const dayAt = (t, now) => `${new Date(t).toDateString() === new Date(now).toDateString() ? 'today' : 'tomorrow'} at ${hhmm(t)}`;   // t is at most 24 hours ahead

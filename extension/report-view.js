@@ -25,7 +25,8 @@ const { buildReport, renderReport } = (() => {
   // ---- What Tracker Cleaner does for you: one row per group
   // The state in a word, as the gate (registry.js) would answer for the group right now.
   const word = (g, s) => {
-    const hold = s.hold || {}, mode = g.ask === false && g.mode !== 'auto' ? 'off' : g.noAuto && g.mode === 'auto' ? 'ask' : g.mode;
+    // 1.30: 'yes' (a question row that answers yes by itself, Strongest) is on, as Automatic is
+    const hold = s.hold || {}, m = g.mode === 'yes' ? 'auto' : g.mode, mode = g.ask === false && m !== 'auto' ? 'off' : g.noAuto && m === 'auto' ? 'ask' : m;
     if (s.master === false || (mode !== 'auto' && mode !== 'ask')) return 'off';
     if (hold.paused) return 'paused';
     if (mode === 'ask' || (g.ask && s.master !== true)) return 'asks first';   // nothing is deleted before the user turned cleaning on

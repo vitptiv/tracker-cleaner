@@ -5,6 +5,9 @@ const req = async (bg, host, page, path = '/px.gif') => { await bg.request({ url
 const three = async (bg, host = 'trk.example') => { for (const p of ['news.example', 'shop.example', 'blog.example']) await req(bg, host, p); };
 const ID = { name: 'uid', domain: '.trk.example', value: 'u-3fa9c2d1e0', sameSite: 'no_restriction' };
 const fresh = async (o = {}) => { const bg = await load(o); await bg.chrome.runtime.onInstalled.fire({ reason: 'install' }); await bg.settle(); return bg; };
+// 1.30: a fresh install starts at Strongest (level-background.test.js). The 1.25-1.29 fresh-install behaviour pinned here is
+// what Balanced still does, so these tests install with Balanced chosen (`level` there before the install stores none).
+const balanced = (o = {}) => fresh({ ...o, storage: { level: 'balanced', ...o.storage } });
 const rule = (bg) => { const r = bg.state.dynamic.find((x) => x.id === 101000); return r && { ...r, condition: { ...r.condition, requestDomains: bg.blockedHosts() } }; };   // 1.25, L1: one anchored rule per blocked host; requestDomains here = the hosts those rules stop
 const emptied = (bg) => bg.called('browsingData.remove').filter((c) => c.args[1].serviceWorkers).flatMap((c) => c.args[0].origins);
 
@@ -15,9 +18,10 @@ test('the groups that only touch what follows you run by themselves; Google iden
 });
 test('a fresh install is switched on and says so once; an update changes nothing', async () => {
   const bg = await fresh();
-  assert.equal(bg.state.storage.master, true); assert.equal((await bg.send({ type: 'state' })).firstRun, true);
+  assert.equal(bg.state.storage.master, true); assert.equal((await bg.send({ type: 'state' })).firstRun, true); assert.equal(bg.state.storage.level, 'strong');   // 1.30
   const html = renderPopup(await bg.send({ type: 'state' }), null);
-  assert.match(html, /Tracker Cleaner is on\. By itself it now: blocks trackers; .* To turn it off, untick .On. above\./);
+  assert.match(html, /Tracker Cleaner is on, at Strongest\. By itself it now: blocks trackers; .* To turn it off, untick .On. above\./);   // 1.30: the line names the level
+  assert.match(renderPopup(await (await balanced()).send({ type: 'state' }), null), /Tracker Cleaner is on\. By itself it now: blocks trackers; .* To turn it off, untick .On. above\./);
   await bg.send({ type: 'seen' });
   assert.equal((await bg.send({ type: 'state' })).firstRun, undefined);
   const old = await load({ storage: { cacheClearedAt: 5 } }); await old.chrome.runtime.onInstalled.fire({ reason: 'update' }); await old.settle();
@@ -25,13 +29,13 @@ test('a fresh install is switched on and says so once; an update changes nothing
   const off = await load({ storage: { master: false } }); await off.chrome.runtime.onInstalled.fire({ reason: 'install' }); await off.settle();
   assert.equal(off.state.storage.master, false);
 });
-test('fresh install: a tracker cookie goes, a Google identity cookie waits for an answer, sign-in cookies stay', async () => {
-  const bg = await fresh({ cookies: [{ name: '_ga', domain: '.example.com', value: 'GA1.2.3' }, { name: 'NID', domain: '.google.com', value: 'n' }, { name: 'SID', domain: '.google.com', value: 's' }] });
+test('fresh install at Balanced: a tracker cookie goes, a Google identity cookie waits for an answer, sign-in cookies stay', async () => {
+  const bg = await balanced({ cookies: [{ name: '_ga', domain: '.example.com', value: 'GA1.2.3' }, { name: 'NID', domain: '.google.com', value: 'n' }, { name: 'SID', domain: '.google.com', value: 's' }] });
   assert.deepEqual(await bg.names(), ['NID', 'SID']);
   assert.deepEqual(bg.state.storage.pending.google.items.map((i) => i.name), ['NID']);
 });
-test('fresh install: a company seen on several sites is blocked at once and the saved copies are cleared; what it saved goes only at the press on Remove (1.25, J1)', async () => {
-  const bg = await fresh({ cookies: [ID] });
+test('fresh install at Balanced: a company seen on several sites is blocked at once and the saved copies are cleared; what it saved goes only at the press on Remove (1.25, J1)', async () => {
+  const bg = await balanced({ cookies: [ID] });
   await three(bg);
   assert.deepEqual(rule(bg).condition.requestDomains, ['trk.example']); assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);
   await bg.send({ type: 'approve', group: 'unknown', site: 'trk.example', name: 'what it keeps to follow you' }); await bg.settle(); await bg.alarm('sweep');
@@ -48,14 +52,14 @@ test('a company whose own site you open as a page is blocked on other sites, but
   assert.deepEqual(await bg.names(), ['uid']); assert.equal(emptied(bg).some((o) => o.includes('trk.example')), false);
   assert.equal(/trk\.example\/home/.test(JSON.stringify(bg.state.storage)), false, 'the address of a visited page is stored');
 });
-test('a site that passes you along is never cleaned by itself (1.25, J1): one question, and Remove cleans it', async () => {
+test('at Balanced a site that passes you along is never cleaned by itself (1.25, J1): one question, and Remove cleans it', async () => {
   const hop = { url: 'https://hop.example/r?to=https%3A%2F%2Fblog.example%2Fpost', redirectUrl: 'https://blog.example/post?hid=h-77ab12cd34ef', type: 'main_frame' };
   const cookies = [{ name: 'hop_id', domain: '.hop.example', value: 'h-77ab12cd34ef' }];
-  let bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
+  let bg = await balanced({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), ['hop_id']); assert.deepEqual(bg.state.storage.pending.bounce.items.map((i) => i.name), ['passed you on without showing a page']);   // a question, nothing by itself
   await bg.send({ type: 'approve', group: 'bounce', site: 'hop.example', name: 'passed you on without showing a page' }); await bg.settle(); assert.deepEqual(await bg.names(), []);
-  bg = await fresh({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
+  bg = await balanced({ cookies, tabs: [{ id: 1, active: true, url: 'https://social.example/feed' }] });
   await bg.opens('https://hop.example/account'); await bg.closeTab(bg.tabOf('https://hop.example/account')); await bg.redirect(hop); await bg.settle();
   assert.deepEqual(await bg.names(), ['hop_id']);
 });

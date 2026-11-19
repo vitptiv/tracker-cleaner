@@ -10,7 +10,7 @@ const atEnd = ({ outside, onDisk, second, after, lastStep, lastChance }) => outs
   : lastStep > 0 && lastStep >= Math.min(RESTART + 1, lastChance || 0);
 // The headline is setting A, the install as a user gets it; B0 forces also the groups that ask by default (Google's
 // identity cookies, the user's own lists) to Automatic, so it is named as that. Both counts, always.
-const NAMES = { A: 'A (fresh install, nothing changed)', Q: 'Q (fresh install, every question answered yes: Remove, Skip it, cut it off; nothing else by hand)', B0: 'B0 (every group forced to Automatic)',
+const NAMES = { A: 'A (fresh install, nothing changed: Strongest since 1.30)', AB: 'AB (fresh install set to Balanced, the 1.29 defaults; nothing else changed)', Q: 'Q (fresh install set to Balanced, every question answered yes: Remove, Skip it, cut it off; nothing else by hand)', B0: 'B0 (every group forced to Automatic)',
   C: 'C (lab names entered, every question answered yes and every manual cleaning done)' };
 // in Q and C the middle number is counted after the answers or the cleaning, on a second look at the sites
 const MIDDLE = { Q: 'tied to her after the answers', C: 'tied to her after the cleaning' };
@@ -22,7 +22,7 @@ const headline = (runs) => (runs.A ? '' : 'A was not run. ') + Object.keys(runs)
   return `${NAMES[n] || n}${n === 'A' ? ', of the 35 kinds built' : ''}: ${c.atEnd} at the end; ${c.ever} ${MIDDLE[n] || 'arrived and tied to her'}; ${c.arrived} arrived at all${apart(c)}.`; }).join(' ');
 // what the numbers do not show, written beside them in misses.json and on the page
 const CAVEATS = ['Nothing is cut short in the measurement any more: there is no hold on everything (L4). The lab\'s own "Sign in with" page holds deleting for the network\'s own site for five minutes, as it would for a user.',
-  'A is the fresh install with no press; Q is the same with every question the extension asks answered yes; since L1 a company on no list is not even blocked without such a press.',
+  'A is the fresh install with no press, since 1.30 at Strongest, where the cleaner answers its own questions yes; AB is the fresh install set to Balanced (the 1.29 defaults) with no press, where since L1 a company on no list is not even blocked without a press; Q is AB with every question the extension asks answered yes by a press.',
   'In Q each press is a message sent to the extension from its own popup page, the message the button sends; it is not a click on the button in the report.',
   'The numbers differ from run to run by a few kinds (seen: "arrived at all" 15 to 28 for the same setting): how many requests get through before a block depends on timing.',
   'The lab does not use the fingerprint to tie visits together, so the page shield is not measured by these numbers.',

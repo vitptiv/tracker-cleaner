@@ -1,12 +1,17 @@
 # Tracker Cleaner 1.25
 
 A Chrome extension (Manifest V3) for this machine. Everything it does, since 1.25 without asking on a new
-install (the popup says so once; each row can be set to off, ask first or automatic):
+install (the popup says so once; each row can be set to off, ask first or automatic). Since 1.30 a dial at the
+top of the popup sets every row at once: Ask first, Balanced (the 1.29 defaults) or Strongest, where a new
+install starts; an update keeps what it had. Each row with something to clean has "Clean now", and the top
+has "Clean everything now":
 
-- it blocks requests to listed trackers. A host on no list that it sees following you (on two sites you
-  visit, or handed a site's own ID) is only ever asked about: blocking it, removing what it saved (once),
-  cleaning a site that only passes you along, and sending its links straight on each need your press on
-  one question;
+- it blocks requests to listed trackers. At Ask first and Balanced, a host on no list that it sees following
+  you (on two sites you visit, or handed a site's own ID) is only ever asked about: blocking it, removing what
+  it saved (once), cleaning a site that only passes you along, and sending its links straight on each need
+  your press on one question. At Strongest the cleaner answers those questions yes itself, at most 10 an hour
+  and never for a site you open yourself, seem to be signed in to or turned off; each such answer is in the log and
+  can be let through again;
 - it deletes tracking cookies, clears the saved copies of pages once a day and each time Chrome starts (and at
   most once an hour besides, when you block a host), and strips the listed tracking parameters from links;
 - from every request a page makes to another company it removes cookies, cache tags and the referring
