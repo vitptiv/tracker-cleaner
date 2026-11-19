@@ -57,3 +57,23 @@ test('F9: a Set-Cookie answer of a load-balancer or bot-protection cookie is no 
     assert.equal(!!((bg.state.storage.follow || {})['app.bank.example'] || {}).ck, evidence, cookie);
   }
 });
+
+// ---- F8: what trackers saved on their own sites (cleanOwn) and the queued site-storage drop skip a site the user turned off
+const dropped = (bg, host) => bg.called('browsingData.remove').filter((c) => (c.args[0].origins || []).includes(`https://${host}`));
+test('F8: cleanOwn never empties or mutes a site turned off: a blocked, cleaned-out company and a built-in list entry', async () => {
+  const bg = await load(strong({ storage: { stopped: ['trk.example'], hard: ['trk.example'], sitesOff: ['trk.example', 'hotjar.com'] } }));
+  await bg.alarm('sweep');
+  assert.equal(dropped(bg, 'trk.example').length + dropped(bg, 'www.trk.example').length, 0, 'the off site was emptied');
+  assert.equal(dropped(bg, 'hotjar.com').length, 0, 'a listed tracker turned off was emptied');
+  assert.ok(bg.called('browsingData.remove').some((c) => (c.args[0].origins || []).includes('https://doubleclick.net')), 'the other listed ones are still emptied');
+  assert.equal(bg.called('contentSettings.set').some((c) => /trk\.example|hotjar\.com/.test(c.args[0].primaryPattern)), false, 'its notifications were blocked');
+  // the press on Clean now on that row as well
+  await bg.send({ type: 'cleanNow', group: 'own' }); await bg.settle();
+  assert.equal(dropped(bg, 'trk.example').length + dropped(bg, 'hotjar.com').length, 0);
+});
+test('F8: an approved site-storage drop of a site turned off is not carried out', async () => {
+  const bg = await load(strong({ storage: { sitesOff: ['off.example'], pending: { storage: { items: [{ cap: 'C07', kind: 'storage', site: 'off.example', name: 'storage', why: 'permanent drop', t: 1 },
+    { cap: 'C07', kind: 'storage', site: 'on.example', name: 'storage', why: 'permanent drop', t: 1 }], postponedUntil: 0 } } } }));
+  await bg.send({ type: 'approve', group: 'storage' }); await bg.settle();
+  assert.equal(dropped(bg, 'off.example').length, 0); assert.equal(dropped(bg, 'on.example').length, 1);
+});

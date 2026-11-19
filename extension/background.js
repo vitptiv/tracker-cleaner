@@ -75,6 +75,8 @@ chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'resume') resume(); })
 // which capability deletes this cookie, by core.js's reason
 const CAP_OF = { blacklist: 'C07', allowlist: 'C12', name: 'C03', host: 'C03', google: 'C04' };
 const bare = (domain) => domain.replace(/^\./, ''), under = (h, site) => h === site || h.endsWith('.' + site);
+// a host under a site the user turned off (sitesOff): nothing of it is touched
+const isOff = (cx, host) => (cx.set.sitesOff || []).some((s) => under(String(host).replace(/:\d+$/, ''), s));
 // `spared`: core.js's reason, minus what is spared: every cookie of a site the user switched off (sitesOff), a cookie the user
 // allowed (the blacklist still wins over that), and a cookie that is only there because of its tracker host while
 // a tab is open on that tracker's own site.
@@ -155,7 +157,7 @@ async function carry(it, cookies, tabs, cx, standing = true) {
   if (it.kind === 'bounce') return cleanBounce(it.site);
   if (it.kind === 'skip') return skipAdd(it.site);
   if (it.kind === 'own') return cleanOwn(it.site, cx, standing);
-  if (it.kind === 'storage') await dropStorage(it.site);
+  if (it.kind === 'storage') { if (isOff(cx, it.site)) return false; await dropStorage(it.site); }   // F8: never a site turned off
   else if (it.kind === 'permission') await blockPermission(it.site, it.name);
   else if (it.kind === 'cache') await clearCache();
   else return false;
@@ -1165,7 +1167,7 @@ async function ownSweep(cx, wait) {
   const stale = Object.keys(own).filter((k) => k !== LISTED && !stopped.includes(k)); for (const k of stale) delete own[k];
   if (stale.length) await chrome.storage.local.set({ own });
   // its notifications are blocked at once, also while its own page is open or the user uses its site: nothing there is deleted by this
-  if (v === 'run') for (const site of stopped) if (!(own[site] || {}).mute) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${site}/*`, setting: 'block' });
+  if (v === 'run') for (const site of stopped) if (!(own[site] || {}).mute && !isOff(cx, site)) try { await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${site}/*`, setting: 'block' });
     own[site] = { ...own[site], mute: true }; await chrome.storage.local.set({ own }); done.push({ cap: 'C28', kind: 'permission', site, name: 'notifications' }); } catch {}
   for (const site of [...stopped, ...(mayRun('C28', cx.set) === 'run' ? [LISTED] : [])]) { const e = own[site] || {};
     if (e.at > now - CACHE_MS || later(cx, 'C28', site, OWN) || guarded(cx, site) || (site !== LISTED && cx.hosts.some((h) => under(h, site)))) continue;
@@ -1178,8 +1180,10 @@ async function ownSweep(cx, wait) {
 // Done by itself or at a "Clean now", it sets no such yes (1.30: Ask first then truly does nothing by itself).
 async function cleanOwn(site, cx, pressed = false) {
   const { own = {}, follow = {} } = await chrome.storage.local.get(['own', 'follow']);
-  const sites = site === LISTED ? DOMAINS.filter((d) => !cx.hosts.some((h) => under(h, d)) && !visited(cx, siteOf(d))) : [site];
-  await dropStorage([...new Set(sites.flatMap((s) => [s, 'www.' + s, ...((follow[s] || {}).hosts || [])]))]);
+  // F8 (1.32): never a site the user turned off, nor one of its hosts
+  const sites = (site === LISTED ? DOMAINS.filter((d) => !cx.hosts.some((h) => under(h, d)) && !visited(cx, siteOf(d))) : [site]).filter((s) => !isOff(cx, s));
+  if (!sites.length) return false;
+  await dropStorage([...new Set(sites.flatMap((s) => [s, 'www.' + s, ...((follow[s] || {}).hosts || [])]))].filter((h) => !isOff(cx, h)));
   for (const s of sites) if (!(own[s] || {}).mute) await chrome.contentSettings.notifications.set({ primaryPattern: `*://*.${s}/*`, setting: 'block' });
   await chrome.storage.local.set({ own: { ...own, [site]: { ...own[site], ok: pressed ? 'press' : (own[site] || {}).ok === 'press' ? 'press' : false, at: Date.now(), ...(site === LISTED ? {} : { mute: true }) } } });
   return true;
@@ -1251,6 +1255,7 @@ async function applyPermanentDrops(cx, wait) {
   let l; try { if (!serverOn(cx)) return {}; l = cleanLimits(await (await fetch(LIMITS, { cache: 'no-store' })).json()); if (!l) return {}; } catch { return {}; }
   const done = [];
   for (const site of storage !== 'no' && Array.isArray(l.storageBlacklist) ? l.storageBlacklist : []) {
+    if (isOff(cx, site)) continue;   // F8: never a site turned off
     const it = { cap: 'C07', kind: 'storage', site, name: 'storage', why: 'permanent drop', did: waitsAs(storage) };
     if (waits(storage)) wait.push(it);
     else try { await dropStorage(site); done.push(it); } catch {} }
