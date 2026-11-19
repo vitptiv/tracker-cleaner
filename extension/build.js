@@ -28,6 +28,8 @@ const COOKIE_RE = ${T.COOKIE_RE};
 const GOOGLE_RE = ${T.GOOGLE_RE};
 const KEEP_RE = ${T.KEEP_RE};
 const URL_PARAMS = ${JSON.stringify(T.URL_PARAMS)};
-if (typeof module !== 'undefined') module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS };
+// load-balancer and bot-protection cookies: no evidence of tracking (security/trackers.js says why)
+const INFRA_COOKIE_RE = ${T.INFRA_COOKIE_RE};
+if (typeof module !== 'undefined') module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS, INFRA_COOKIE_RE };
 `);
 console.log(`rules.json: ${T.DOMAINS.length} blocked domains + ${T.AD_PATHS.length} ad paths (rules-google.json) + ${T.URL_PARAMS.length} URL parameters (rules-params.json); lists.js written`);

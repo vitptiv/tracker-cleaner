@@ -3,7 +3,7 @@
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs'), os = require('os'), path = require('path');
 const { execFileSync } = require('child_process');
 const root = path.join(__dirname, '..'), read = (...p) => fs.readFileSync(path.join(root, ...p), 'utf8');
-const EXPORT = "if (typeof module !== 'undefined') module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS };\n";
+const EXPORT = "if (typeof module !== 'undefined') module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS, INFRA_COOKIE_RE };\n";
 const SIGNIN = ['accounts.google.com', 'accounts.youtube.com'];
 
 // build.js writes next to itself, so run a copy in a temp tree rather than over the working files

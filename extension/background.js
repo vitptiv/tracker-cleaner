@@ -736,7 +736,10 @@ const bodyText = (b) => { if (!b) return ''; let out = Object.values(b.formData 
 // S4 such a cookie is no longer saved, so Chrome's cookie list alone would never show it.
 async function noteAnswer(d) {
   if (d.type === 'main_frame' || !(d.tabId >= 0)) return;
-  const ok = (d.responseHeaders || []).some((h) => String(h.name).toLowerCase() === 'set-cookie' && /;\s*samesite=none/i.test(h.value) && idLike(String(h.value).split(';')[0].split('=').slice(1).join('=')));
+  // F9 (1.32): never a load-balancer or bot-protection cookie (lists.js INFRA_COOKIE_RE): those are set by sites that track nobody
+  const ok = (d.responseHeaders || []).some((h) => { if (String(h.name).toLowerCase() !== 'set-cookie') return false;
+    return String(h.value).split('\n').some((line) => { const [pair] = line.split(';'), eq = pair.indexOf('=');
+      return eq > 0 && /;\s*samesite=none/i.test(line) && !INFRA_COOKIE_RE.test(pair.slice(0, eq).trim()) && idLike(pair.slice(eq + 1)); }); });
   let u; try { u = new URL(d.url); } catch { return; }
   if (!ok || !/^https?:$/.test(u.protocol)) return;
   const co = siteOf(u.hostname), site = u.hostname.toLowerCase(), page = await topSite(d);
@@ -988,7 +991,7 @@ async function followSweep(cx, all, wait) {
   if (v === 'no') return;
   // a cookie Chrome would send to that host; not one set for a whole shared name (a tenant can set that for every other tenant)
   const hasId = (site) => all.some((c) => under(site, bare(c.domain)) && !SHARED.includes(bare(c.domain)) &&
-    (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && idLike(c.value));
+    (c.sameSite === 'no_restriction' || c.partitionKey) && !KEEP_RE.test(c.name) && !INFRA_COOKIE_RE.test(c.name) && idLike(c.value));   // F9: a load balancer's or bot check's cookie is no evidence
   const { follow = {}, hard = [] } = await chrome.storage.local.get(['follow', 'hard']), asks = [];
   for (const [site, e] of Object.entries(follow)) {
     // evidence: on FOLLOW_N sites, a cookie of its own that other sites can use (in Chrome's list, or tried in its answer);

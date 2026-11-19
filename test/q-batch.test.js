@@ -32,3 +32,28 @@ test('F2: an unauto entry stored per exact host by 1.31 still covers its whole s
   await adHit(bg, 1, 'bank.example'); await adHit(bg, 2, 'bank.example');
   assert.deepEqual(bg.blockedHosts(), []); assert.equal(emptied(bg, 'bank.example').length, 0);
 });
+
+// ---- F9: load-balancer and bot-protection cookies are infrastructure, not evidence of tracking
+const { INFRA_COOKIE_RE } = require('../extension/lists.js');
+test('F9: the infrastructure cookie names are a shipped list; ordinary ID cookies are not on it', () => {
+  for (const n of ['AWSALB', 'AWSALBCORS', 'AWSALBTG', 'AWSALBTGCORS', '__cf_bm', '_cfuvid', 'cf_clearance', 'incap_ses_123_456', 'visid_incap_789', 'nlbi_42', 'ak_bmsc', 'bm_sv', 'bm_sz', '_abck', '__cflb', 'ARRAffinity', 'ARRAffinitySameSite', 'TS01a2b3c4d'])
+    assert.ok(INFRA_COOKIE_RE.test(n), n);
+  for (const n of ['uid', 'AWSALBX', 'session', '_ga', 'cf', 'TS02abc', 'xbm_sv']) assert.equal(INFRA_COOKIE_RE.test(n), false, n);
+});
+test('F9: a SameSite=None load-balancer cookie in the jar is no evidence: no block, no clean-out, no question', async () => {
+  const bg = await load(strong({ cookies: [{ name: 'AWSALBCORS', domain: 'app.bank.example', value: 'k3J9xQ2mZp8vR4tL0aBcD7eF', sameSite: 'no_restriction', secure: true },
+    { name: '_cfuvid', domain: '.bank.example', value: 'q9W8e7R6t5Y4u3I2', sameSite: 'no_restriction' }] }));
+  await adHit(bg, 1, 'app.bank.example'); await adHit(bg, 2, 'app.bank.example');
+  assert.deepEqual(bg.blockedHosts(), []); assert.equal(emptied(bg, 'app.bank.example').length, 0);
+  assert.equal(pend(bg, 'unknown').length, 0, 'asked about on infrastructure evidence alone');
+});
+test('F9: a Set-Cookie answer of a load-balancer or bot-protection cookie is no evidence either; a real ID cookie in the answer still is', async () => {
+  for (const [cookie, evidence] of [['AWSALBCORS=k3J9xQ2mZp8vR4tL0aBcD7eF; Path=/; SameSite=None; Secure', false], ['__cf_bm=Ab12Cd34Ef56Gh78; Path=/; HttpOnly; Secure; SameSite=None', false],
+    ['uid=u-3fa9c2d1e0; Path=/; SameSite=None; Secure', true]]) {
+    const bg = await load(strong());
+    for (const t of [1, 2]) { await adHit(bg, t, 'app.bank.example');
+      await bg.answer({ url: 'https://app.bank.example/favicon.ico', tabId: t, frameId: 5, type: 'image', responseHeaders: [{ name: 'Set-Cookie', value: cookie }] }); await bg.settle(); }
+    assert.equal(bg.blockedHosts().includes('app.bank.example'), evidence, cookie);
+    assert.equal(!!((bg.state.storage.follow || {})['app.bank.example'] || {}).ck, evidence, cookie);
+  }
+});

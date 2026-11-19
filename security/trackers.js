@@ -44,4 +44,11 @@ const URL_PARAMS = [
   'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id',
 ];
 
-module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, AD_PATHS, URL_PARAMS };
+// Infrastructure cookies (whole-name match, a prefix where the name ends in .*): what load balancers keep a visitor on one
+// server with (AWS ALB stickiness, Azure ARR affinity, F5 BIG-IP TS01...) and what bot protection sets (Cloudflare,
+// Akamai, Imperva/Incapsula). They are set on every answer, often SameSite=None and with an ID-like value, by sites
+// that track nobody. So they are NO EVIDENCE of tracking: the learning of companies on no list (C25: hasId and the
+// Set-Cookie test in background.js) does not count them. They are not deleted for being on this list, nor kept.
+const INFRA_COOKIE_RE = /^(AWSALB|AWSALBCORS|AWSALBTG|AWSALBTGCORS|__cf_bm|_cfuvid|cf_clearance|__cflb|incap_ses_.*|visid_incap_.*|nlbi_.*|ak_bmsc|bm_sv|bm_sz|_abck|ARRAffinity|ARRAffinitySameSite|TS01.*)$/;
+
+module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, AD_PATHS, URL_PARAMS, INFRA_COOKIE_RE };

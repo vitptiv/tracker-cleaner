@@ -4,4 +4,6 @@ const COOKIE_RE = /^(_ga|_gid|_gat|_gcl_|__utm[a-z]|_fbp|_fbc|fr$|_hj|_uet|MUID$
 const GOOGLE_RE = /^(NID|OTZ|1P_JAR|YSC|VISITOR_INFO1_LIVE|VISITOR_PRIVACY_METADATA|__Secure-YNID|__Secure-YEC|GPS)$/;
 const KEEP_RE = /^(sp_dc|sp_key|sp_t|sp_landing|sp_m|sp_new|sp_sso_csrf_token|__Host-device_id|__Host-sp_csrf_sid|OptanonConsent|OptanonAlertBoxClosed|sessionKey|sessionKeyLC|sessionKeyV3|sessionKeyV3LC|SID|HSID|SSID|APISID|SAPISID|LSID|OSID|SIDCC|AEC|PREF|LOGIN_INFO|ACCOUNT_CHOOSER|__Secure-ROLLOUT_TOKEN|__Secure-STRP|__Host-GAPS|__Host-[13]PLSID|__Secure-OSID|__Secure-[13]P(SID|APISID|SIDTS|SIDCC|SIDRTS))$/;
 const URL_PARAMS = ["gclid","dclid","gbraid","wbraid","gclsrc","fbclid","msclkid","yclid","twclid","ttclid","igshid","mc_eid","mc_cid","_hsenc","_hsmi","mkt_tok","vero_id","oly_enc_id","oly_anon_id","s_cid","li_fat_id","utm_source","utm_medium","utm_campaign","utm_term","utm_content","utm_id"];
-if (typeof module !== 'undefined') module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS };
+// load-balancer and bot-protection cookies: no evidence of tracking (security/trackers.js says why)
+const INFRA_COOKIE_RE = /^(AWSALB|AWSALBCORS|AWSALBTG|AWSALBTGCORS|__cf_bm|_cfuvid|cf_clearance|__cflb|incap_ses_.*|visid_incap_.*|nlbi_.*|ak_bmsc|bm_sv|bm_sz|_abck|ARRAffinity|ARRAffinitySameSite|TS01.*)$/;
+if (typeof module !== 'undefined') module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, URL_PARAMS, INFRA_COOKIE_RE };
