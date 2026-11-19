@@ -49,6 +49,8 @@ const URL_PARAMS = [
 // Akamai, Imperva/Incapsula). They are set on every answer, often SameSite=None and with an ID-like value, by sites
 // that track nobody. So they are NO EVIDENCE of tracking: the learning of companies on no list (C25: hasId and the
 // Set-Cookie test in background.js) does not count them. They are not deleted for being on this list, nor kept.
-const INFRA_COOKIE_RE = /^(AWSALB|AWSALBCORS|AWSALBTG|AWSALBTGCORS|__cf_bm|_cfuvid|cf_clearance|__cflb|incap_ses_.*|visid_incap_.*|nlbi_.*|ak_bmsc|bm_sv|bm_sz|_abck|ARRAffinity|ARRAffinitySameSite|TS01.*)$/;
+// The vendor-made names are anchored to their formats (TS01 + 6-8 hex, incap_ses_<n>_<n>, visid_incap_<n>, nlbi_<n>[_<n>]),
+// so a tracker cannot hide its own cookie behind a look-alike name such as TS01uid.
+const INFRA_COOKIE_RE = /^(AWSALB|AWSALBCORS|AWSALBTG|AWSALBTGCORS|__cf_bm|_cfuvid|cf_clearance|__cflb|incap_ses_\d+_\d+|visid_incap_\d+|nlbi_\d+(_\d+)?|ak_bmsc|bm_sv|bm_sz|_abck|ARRAffinity|ARRAffinitySameSite|TS01[0-9a-f]{6,8})$/;
 
 module.exports = { DOMAINS, COOKIE_RE, GOOGLE_RE, KEEP_RE, AD_PATHS, URL_PARAMS, INFRA_COOKIE_RE };

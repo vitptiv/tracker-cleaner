@@ -352,11 +352,11 @@ test('R: the one sweep alarm is every 10 minutes at Strongest and every 15 other
   assert.equal(Object.keys(bg.state.alarms).filter((n) => /sweep|fast/.test(n)).length, 1);
   assert.equal((await at10('balanced')).state.alarms.sweep.periodInMinutes, 15);
 });
-test('R: Strongest clears the saved copies every 10 minutes, one log line per clear; Balanced and a hand-set row keep the day; Ask first only asks', async () => {
+test('R: Strongest clears the saved copies every 10 minutes, one log line for all of them; Balanced and a hand-set row keep the day; Ask first only asks', async () => {
   const bg = await at10('strong'); await bg.alarm('sweep'); assert.equal(clears(bg), 0, 'cleared within 10 minutes of the last');
   bg.now += 10 * 60e3 + 1; await bg.alarm('sweep'); assert.equal(clears(bg), 1);
   bg.now += 10 * 60e3 + 1; await bg.alarm('sweep'); assert.equal(clears(bg), 2);
-  assert.equal(bg.state.storage.log.filter((l) => l.kind === 'cache').length, 2);
+  assert.deepEqual(bg.state.storage.log.filter((l) => l.kind === 'cache').map((l) => l.n), [2], 'one line for the timed clearings, counted (final audit 5)');
   for (const o of [{ level: 'balanced' }, { level: 'strong', modes: { C11: 'auto' } }, { level: 'ask' }]) {
     const b = await at10(o.level, { storage: o }); b.now += 11 * 60e3; await b.alarm('sweep'); assert.equal(clears(b), 0, JSON.stringify(o)); }
 });
@@ -454,4 +454,23 @@ test('final 3: the Balanced line and the first-run line say codes are cut withou
   assert.match(renderPopup(base, null), /codes seen on two sites are cut and their collector blocked without asking/i);
   const first = /<p class="c">On: .*?<\/p>/.exec(renderPopup({ ...base, firstRun: true }, null))[0];
   assert.match(first, /codes seen on two sites/i); assert.match(first, /reads what pages send, on this computer only/);
+});
+test('final 4: the infrastructure names are anchored to their vendors\' formats', () => {
+  for (const n of ['TS01a2b3c4d', 'TS01a2b3c4', 'incap_ses_123_456', 'visid_incap_789', 'nlbi_42', 'nlbi_42_7']) assert.ok(INFRA_COOKIE_RE.test(n), n);
+  for (const n of ['TS01uid', 'visid_incap_track', 'incap_ses_x', 'nlbi_track', 'TS01']) assert.equal(INFRA_COOKIE_RE.test(n), false, n);
+});
+test('final 5 (E5): timed clearings keep one log line, updated in place; an automatic block line is not pushed out', async () => {
+  const bg = await at10('strong', { storage: { log: [{ t: 1.8e12, cap: 'C25', kind: 'tracker', site: 'trk.example', name: 'x', did: 'removed', auto: true }] } });
+  for (let i = 0; i < 210; i++) { bg.now += 10 * 60e3 + 1000; await bg.alarm('sweep'); }
+  const log = bg.state.storage.log;
+  assert.equal(log.filter((l) => l.kind === 'cache').length, 1); assert.equal(log.find((l) => l.kind === 'cache').n, 210);
+  assert.ok(log.some((l) => l.site === 'trk.example'));
+});
+test('final 7: the once-a-day pass-through limit holds although autoDone forgot the site', async () => {
+  const bg = await load(strong({ cookies: [{ name: 'XSRF-TOKEN', domain: 'www.bank.example', value: 'x-1' }] }));
+  const bounce = async () => { await bg.redirect({ url: 'https://www.bank.example/out?url=https%3A%2F%2Fevil.example%2F', redirectUrl: 'https://evil.example/', type: 'main_frame', tabId: 1 }); await bg.settle(); };
+  await bounce(); assert.equal(emptied(bg, 'www.bank.example').length, 1);
+  bg.state.storage.autoDone = {};   // pushed out by a hundred other automatic answers
+  bg.now += 61 * 60e3; await bounce();
+  assert.equal(emptied(bg, 'www.bank.example').length, 1);
 });

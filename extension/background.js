@@ -1239,7 +1239,7 @@ try { chrome.webRequest.onBeforeRedirect.addListener((d) => { if (d.type === 'ma
 async function bounceSweep(cx, wait, all) {
   const v = verdict('C27', cx), done = [], yes = answersYes('C27', cx.set, cx.hold);
   if (v === 'no') return;
-  const { bounce = {}, skipok = [], noskip = [], autoDone = {} } = await chrome.storage.local.get(['bounce', 'skipok', 'noskip', 'autoDone']), choices = [...skipok, ...noskip];
+  const { bounce = {}, skipok = [], noskip = [], bounceAuto = {} } = await chrome.storage.local.get(['bounce', 'skipok', 'noskip', 'bounceAuto']), choices = [...skipok, ...noskip];   // bounceAuto: { site: when it was last cleaned by itself }, only the last 24 h
   for (const [site, e] of Object.entries(bounce)) {
     const asks = [...(e.n > e.done && !cx.hosts.some((h) => siteOf(h) === siteOf(site)) ? [{ kind: 'bounce', name: PASSED }] : []),
       // it sent the browser on to two different sites and added an ID, and is no site the user opens: may its links be changed to go straight there?
@@ -1249,11 +1249,13 @@ async function bounceSweep(cx, wait, all) {
     // F3 (1.32): never while a tab is open on that site, and a site's pass-through is cleaned by itself at most once a day
     // (BOUNCE_AUTO_MS); within the day it is a question again. The popup then offers "Let it through" for it (autoDone).
     const site_ = siteOf(site), tabOpen = cx.hosts.some((h) => siteOf(h) === site_);
-    const again = Object.entries(autoDone).some(([h, a]) => a.row === 'bounce' && siteOf(h) === site_ && a.t > Date.now() - BOUNCE_AUTO_MS);
+    const again = bounceAuto[site_] > Date.now() - BOUNCE_AUTO_MS;   // final audit 7: its own record, not the evictable autoDone
     const mayAuto = !yes || usedAuto(cx, all, site) !== 'full' ? [] : open.filter((it) => it.kind !== 'bounce' || !again);   // a pass-through only deletes: nothing to do by 'block'
     if (yes && mayAuto.length && !tabOpen && await yesNow(cx, site)) {
       for (const it of mayAuto) if (await (it.kind === 'bounce' ? cleanBounce(site, true) : skipAdd(site)).catch(() => false)) done.push({ ...it, auto: true });
-      if (mayAuto.some((it) => it.kind === 'bounce')) await noteAuto(site, 'bounce');
+      if (mayAuto.some((it) => it.kind === 'bounce')) { await noteAuto(site, 'bounce');
+        await serial(async () => { const { bounceAuto: b = {} } = await chrome.storage.local.get('bounceAuto'), now = Date.now();
+          await chrome.storage.local.set({ bounceAuto: { ...Object.fromEntries(Object.entries(b).filter(([, t]) => t > now - BOUNCE_AUTO_MS)), [site_]: now } }); }); }
       wait.push(...open.filter((it) => !mayAuto.includes(it))); continue; }
     // otherwise never by itself (F2, J1): what a passing site saved is deleted, and its links changed, only after the user's press on its question
     wait.push(...open); }
@@ -1437,6 +1439,15 @@ const copiesNow = async (cx, auto = false) => { const { softClearAt = 0, cacheWi
 // Tor switch and the self-reload: nothing of the network is changed under a sign-in). The five minutes for which a
 // site's own sign-in page holds deleting for that site (`sguard`) do not hold it, as they do not hold the daily
 // clearing: no cookie and nothing a site saved is touched. On "Ask first" a start makes no question.
+// Final audit 5: the 10-minute clearing at Strongest keeps ONE log line, updated in place (its time and a count `n`), so
+// it never pushes the automatic block and clean-out lines out of the LOG_MAX-line log; each clearing is still counted in
+// the private history.
+const loggedTimed = (it) => { const g = cap(it.cap).group; tally[g] = (tally[g] || 0) + 1;
+  return serial(async () => { const { log = [], history } = await chrome.storage.local.get(['log', 'history']), now = Date.now();
+    const i = log.findIndex((l) => l.kind === 'cache' && l.timed === true);
+    const line = { t: now, cap: it.cap, kind: 'cache', site: '*', name: 'http-cache', did: 'removed', timed: true, n: i >= 0 ? (Number(log[i].n) || 1) + 1 : 1 };
+    const next = i >= 0 ? log.map((l, j) => j === i ? line : l) : [...log, line].slice(-LOG_MAX);
+    await chrome.storage.local.set({ log: next, history: historyAdd(history, [{ group: g, kind: 'cache', site: '*', name: 'http-cache' }], now) }); }); };
 async function forgetServers(cx, wait) {
   const v = verdict('C11', cx);
   if (v === 'no') return {};
@@ -1446,7 +1457,7 @@ async function forgetServers(cx, wait) {
   if (!start && (cx.set.cacheClearedAt > Date.now() - every || (fast && cx.signing && !(cx.set.cacheClearedAt <= Date.now() - CACHE_MS)))) return {};
   const it = { cap: 'C11', kind: 'cache', site: '*', name: 'http-cache', why: start ? 'chrome start' : fast ? 'every 10 minutes' : 'daily', did: waitsAs(v) };
   if (waits(v)) { wait.push(it); return {}; }
-  try { await clearCache(); await logged([it], 'removed'); return { serversForgotten: true }; }
+  try { await clearCache(); if (fast && !start) await loggedTimed(it); else await logged([it], 'removed'); return { serversForgotten: true }; }
   catch (e) { return { serversForgotten: false, serversError: String(e) }; }
 }
 
