@@ -11,7 +11,7 @@ const LOOPING = 'this site keeps putting it back';   // as LOOP_WHY in loop.js
 const STOPS = 10, CLEANED_SHOWN_MS = 10 * 60e3, LEVELS = [['ask', 'Ask first'], ['balanced', 'Balanced'], ['strong', 'Strongest']];
 // 1.32 (owner): every sentence short; the long explanations are in the README ("What each row does")
 const LEVEL_SAYS = { ask: 'Nothing is deleted or newly blocked until you press. Known trackers stay blocked.',
-  balanced: 'Known trackers are cleaned by themselves. Anything new waits for your answer.',
+  balanced: 'Known trackers are cleaned. Codes seen on two sites are cut and their collector blocked without asking. The rest waits for you.',
   strong: 'Cleans every 10 minutes without asking, also on sites you use. This can sign you out, and wiped site data cannot be put back.',
   custom: 'Custom: you changed some rows. Pick a level to reset them.' };
 const OWN_LINE = 'Tor, Wi-Fi and a few other rows keep their own switch.';
@@ -39,9 +39,9 @@ const renderPopup = (state, tab) => {
       + (s.master && hold.guard ? '<p class="m">Sign-in going on: its cookies are left alone.</p>' : '')
       + (Array.isArray(s.serverOff) && s.serverOff.length ? `<p class="c">Switched off by the settings program: ${esc(s.serverOff.join(', '))}.</p>` : '')
       + (Array.isArray(s.notWorking) && s.notWorking.length ? `<p class="c bad">Chrome refused a rule, so this is not working: ${esc(s.notWorking.join(', '))}.</p>` : '')
-      + (s.master && s.firstRun === true && s.level === 'strong' ? `<p class="c">On, at Strongest: trackers are blocked and cleaned without asking, also on sites you use. This can sign you out, and wiped site data cannot be put back. Pick Balanced to be asked first. ${btn('OK', { type: 'seen' })}</p>`
+      + (s.master && s.firstRun === true && s.level === 'strong' ? `<p class="c">On, at Strongest: trackers are blocked and cleaned without asking, also on sites you use. This can sign you out, and wiped site data cannot be put back. It reads what pages send, on this computer only. Pick Balanced to be asked first. ${btn('OK', { type: 'seen' })}</p>`
         : s.master && s.firstRun === 'update' ? `<p class="c">New: cleaning can now run without asking. Until you choose, it keeps asking. ${btn('OK', { type: 'seen', auto: true })} ${btn('Keep asking', { type: 'seen', auto: false })}</p>`
-        : s.master && s.firstRun ? `<p class="c">On: known trackers are blocked and cleaned by themselves. Anything new is asked first. ${btn('OK', { type: 'seen' })}</p>` : '');
+        : s.master && s.firstRun ? `<p class="c">On: known trackers are blocked and cleaned by themselves, and codes seen on two sites are cut. It reads what pages send, on this computer only. The rest is asked first. ${btn('OK', { type: 'seen' })}</p>` : '');
   // the dial, at the very top: three positions (the one in use pressed), what it does, and one press that cleans every row
   const level = s.level || 'balanced';
   const dial = () => `<div class="c" data-level="${esc(level)}"><div class="lv">`

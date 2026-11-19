@@ -1,7 +1,7 @@
 {
  "what": "Friendface 2 against Tracker Cleaner (the version is under \"extension\") with the cross-site-id counter-repair (C33) and the page shield (C32, on by default from 1.26) fully on. A value detector learns a value is cross-site only after two sites have sent it, so the collector receives the id on first contact and the initial cross-site JOIN happens once and cannot be undone; from then on the cleaner blocks the exact collector path (/f/, never the site root) and strips confirmed ids from URLs and links, so no further send gets through. Separately, M4 makes the shield blur the font-measure widths and screen size, so the F6 fingerprint join key no longer matches across sites or a cleaner-off baseline. The fingerprint is measured with the shield off (baseline) and on.",
  "extension": "1.32",
- "browser": "ff2m-1a1f22a70993fe648",
+ "browser": "ff2m-1a1f2453b6ce21ef4",
  "sites": [
   "ledger.localhost",
   "sundial.localhost",
@@ -25,9 +25,9 @@
   "keyEqualsBaselineShieldOff": true,
   "keyEqualsBaselineShieldOn": false,
   "shieldOnCodes": {
-   "ledger": "fp2-062597fe",
-   "sundial": "fp2-09a7ecfe",
-   "atlas": "fp2-faf9ddf7"
+   "ledger": "fp2-e89c216d",
+   "sundial": "fp2-78956b53",
+   "atlas": "fp2-71df0ecc"
   },
   "readPixels": {
    "shieldOff": {
@@ -35,7 +35,7 @@
     "perturbed": false
    },
    "shieldOn": {
-    "hash": "d3314e39",
+    "hash": "a41f4bbf",
     "perturbed": true
    },
    "baseline": "bd825545"

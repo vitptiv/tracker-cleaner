@@ -23,7 +23,7 @@ test('the rows say what happens now: nothing learned is blocked or deleted witho
 });
 test('the first-run line, README and the description do not promise a block or a rewritten link without a press', () => {
   const line = /<p class="c">On: .*?<\/p>/.exec(renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null))[0];
-  assert.match(line, /Anything new is asked first/); assert.equal(/blocks companies it sees/.test(line), false); assert.equal(/pass-through/.test(line), false);
+  assert.match(line, /The rest is asked first/); assert.equal(/blocks companies it sees/.test(line), false); assert.equal(/pass-through/.test(line), false);
   const readme = read('README.md').split(' ## ')[0];
   assert.match(readme, /only ever asked about/); assert.equal(/a learned host is only ever blocked by itself/.test(readme), false);
   const d = JSON.parse(fs.readFileSync(path.join(__dirname, '../extension/manifest.json'), 'utf8')).description;

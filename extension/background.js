@@ -807,7 +807,7 @@ async function xidObserve(page, toks, ep, fp, etagRes, tabId) {
     // network carries its id along, a site that merely echoes a search box does not. Measured on Friendface 2: dropping such
     // sends altogether left nothing confirmed; acting on no echo at all left two of its three /f/ collectors open.
     const outside = await outsideToks(tabId, page, xs, liveUrl);
-    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k], own = !fp ? false : outside.has(k) ? 'e' : true;
+    for (const tok of toks) { const k = tokHash(xs, tok), e = xseen[k], own = !fp ? false : outside.has(k, tok) ? 'e' : true;
       // F4 (b'): a site counts towards a confirmation only where it sent the value to an endpoint under its OWN name (true);
       // a send to another company is noted (false) but confirms nothing
       if (e) { if (e.sites[siteHash] !== true && (fp || !(siteHash in e.sites))) { e.sites[siteHash] = !!fp; changed = true; } if (ep && setFp(e.eps, ep, own)) changed = true;
@@ -827,27 +827,41 @@ async function xidObserve(page, toks, ep, fp, etagRes, tabId) {
 // the navigation came from, its Referer and its form body. A new site in the tab starts the set anew. noteSent and noteEtag
 // never make that site's endpoint actionable for such a token (xidObserve `own`); the live address of the tab is checked as
 // well, in case an event came late.
-const XTAB_MAX = 200, XTAB_TOKS = 60;
+// Final audit of 1.32: no cap may hide a value or freeze the set. Addresses are read whole up to XTAB_TEXT characters and
+// tokenised without the detector's 20-token cap; a longer text, or a tab whose set would pass XTAB_TOKS, marks the tab's
+// set `full`, and then EVERY own send from that tab on that site counts as an echo (fail safe, never trimmed). Entries are
+// keyed 't' + tab id so they keep the order they were written in (integer keys sort by number); the oldest go first, and a
+// closed tab's entry goes with it. The live address is matched as a substring of the whole decoded address.
+const XTAB_MAX = 200, XTAB_TOKS = 200, XTAB_TEXT = 65536;
+const tabKeyOf = (tabId) => 't' + tabId;
+const fullDecode = (s) => { s = String(s); try { return decodeURIComponent(s); } catch { return s; } };
 const tabUrl = async (tabId) => Number.isInteger(tabId) && tabId >= 0 ? ((await chrome.tabs.get(tabId).catch(() => null)) || {}).url || '' : '';
 async function outsideToks(tabId, page, xs, liveUrl) {
-  const out = new Set(); if (!(tabId >= 0)) return out;
-  const e = ((await chrome.storage.session.get('xtab')).xtab || {})[tabId];
-  if (e && e.site === page) for (const k of e.toks) out.add(k);
-  if (liveUrl && siteOf(hostOf(liveUrl)) === page) for (const t of idTokens(safeDecode(liveUrl))) out.add(tokHash(xs, t));
-  return out; }
+  const none = { has: () => false }; if (!(tabId >= 0)) return none;
+  const e = ((await chrome.storage.session.get('xtab')).xtab || {})[tabKeyOf(tabId)], mine = !!e && e.site === page;
+  const set = new Set(mine ? e.toks : []), live = liveUrl && siteOf(hostOf(liveUrl)) === page ? String(liveUrl) : '';
+  const liveText = live.length > XTAB_TEXT ? null : fullDecode(live);
+  if ((mine && e.full) || liveText === null) return { has: () => true };
+  return { has: (k, tok) => set.has(k) || (!!liveText && liveText.includes(tok)) }; }
 // note what reached tab `tabId` from outside: `url` is the main-frame address (its site owns the set), `more` the texts that
 // came with it (the page it came from, the Referer, a form body). Queued at once through serial(), so it is in place
 // before the page's own requests are looked at.
 const noteOutside = (tabId, url, more = []) => { if (!(tabId >= 0) || !/^https?:/i.test(String(url))) return;
   const site = siteOf(hostOf(url)); if (!site) return;
-  return serial(async () => { const xs = await xidSalt(), extra = await Promise.all([].concat(more).map((m) => Promise.resolve(m).catch(() => '')));
-    const add = [url, ...extra].filter(Boolean).flatMap((x) => idTokens(safeDecode(x))).map((t) => tokHash(xs, t));
-    const xtab = (await chrome.storage.session.get('xtab')).xtab || {}, was = xtab[tabId], fresh = !was || was.site !== site;
-    const toks = [...new Set([...(fresh ? [] : was.toks), ...add])].slice(-XTAB_TOKS);
-    if (!fresh && toks.length === was.toks.length) return;
-    delete xtab[tabId]; xtab[tabId] = { site, toks };
+  return serial(async () => {
+    // nothing is noted with cleaning or the codes row off (final audit, 6)
+    if (mayRun('C33', await chrome.storage.local.get(['master', 'modes', 'level'])) === 'no' || (await chrome.storage.local.get('master')).master !== true) return;
+    const xs = await xidSalt(), extra = await Promise.all([].concat(more).map((m) => Promise.resolve(m).catch(() => '')));
+    const texts = [url, ...extra].filter(Boolean).map(String), tooLong = texts.some((x) => x.length > XTAB_TEXT);
+    const add = tooLong ? [] : [...new Set(texts.flatMap((x) => idTokens(fullDecode(x), Infinity, Infinity)).map((t) => tokHash(xs, t)))];
+    const xtab = (await chrome.storage.session.get('xtab')).xtab || {}, key = tabKeyOf(tabId), was = xtab[key], fresh = !was || was.site !== site;
+    if (!fresh && (was.full || (!tooLong && add.every((k) => was.toks.includes(k))))) return;   // nothing new (compared by content)
+    const toks = [...new Set([...(fresh ? [] : was.toks), ...add])], full = tooLong || toks.length > XTAB_TOKS;
+    delete xtab[key]; xtab[key] = full ? { site, toks: [], full: true } : { site, toks };
     const ks = Object.keys(xtab); for (const k of ks.slice(0, Math.max(0, ks.length - XTAB_MAX))) delete xtab[k];
     await chrome.storage.session.set({ xtab }); }); };
+chrome.tabs.onRemoved.addListener((id) => serial(async () => { const xtab = (await chrome.storage.session.get('xtab')).xtab;
+  if (xtab && xtab[tabKeyOf(id)]) { delete xtab[tabKeyOf(id)]; await chrome.storage.session.set({ xtab }); } }));
 // the page a navigation comes from: the tab's address before it, asked of Chrome at once, before the new page commits
 try { chrome.webRequest.onBeforeSendHeaders.addListener((d) => { if (d.type !== 'main_frame') return;
   const ref = (d.requestHeaders || []).find((h) => String(h.name).toLowerCase() === 'referer'); if (ref) noteOutside(d.tabId, d.url, [String(ref.value)]); },

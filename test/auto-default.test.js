@@ -21,7 +21,7 @@ test('a fresh install is switched on and says so once; an update changes nothing
   assert.equal(bg.state.storage.master, true); assert.equal((await bg.send({ type: 'state' })).firstRun, true); assert.equal(bg.state.storage.level, 'strong');   // 1.30
   const html = renderPopup(await bg.send({ type: 'state' }), null);
   assert.match(html, /On, at Strongest: trackers are blocked and cleaned without asking.*Pick Balanced to be asked first\./);   // 1.30: the line names the level (1.32: short)
-  assert.match(renderPopup(await (await balanced()).send({ type: 'state' }), null), /On: known trackers are blocked and cleaned by themselves\. Anything new is asked first\./);   // 1.32: short
+  assert.match(renderPopup(await (await balanced()).send({ type: 'state' }), null), /On: known trackers are blocked and cleaned by themselves, and codes seen on two sites are cut\. It reads what pages send, on this computer only\. The rest is asked first\./);   // 1.32: short
   await bg.send({ type: 'seen' });
   assert.equal((await bg.send({ type: 'state' })).firstRun, undefined);
   const old = await load({ storage: { cacheClearedAt: 5 } }); await old.chrome.runtime.onInstalled.fire({ reason: 'update' }); await old.settle();

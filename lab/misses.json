@@ -1,6 +1,6 @@
 {
  "what": "Tracker Cleaner against the tracking lab: measured, nothing demanded. status: tracked = arrived and tied to the person; unlinked = arrived, not tied to her; stopped = nothing arrived (C: after the manual cleaning). Three counts, of the 35 kinds built (one of 36, T34, is not built in the lab): arrived = it arrived at all, also tied to nobody. ever = it arrived, tied to her (in Q and C: after the answers or the cleaning, on the second look). atEnd = it still arrived, tied to her, after Chrome was started again; or, for a kind the trip only makes before that, the last time the trip made it (reference.lastChance); or, for a kind kept in Chrome's own files, it is still in the files when the trip is over; in C, a kind the second look makes again counts when it arrived then. The headline is A (the fresh install, no press) and Q (the same with every question answered yes).",
- "headline": "A (fresh install, nothing changed: Strongest since 1.30), of the 35 kinds built: 7 at the end; 22 arrived and tied to her; 25 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. AB (fresh install set to Balanced, the 1.29 defaults; nothing else changed): 25 at the end; 28 arrived and tied to her; 29 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install set to Balanced, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 5 at the end; 7 tied to her after the answers; 24 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 25 at the end; 28 arrived and tied to her; 29 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
+ "headline": "A (fresh install, nothing changed: Strongest since 1.30), of the 35 kinds built: 7 at the end; 13 arrived and tied to her; 24 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. AB (fresh install set to Balanced, the 1.29 defaults; nothing else changed): 25 at the end; 28 arrived and tied to her; 29 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. Q (fresh install set to Balanced, every question answered yes: Remove, Skip it, cut it off; nothing else by hand): 5 at the end; 7 tied to her after the answers; 24 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B0 (every group forced to Automatic): 25 at the end; 28 arrived and tied to her; 29 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. B: 6 at the end; 9 arrived and tied to her; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website. C (lab names entered, every question answered yes and every manual cleaning done): 5 at the end; 7 tied to her after the cleaning; 9 arrived at all; T18, T19 kept on purpose: your own history, readable by no website.",
  "caveats": [
   "Nothing is cut short in the measurement any more: there is no hold on everything (L4). The lab's own \"Sign in with\" page holds deleting for the network's own site for five minutes, as it would for a user.",
   "A is the fresh install with no press, since 1.30 at Strongest, where the cleaner answers its own questions yes; AB is the fresh install set to Balanced (the 1.29 defaults) with no press, where since L1 a company on no list is not even blocked without a press; Q is AB with every question the extension asks answered yes by a press.",
@@ -66,7 +66,7 @@
   },
   "broken": []
  },
- "extension": "1.31",
+ "extension": "1.32",
  "settings": {
   "A": "fresh install defaults (1.30: Strongest), nothing approved, no lab entries",
   "AB": "fresh install set to Balanced (the 1.29 defaults, the old A), nothing approved, no lab entries",
@@ -225,14 +225,19 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 11,
+    "removed": 9,
     "byItself": [
+     "cookie hop.localhost",
      "bounce hop.localhost",
+     "cookie friendface.localhost",
+     "cache *",
      "tracker friendface.localhost",
      "used friendface.localhost",
      "skip hop.localhost"
     ],
-    "waiting": {},
+    "waiting": {
+     "bounce": 1
+    },
     "blockRuleMatches": 0,
     "tagRuleMatches": 0,
     "notificationSetting": "ask"
@@ -257,34 +262,23 @@
      "ever": false
     },
     "T3": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
     },
     "T4": {
-     "status": "tracked",
-     "records": 1,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "click ID given out in the feed"
-     ],
-     "lastStep": 3,
+     "status": "stopped",
+     "records": 0,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "capability exists but did not fire"
+     "ever": false
     },
     "T5": {
      "status": "stopped",
@@ -325,14 +319,13 @@
     },
     "T9": {
      "status": "tracked",
-     "records": 5,
-     "linked": 3,
+     "records": 4,
+     "linked": 2,
      "sites": [
       "tidewater.localhost"
      ],
      "via": [
-      "Friendface frame inside the site",
-      "read by the kit"
+      "Friendface frame inside the site"
      ],
      "lastStep": 4,
      "atEnd": false,
@@ -340,49 +333,34 @@
      "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 4"
     },
     "T10": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "no capability covers it (storage under the visited site's own name)"
     },
     "T11": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
     },
     "T12": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "read by the kit"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
     },
     "T13": {
      "status": "tracked",
@@ -400,18 +378,13 @@
      "cause": "capability exists but did not fire"
     },
     "T14": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "the browser's answer"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
+     "ever": false,
      "cause": "no capability covers it (an answer the browser gives)"
     },
     "T15": {
@@ -523,30 +496,24 @@
      "simulated": "the press on Allow is a grant over the control channel"
     },
     "T23": {
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
+     "atEnd": false,
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
+    },
+    "T24": {
      "status": "tracked",
-     "records": 3,
+     "records": 5,
      "linked": 1,
      "sites": [
       "tidewater.localhost"
      ],
      "via": [
-      "kit"
-     ],
-     "lastStep": 3,
-     "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3"
-    },
-    "T24": {
-     "status": "tracked",
-     "records": 6,
-     "linked": 2,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "the like frame",
-      "a report from the kit"
+      "the like frame"
      ],
      "lastStep": 3,
      "atEnd": false,
@@ -555,19 +522,14 @@
      "simulated": "the second address is a forwarded-for header"
     },
     "T25": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "canvas 8039e108, graphics de1a1cf2, audio 2c28a90d, fonts bd8a2c56, traits 800,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
     },
     "T26": {
      "status": "stopped",
@@ -687,27 +649,22 @@
      "ever": false
     },
     "T36": {
-     "status": "tracked",
-     "records": 3,
-     "linked": 1,
-     "sites": [
-      "tidewater.localhost"
-     ],
-     "via": [
-      "asked from the page on 127.0.0.1"
-     ],
-     "lastStep": 3,
+     "status": "unlinked",
+     "records": 2,
+     "linked": 0,
+     "sites": [],
+     "via": [],
      "atEnd": false,
-     "ever": true,
-     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), last arrived tied to her in step 3"
+     "ever": false,
+     "cause": "not recognised: the lab's names are on no list; blocked after the press on Block (friendface.localhost), arrived tied to nobody"
     }
    },
    "counts": {
-    "tracked": 20,
-    "unlinked": 3,
-    "stopped": 10,
-    "arrived": 25,
-    "ever": 22,
+    "tracked": 11,
+    "unlinked": 11,
+    "stopped": 11,
+    "arrived": 24,
+    "ever": 13,
     "atEnd": 7,
     "simulated": [],
     "own": [
@@ -1117,10 +1074,10 @@
       "parcelpine.localhost"
      ],
      "via": [
-      "canvas a0cb9379, graphics de1a1cf2, audio e1604c84, fonts bd8a2c56, traits 798,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas af596736, graphics de1a1cf2, audio 8298ad13, fonts bd8a2c56, traits 798,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 6e108d70, graphics de1a1cf2, audio 0103b846, fonts bd8a2c56, traits 800,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 59740d61, graphics de1a1cf2, audio 4f933587, fonts bd8a2c56, traits 798,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 830a56dd, graphics de1a1cf2, audio dd5f857a, fonts bd8a2c56, traits 801,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 1d5be3e9, graphics de1a1cf2, audio a30bd930, fonts bd8a2c56, traits 802,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 32796cab, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 798,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 50b00e3a, graphics de1a1cf2, audio f173f2b3, fonts bd8a2c56, traits 801,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 12,
      "atEnd": true,
@@ -1711,7 +1668,7 @@
       "tidewater.localhost"
      ],
      "via": [
-      "canvas 3a6fcf59, graphics de1a1cf2, audio 66c3d5f1, fonts bd8a2c56, traits 802,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas d0a14067, graphics de1a1cf2, audio 168d1b4f, fonts bd8a2c56, traits 801,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 3,
      "atEnd": false,
@@ -2293,10 +2250,10 @@
       "parcelpine.localhost"
      ],
      "via": [
-      "canvas db00c4c3, graphics de1a1cf2, audio 3384f91d, fonts bd8a2c56, traits 799,599,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 0ab07093, graphics de1a1cf2, audio 9f3ac8a2, fonts bd8a2c56, traits 802,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 77d11a19, graphics de1a1cf2, audio d58dbe93, fonts bd8a2c56, traits 802,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
-      "canvas 71fc134f, graphics de1a1cf2, audio b9e94e5b, fonts bd8a2c56, traits 800,600,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
+      "canvas 6c859579, graphics de1a1cf2, audio 0dd67fbb, fonts bd8a2c56, traits 799,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 23118329, graphics de1a1cf2, audio 1cfff10a, fonts bd8a2c56, traits 801,602,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas b1b389c3, graphics de1a1cf2, audio 563f3016, fonts bd8a2c56, traits 799,601,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64",
+      "canvas 6ce7943d, graphics de1a1cf2, audio d58dbe93, fonts bd8a2c56, traits 798,598,24,1,America/Los_Angeles,en-US+en,32,Linux x86_64"
      ],
      "lastStep": 12,
      "atEnd": true,
@@ -3035,7 +2992,7 @@
      "friendface.localhost"
     ],
     "cutOff": [],
-    "removed": 27,
+    "removed": 26,
     "byItself": [],
     "waiting": {
      "unknown": 1,

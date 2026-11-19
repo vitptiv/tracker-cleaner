@@ -9,18 +9,19 @@
 const XID_MIN = 12, XID_MAX = 256;
 // the id-like tokens in a text (a request's decoded URL query + path, or its body): a long, high-entropy run of
 // url-safe characters -- letters and digits, or long hex -- not a date, a plain number or a dictionary word.
-function idTokens(text) {
-  const out = []; if (!text) return out;
-  for (const raw of String(text).slice(0, 16000).split(/[^A-Za-z0-9_.~-]+/)) {
+// max, cut: at most `max` tokens from the first `cut` characters (the detector's caps); the F4 memory passes Infinity
+function idTokens(text, max = 20, cut = 16000) {
+  const out = [], had = new Set(); if (!text) return out;
+  for (const raw of String(text).slice(0, cut).split(/[^A-Za-z0-9_.~-]+/)) {
     const t = raw.replace(/^[._~-]+|[._~-]+$/g, '');
     if (t.length < XID_MIN || t.length > XID_MAX) continue;
     const mixed = /[A-Za-z]/.test(t) && /[0-9]/.test(t), hex = /^[0-9a-f]{16,}$/i.test(t);
     if (!mixed && !hex) continue;
     const distinct = new Set(t.toLowerCase()).size;                 // not 'aaaaaaaaaaaa' or 'ababababab'
     if (distinct < 6 || distinct / t.length < 0.18) continue;
-    if (!out.includes(t)) out.push(t);
+    if (!had.has(t)) { had.add(t); out.push(t); }
   }
-  return out.slice(0, 20);
+  return out.slice(0, max);
 }
 const idValue = (v) => idTokens(v).length > 0;   // a single value (e.g. a cookie value) carries an id-like token
 function fnv1a(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); }

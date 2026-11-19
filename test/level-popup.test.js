@@ -9,7 +9,7 @@ const row = (html, id) => html.split(`data-group="${id}"`)[1].split('data-group=
 const top = (html) => html.split('data-group=')[0];
 
 test('the dial comes first: three positions, the chosen one pressed, one true sentence under it, and the rows that are not on it', () => {
-  for (const [level, says] of [['ask', /Nothing is deleted or newly blocked until you press/], ['balanced', /waits for your answer/], ['strong', /without asking/]]) {
+  for (const [level, says] of [['ask', /Nothing is deleted or newly blocked until you press/], ['balanced', /The rest waits for you/], ['strong', /without asking/]]) {
     const html = renderPopup(state({ level }), null);
     assert.ok(html.startsWith('<div class="c" data-level'), level);
     assert.deepEqual([...html.matchAll(/data-level-pick="(\w+)"[^>]*aria-pressed="(\w+)"/g)].map((m) => [m[1], m[2]]), [['ask', String(level === 'ask')], ['balanced', String(level === 'balanced')], ['strong', String(level === 'strong')]]);
@@ -52,9 +52,9 @@ test('after a press the row shows what was done, for ten minutes; an answer give
   assert.match(renderPopup(s(NOW, 1), { host: 'trk.example', blocked: null }), /removed by itself<\/span> trk\.example/);
 });
 test('the first-run line says the level it starts at', () => {
-  assert.match(renderPopup(state({ firstRun: true }), null), /On, at Strongest: trackers are blocked and cleaned without asking, also on sites you use\. This can sign you out, and wiped site data cannot be put back\. Pick Balanced to be asked first\./);
+  assert.match(renderPopup(state({ firstRun: true }), null), /On, at Strongest: trackers are blocked and cleaned without asking, also on sites you use\. This can sign you out, and wiped site data cannot be put back\. It reads what pages send, on this computer only\. Pick Balanced to be asked first\./);
   const bal = renderPopup(state({ firstRun: true, level: 'balanced' }), null);
-  assert.match(bal, /Anything new is asked first/); assert.equal(bal.includes('Tracker Cleaner is on, at Strongest'), false);
+  assert.match(bal, /The rest is asked first/); assert.equal(bal.includes('Tracker Cleaner is on, at Strongest'), false);
 });
 test('popup.js: the refusals of a press are said in plain words, and the count of a Clean now is shown', () => {
   const js = fs.readFileSync(path.join(__dirname, '../extension/popup.js'), 'utf8');

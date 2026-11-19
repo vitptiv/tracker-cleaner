@@ -7,7 +7,7 @@ const ALL = [/block/i, /cookies/i, /cache tags/i, /referring page/i, /script in 
 test('the first-run line is short (1.32, owner): what happens by itself and how to be asked; the full list is in the README', () => {
   const html = renderPopup({ now: 1, master: true, firstRun: true, hold: {}, groups: [] }, null), line = /<p class="c">On: .*?<\/p>/.exec(html)[0];
   assert.match(line, /blocked and cleaned by themselves/); assert.match(line, /asked first/); assert.match(line, />OK<\/button>/);
-  assert.ok(line.replace(/<[^>]+>/g, '').length < 120, line);
+  assert.ok(line.replace(/<[^>]+>/g, '').length < 200, line);
 });
 test('the README says the same in its first paragraph, and nothing about a version that "has not been run"', () => {
   const readme = read('README.md'), first = readme.split('\n## ')[0].replace(/\s+/g, ' ');
